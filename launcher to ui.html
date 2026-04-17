@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UI Launcher</title>
+
+<style>
+body {
+margin: 0;
+height: 100vh;
+display: flex;
+justify-content: center;
+align-items: center;
+background: linear-gradient(135deg, #1a1a1a, #2c3e50);
+font-family: Arial, sans-serif;
+color: white;
+}
+
+.wrapper {
+display: flex;
+gap: 20px;
+align-items: flex-start;
+}
+
+.panel {
+width: 260px;
+background: rgba(0,0,0,0.35);
+border-radius: 15px;
+padding: 20px;
+box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+.panel h2 {
+margin: 0 0 10px 0;
+font-size: 18px;
+letter-spacing: 2px;
+}
+
+.news h2 { color: #00ff88; }
+.warn h2 { color: #ff4d4d; }
+
+.panel p {
+font-size: 13px;
+line-height: 1.4;
+margin: 10px 0;
+color: #ddd;
+}
+
+.box {
+background: #111;
+padding: 40px;
+border-radius: 15px;
+text-align: center;
+box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+width: 340px;
+}
+
+h1 {
+margin-bottom: 20px;
+}
+
+.btn {
+display: block;
+margin: 12px 0;
+padding: 12px;
+background: #00ff88;
+color: black;
+border-radius: 8px;
+font-weight: bold;
+cursor: pointer;
+transition: 0.3s;
+}
+
+.btn:hover {
+background: #00cc6a;
+}
+
+.btn-link {
+display: inline-block;
+margin-top: 10px;
+padding: 10px 18px;
+background: #00ff88;
+color: black;
+border-radius: 8px;
+font-weight: bold;
+text-decoration: none;
+}
+
+.btn-link:hover {
+background: #00cc6a;
+}
+
+/* UI PREVIEWS */
+.ui-row {
+display: flex;
+gap: 20px;
+}
+
+.ui-box {
+width: 160px;
+background: rgba(0,0,0,0.35);
+border-radius: 15px;
+padding: 15px;
+text-align: center;
+box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+cursor: pointer;
+transition: 0.2s;
+}
+
+.ui-box:hover {
+transform: scale(1.05);
+}
+
+.ui-img {
+width: 100%;
+border-radius: 10px;
+margin-bottom: 8px;
+}
+
+.ui-text {
+font-size: 14px;
+color: white;
+text-shadow: 0 0 8px rgba(255,255,255,0.6);
+}
+
+.expand-text {
+text-align: center;
+font-size: 12px;
+color: #bbb;
+margin-top: 8px;
+text-shadow: 0 0 6px rgba(255,255,255,0.2);
+}
+
+/* OVERLAY */
+.overlay {
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: rgba(0,0,0,0.6);
+backdrop-filter: blur(10px);
+display: none;
+justify-content: center;
+align-items: center;
+z-index: 999;
+}
+
+.overlay img {
+max-width: 90%;
+max-height: 90%;
+border-radius: 10px;
+box-shadow: 0 0 25px rgba(0,0,0,0.6);
+}
+
+.close {
+position: absolute;
+top: 20px;
+right: 30px;
+font-size: 30px;
+cursor: pointer;
+color: white;
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrapper">
+
+<!-- LEFT WARNINGS -->
+<div class="panel warn">
+<h2>WARNINGS</h2>
+
+<p>worst time sim has been removed temporarily due to space constraints on the new ui</p>
+<p>i am aware only the gray and black backgrounds work on the new ui</p>
+<p>native keyboard locking in games is not avalible in the new ui</p>
+</div>
+
+<!-- CENTER -->
+<div style="display:flex; flex-direction:column; gap:20px;">
+
+<!-- REQUESTS -->
+<div class="panel">
+<h2>REQUESTS</h2>
+<p>requests can be submitted here</p>
+<a class="btn-link" href="https://forms.gle/o5YPunfDxoyvmUD3A" target="_blank">Open</a>
+</div>
+
+<!-- MAIN MENU -->
+<div class="box">
+<h1>Choose an Option</h1>
+
+<div class="btn" onclick="openSite('new')">New UI</div>
+<div class="btn" onclick="openSite('old')">Old UI</div>
+</div>
+
+<!-- UI PREVIEWS -->
+<div class="ui-row">
+
+<div onclick="expand('https://freesh11.github.io/website-html/Screenshot_1.png')">
+<div class="ui-box">
+<img class="ui-img" src="https://freesh11.github.io/website-html/Screenshot_1.png">
+<div class="ui-text">New UI</div>
+</div>
+</div>
+
+<div onclick="expand('https://freesh11.github.io/website-html/Screenshot_2.png')">
+<div class="ui-box">
+<img class="ui-img" src="https://freesh11.github.io/website-html/Screenshot_2.png">
+<div class="ui-text">Old UI</div>
+</div>
+</div>
+
+</div>
+
+<div class="expand-text">
+*click to expand*
+</div>
+
+</div>
+
+<!-- RIGHT NEWS -->
+<div class="panel news">
+<h2>NEWS</h2>
+
+<p>old ui now has keyboard and cursor locking in games, so you dont have to fullscreen every time you wanna play</p>
+<p>old ui has been reverted back 2 versions because it is more stable</p>
+<p>right now the new ui is well, new. so expect some bugs but i made it pretty functional for the full release</p>
+<p>opening into a new tab to load the game now does work in the new ui</p>
+</div>
+
+</div>
+
+<!-- OVERLAY -->
+<div class="overlay" id="overlay">
+<div class="close" onclick="closeOverlay()">×</div>
+<img id="overlayImg">
+</div>
+
+<script>
+function openSite(type) {
+const url = type === 'new'
+? "https://freesh11.github.io/website-html/Index.html"
+: "https://freesh11.github.io/website-html/old_ui";
+
+const win = window.open("about:blank", "_blank");
+
+win.document.write(`
+<!DOCTYPE html>
+<html>
+<head>
+<title>.</title>
+<style>
+body { margin:0; overflow:hidden; }
+iframe { width:100vw; height:100vh; border:none; }
+</style>
+</head>
+<body>
+<iframe src="${url}"></iframe>
+</body>
+</html>
+`);
+
+win.document.close();
+}
+
+function expand(img) {
+document.getElementById("overlayImg").src = img;
+document.getElementById("overlay").style.display = "flex";
+}
+
+function closeOverlay() {
+document.getElementById("overlay").style.display = "none";
+}
+</script>
+
+</body>
+</html>
