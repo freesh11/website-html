@@ -49,17 +49,7 @@ body{
   box-shadow:0 0 7px var(--accent,#00d4ff);
 }
 
-/* DESKTOP DEMO TEXT */
-#desktopDemo{
-  position:fixed;inset:0;bottom:60px;
-  display:flex;align-items:center;justify-content:center;
-  pointer-events:none;z-index:0;
-}
-#desktopDemoText{
-  font-size:clamp(32px,6vw,72px);font-weight:700;color:rgba(255,255,255,0.06);
-  letter-spacing:2px;font-family:"Segoe UI",sans-serif;text-align:center;
-  user-select:none;
-}
+
 
 /* SETTINGS PANEL */
 .settings-root{
@@ -104,14 +94,7 @@ body{
 }
 .opacity-label{font-size:12px;opacity:.7;min-width:36px;text-align:right;}
 
-/* DEMO WATERMARK */
-#demoWatermark{
-  position:fixed;bottom:70px;right:16px;z-index:9998;
-  background:rgba(30,30,30,0.72);backdrop-filter:blur(6px);
-  color:rgba(255,255,255,0.85);font-size:11px;font-family:"Segoe UI",sans-serif;
-  padding:4px 10px;border-radius:6px;letter-spacing:0.5px;
-  pointer-events:none;border:1px solid rgba(255,255,255,0.12);
-}
+
 
 /* START MENU */
 #start{
@@ -265,12 +248,12 @@ canvas.sparkline{width:100%!important;display:block;}
   <input class="startSearch" placeholder="Search apps, settings, documents..." />
   <div class="startSectionTitle">Pinned</div>
   <div class="pinnedGrid">
-    <div class="app" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8xLw=='),'Game 1')">&#x1F3AE; Game 1</div>
-    <div class="app" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8yLw=='),'Game 2')">&#x1F3AE; Game 2</div>
-    <div class="app" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8zLw=='),'Game 3')">&#x1F3AE; Game 3</div>
-    <div class="app" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi80Lw=='),'Game 4')">&#x1F3AE; Game 4</div>
+    <div class="app" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8xLw=='),'FNAF 1')">&#x1F3AE; FNAF 1</div>
+    <div class="app" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8yLw=='),'FNAF 2')">&#x1F3AE; FNAF 2</div>
+    <div class="app" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8zLw=='),'FNAF 3')">&#x1F3AE; FNAF 3</div>
+    <div class="app" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi80Lw=='),'FNAF 4')">&#x1F3AE; FNAF 4</div>
     <div class="app" onclick="openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvRWFnbGVyY3JhZnRYXzEuOF9XQVNNLUdDX09mZmxpbmVfRG93bmxvYWQuaHRtbA=='),'MC')">&#x26CF; Minecraft</div>
-    <div class="app" onclick="openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvZm5hZS5odG1s'),'Game 5')">&#x1F3AE; Game 5</div>
+    <div class="app" onclick="openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvZm5hZS5odG1s'),'FNAE')">&#x1F3AE; FNAE</div>
     <div class="app" onclick="openTaskManager()">&#x1F4CA; Task Manager</div>
     <div class="app" onclick="openCMD()">&#x2328; CMD</div>
     <div class="app" onclick="openSettings()">&#x2699; Settings</div>
@@ -282,11 +265,9 @@ canvas.sparkline{width:100%!important;display:block;}
   </div>
 </div>
 
-<!-- DESKTOP DEMO TEXT -->
-<div id="desktopDemo"><div id="desktopDemoText">demo 1.0934</div></div>
 
-<!-- DEMO WATERMARK -->
-<div id="demoWatermark">demo 1.0237</div>
+
+
 
 <!-- TASKBAR -->
 <div id="taskbar">
@@ -518,11 +499,6 @@ function openSettings() {
       document.body.style.backgroundAttachment = '';
       document.body.style.background = val;
     }
-    const isDefault = val === '#1a1a1a';
-    const demoEl = document.getElementById('desktopDemo');
-    const wmEl = document.getElementById('demoWatermark');
-    if (isDefault) { if(demoEl) demoEl.style.display='flex'; if(wmEl) wmEl.style.display=''; }
-    else { if(demoEl) demoEl.style.display='none'; if(wmEl) wmEl.style.display='none'; }
   }
 
   const currentBg = document.body.style.background || '#1a1a1a';
