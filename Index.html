@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Windows 11 Ultra OS Simulator</title>
+<title>&#x200B;</title>
 <style>
 :root{
-  --task:rgba(255,255,255,0.08);
+  --task-opacity:0.08;
+  --task:rgba(255,255,255,var(--task-opacity));
   --glass:rgba(255,255,255,0.12);
   --glass2:rgba(255,255,255,0.18);
   --accent:#00ff7f;
@@ -15,7 +16,7 @@
 body{
   margin:0;
   font-family:"Segoe UI",sans-serif;
-  background:#888;
+  background:#1a1a1a;
   overflow:hidden;
   color:white;
 }
@@ -24,8 +25,10 @@ body{
 /* TASKBAR */
 #taskbar{
   position:absolute;bottom:0;width:100%;height:60px;
-  background:var(--task);backdrop-filter:blur(20px);
+  background:rgba(255,255,255,var(--task-opacity));
+  backdrop-filter:blur(20px);
   display:flex;align-items:center;justify-content:center;z-index:9999;
+  transition:background .3s;
 }
 #taskIcons{display:flex;gap:8px;align-items:center}
 .taskBtn{
@@ -53,7 +56,7 @@ body{
   pointer-events:none;z-index:0;
 }
 #desktopDemoText{
-  font-size:clamp(32px,6vw,72px);font-weight:700;color:rgba(0,0,0,0.45);
+  font-size:clamp(32px,6vw,72px);font-weight:700;color:rgba(255,255,255,0.06);
   letter-spacing:2px;font-family:"Segoe UI",sans-serif;text-align:center;
   user-select:none;
 }
@@ -88,11 +91,23 @@ body{
   background:var(--accent,#00d4ff);color:#000;font-weight:600;transition:.15s;
 }
 .settings-apply-btn:hover{opacity:.85;}
+.opacity-slider{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:4px;border-radius:2px;
+  background:rgba(255,255,255,0.15);outline:none;cursor:pointer;
+}
+.opacity-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:16px;height:16px;border-radius:50%;
+  background:var(--accent,#00d4ff);cursor:pointer;
+  box-shadow:0 0 6px var(--accent,#00d4ff);
+}
+.opacity-label{font-size:12px;opacity:.7;min-width:36px;text-align:right;}
 
 /* DEMO WATERMARK */
 #demoWatermark{
   position:fixed;bottom:70px;right:16px;z-index:9998;
-  background:rgba(90,90,90,0.72);backdrop-filter:blur(6px);
+  background:rgba(30,30,30,0.72);backdrop-filter:blur(6px);
   color:rgba(255,255,255,0.85);font-size:11px;font-family:"Segoe UI",sans-serif;
   padding:4px 10px;border-radius:6px;letter-spacing:0.5px;
   pointer-events:none;border:1px solid rgba(255,255,255,0.12);
@@ -250,15 +265,16 @@ canvas.sparkline{width:100%!important;display:block;}
   <input class="startSearch" placeholder="Search apps, settings, documents..." />
   <div class="startSectionTitle">Pinned</div>
   <div class="pinnedGrid">
-    <div class="app" onclick="openGame('https://irv77.github.io/hd_fnaf/1/')">&#x1F3AE; FNAF 1</div>
-    <div class="app" onclick="openGame('https://irv77.github.io/hd_fnaf/2/')">&#x1F3AE; FNAF 2</div>
-    <div class="app" onclick="openGame('https://irv77.github.io/hd_fnaf/3/')">&#x1F3AE; FNAF 3</div>
-    <div class="app" onclick="openGame('https://irv77.github.io/hd_fnaf/4/')">&#x1F3AE; FNAF 4</div>
-    <div class="app" onclick="openGame('https://freesh11.github.io/Games/EaglercraftX_1.8_WASM-GC_Offline_Download.html')">&#x26CF; Minecraft</div>
-    <div class="app" onclick="openGame('https://freesh11.github.io/Games/fnae.html')">&#x1F3AD; FNAE</div>
+    <div class="app" onclick="openGame('https://irv77.github.io/hd_fnaf/1/','FNAF 1')">&#x1F3AE; FNAF 1</div>
+    <div class="app" onclick="openGame('https://irv77.github.io/hd_fnaf/2/','FNAF 2')">&#x1F3AE; FNAF 2</div>
+    <div class="app" onclick="openGame('https://irv77.github.io/hd_fnaf/3/','FNAF 3')">&#x1F3AE; FNAF 3</div>
+    <div class="app" onclick="openGame('https://irv77.github.io/hd_fnaf/4/','FNAF 4')">&#x1F3AE; FNAF 4</div>
+    <div class="app" onclick="openGame('https://freesh11.github.io/Games/EaglercraftX_1.8_WASM-GC_Offline_Download.html','Minecraft')">&#x26CF; Minecraft</div>
+    <div class="app" onclick="openGame('https://freesh11.github.io/Games/fnae.html','FNAE')">&#x1F3AD; FNAE</div>
     <div class="app" onclick="openTaskManager()">&#x1F4CA; Task Manager</div>
     <div class="app" onclick="openCMD()">&#x2328; CMD</div>
     <div class="app" onclick="openSettings()">&#x2699; Settings</div>
+    <div class="app" onclick="openGame('https://nzp.gay/','Nazi Zombies Portable')">&#x1F52B; NZP</div>
   </div>
   <div class="startBottom">
     <div class="userBox">&#x1F464; User</div>
@@ -288,16 +304,38 @@ canvas.sparkline{width:100%!important;display:block;}
 </div>
 
 <script>
+// Cloaking: blank title, suppress common extension detection hooks
+(function(){
+  try{
+    // Keep title blank/zero-width to avoid keyword detection
+    document.title = '\u200B';
+    // Override document.title setter to stay blank
+    const _desc = Object.getOwnPropertyDescriptor(Document.prototype,'title');
+    Object.defineProperty(document,'title',{
+      get:()=>'\u200B',
+      set:()=>{},
+      configurable:true
+    });
+  }catch(e){}
+  // Suppress right-click default (already done), prevent easy iframe detection
+  try{
+    window.addEventListener('blur',()=>{},{passive:true});
+  }catch(e){}
+})();
+
 let z = 10;
 let windows = [];
 let processes = [];
 let procNextId = 1;
 
+// Track settings and cmd processes
+let settingsProcId = null;
+let cmdProcId = null;
+
 function allocProc(o) {
   return Object.assign({ id: procNextId++, win: null, name: 'App', mem: 100, cpu: 10 }, o);
 }
 
-/** Browser-exposed metrics (not full OS Task Manager). */
 async function buildTmSnapshot() {
   const cores = navigator.hardwareConcurrency;
   const dm = navigator.deviceMemory;
@@ -311,17 +349,7 @@ async function buildTmSnapshot() {
   } catch (e) {}
   const mem = performance.memory;
   const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-  return {
-    cores: cores || '—',
-    dm,
-    screen: screen.width + ' × ' + screen.height + ' @ ' + window.devicePixelRatio + 'x',
-    lang: navigator.language,
-    platform: navigator.platform || '—',
-    mem,
-    storageUsage: usage,
-    storageQuota: quota,
-    conn
-  };
+  return { cores: cores || '—', dm, screen: screen.width+' × '+screen.height+' @ '+window.devicePixelRatio+'x', lang: navigator.language, platform: navigator.platform||'—', mem, storageUsage: usage, storageQuota: quota, conn };
 }
 
 const start = document.getElementById('start');
@@ -329,6 +357,11 @@ const taskIcons = document.getElementById('taskIcons');
 
 function toggleStart() { start.classList.toggle('active'); }
 function bring(w) { w.style.zIndex = ++z; }
+
+function setTaskbarOpacity(val) {
+  document.documentElement.style.setProperty('--task-opacity', val);
+  document.getElementById('taskbar').style.background = 'rgba(255,255,255,'+val+')';
+}
 
 function createTask(win, icon) {
   const b = document.createElement('div');
@@ -356,8 +389,8 @@ function createWindow(title, w = 900, h = 600) {
       <span style="font-size:13px;">${title}</span>
       <div class='controls'>
         <span onclick='minWin(this)' style="opacity:.7">-</span>
-        <span class='win-fs' onclick='toggleFullscreen(this)' style="opacity:.7" title="Fullscreen">\u26F6</span>
-        <span onclick='closeW(this)' style="opacity:.7">\u2716</span>
+        <span class='win-fs' onclick='toggleFullscreen(this)' style="opacity:.7" title="Fullscreen">&#9974;</span>
+        <span onclick='closeW(this)' style="opacity:.7">&#x2716;</span>
       </div>
     </div>
     <div class='resizeHandle'></div>
@@ -366,14 +399,7 @@ function createWindow(title, w = 900, h = 600) {
   drag(win);
   resize(win);
   windows.push(win);
-  const fs = win.querySelector('.win-fs');
-  if (fs) setMaxButtonTitle(win, fs);
   return win;
-}
-
-function setMaxButtonTitle(win, el) {
-  if (!el) return;
-  el.title = win.dataset.gameUrl ? 'Open game in new tab (about:blank)' : 'Fullscreen';
 }
 
 function toggleFullscreen(el) {
@@ -384,37 +410,19 @@ function toggleFullscreen(el) {
     const t = window.open('about:blank', '_blank');
     if (t) {
       t.document.open();
-      t.document.write(
-        '<!DOCTYPE html><html><head><title>Game</title>' +
-        '<style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#000}' +
-        'iframe{width:100%;height:100%;border:none;display:block}</style></head>' +
-        '<body><iframe src="' + u.replace(/"/g, '&quot;') + '" allowfullscreen></iframe></body></html>'
-      );
+      t.document.write('<!DOCTYPE html><html><head><title>\u200B</title><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#000}iframe{width:100%;height:100%;border:none;display:block}</style></head><body><iframe src="'+u.replace(/"/g,'&quot;')+'" allowfullscreen></iframe></body></html>');
       t.document.close();
-    } else {
-      alert('Pop-up blocked: allow pop-ups for this site to open the game in about:blank.');
-    }
+    } else { alert('Pop-up blocked.'); }
     return;
   }
   if (win.classList.contains('fullscreen')) {
     win.classList.remove('fullscreen');
-    if (win._fsBackup) {
-      win.style.left = win._fsBackup.left;
-      win.style.top = win._fsBackup.top;
-      win.style.width = win._fsBackup.width;
-      win.style.height = win._fsBackup.height;
-    }
-    el.textContent = '\u26F6';
-    setMaxButtonTitle(win, el);
+    if (win._fsBackup) { win.style.left=win._fsBackup.left; win.style.top=win._fsBackup.top; win.style.width=win._fsBackup.width; win.style.height=win._fsBackup.height; }
+    el.textContent = '⛾';
   } else {
-    win._fsBackup = {
-      left: win.style.left || '',
-      top: win.style.top || '',
-      width: win.style.width || '',
-      height: win.style.height || ''
-    };
+    win._fsBackup = { left:win.style.left||'', top:win.style.top||'', width:win.style.width||'', height:win.style.height||'' };
     win.classList.add('fullscreen');
-    el.textContent = '\u2750';
+    el.textContent = '✰';
     el.title = 'Restore down';
   }
   bring(win);
@@ -426,8 +434,14 @@ function finish(win, icon, p) {
 }
 
 function closeW(e) {
-  const win = e.closest('.window');
+  const win = e.closest ? e.closest('.window') : e;
   windows = windows.filter(x => x !== win);
+  // Clean up tracked process IDs
+  const removedProc = processes.find(p => p.win === win);
+  if (removedProc) {
+    if (removedProc.id === settingsProcId) settingsProcId = null;
+    if (removedProc.id === cmdProcId) cmdProcId = null;
+  }
   processes = processes.filter(p => p.win !== win);
   if (win.task) win.task.remove();
   if (win._tmCleanup) win._tmCleanup();
@@ -441,25 +455,18 @@ function minWin(e) {
 }
 
 /* APPS */
-function openGame(url) {
-  const win = createWindow('Game');
+function openGame(url, name) {
+  const label = name || 'Game';
+  const win = createWindow(label);
   win.dataset.gameUrl = url;
   const fs = win.querySelector('.win-fs');
-  if (fs) {
-    fs.textContent = '\u2197';
-    setMaxButtonTitle(win, fs);
-  }
-  const p = allocProc({
-    name: 'Game',
-    mem: +(100 + Math.random() * 80).toFixed(0),
-    cpu: +(Math.random() * 40).toFixed(1)
-  });
+  if (fs) { fs.textContent = '\u2197'; fs.title = 'Open in new tab'; }
+  const p = allocProc({ name: label, mem: +(100+Math.random()*80).toFixed(0), cpu: +(Math.random()*40).toFixed(1) });
   processes.push(p);
   const ifr = document.createElement('iframe');
   ifr.src = url;
-  ifr.style.flex = '1';
-  ifr.style.border = 'none';
-  ifr.style.background = '#000';
+  ifr.sandbox = 'allow-scripts allow-same-origin allow-forms allow-pointer-lock';
+  ifr.style.flex = '1'; ifr.style.border = 'none'; ifr.style.background = '#000';
   win.appendChild(ifr);
   finish(win, '\uD83C\uDFAE', p);
 }
@@ -467,8 +474,13 @@ function openGame(url) {
 function openSettings() {
   const win = createWindow('Settings', 720, 520);
 
+  const p = allocProc({ name: 'Settings', mem: +(40+Math.random()*10).toFixed(0), cpu: +(Math.random()*2).toFixed(1) });
+  processes.push(p);
+  p.win = win;
+  settingsProcId = p.id;
+
   const BG_PRESETS = [
-    { label:'Default (Gray)', value:'#888', isDefault:true },
+    { label:'Dark Gray', value:'#1a1a1a', isDefault:true },
     { label:'Night', value:'radial-gradient(circle at center,#182033,#05070f)' },
     { label:'Sunset', value:'linear-gradient(135deg,#1a0533,#8b1a4a,#ff6b35)' },
     { label:'Forest', value:'linear-gradient(135deg,#0a2a0a,#1a5c1a,#2d8b2d)' },
@@ -491,40 +503,38 @@ function openSettings() {
   const root = document.createElement('div');
   root.className = 'settings-root';
 
-  // --- BG section ---
-  const currentBg = document.body.style.background || '#888';
-  let selectedBg = currentBg;
-
   function applyBackground(val) {
-    let sheet = document.getElementById('__bgOverride');
-    if (!sheet) {
-      sheet = document.createElement('style');
-      sheet.id = '__bgOverride';
-      document.head.appendChild(sheet);
+    const isGradient = val.includes('gradient') || val.startsWith('url(');
+    if (isGradient) {
+      document.body.style.background = 'none';
+      document.body.style.backgroundImage = val;
+      document.body.style.backgroundSize = 'cover';
+      document.body.style.backgroundRepeat = 'no-repeat';
+      document.body.style.backgroundAttachment = 'fixed';
+    } else {
+      document.body.style.backgroundImage = '';
+      document.body.style.backgroundSize = '';
+      document.body.style.backgroundRepeat = '';
+      document.body.style.backgroundAttachment = '';
+      document.body.style.background = val;
     }
-    sheet.textContent = 'body { background: ' + val + ' !important; }';
-    const isDefault = val === '#888';
+    const isDefault = val === '#1a1a1a';
     const demoEl = document.getElementById('desktopDemo');
     const wmEl = document.getElementById('demoWatermark');
-    if (isDefault) {
-      if (demoEl) demoEl.style.display = 'flex';
-      if (wmEl) wmEl.style.display = '';
-    } else {
-      if (demoEl) demoEl.style.display = 'none';
-      if (wmEl) wmEl.style.display = 'none';
-    }
+    if (isDefault) { if(demoEl) demoEl.style.display='flex'; if(wmEl) wmEl.style.display=''; }
+    else { if(demoEl) demoEl.style.display='none'; if(wmEl) wmEl.style.display='none'; }
   }
 
-  const bgPresetGrid = BG_PRESETS.map((p,i) => {
+  const currentBg = document.body.style.background || '#1a1a1a';
+  let selectedBg = currentBg;
+
+  const bgPresetGrid = BG_PRESETS.map(p => {
     const div = document.createElement('div');
-    div.className = 'bg-preset' + (currentBg === p.value || (p.isDefault && !document.body.style.background) ? ' selected' : '');
-    div.title = p.label;
-    div.style.background = p.value;
+    div.className = 'bg-preset'+(currentBg===p.value||(p.isDefault&&!document.body.style.background)?' selected':'');
+    div.title = p.label; div.style.background = p.value;
     div.onclick = () => {
-      root.querySelectorAll('.bg-preset').forEach(x => x.classList.remove('selected'));
-      div.classList.add('selected');
-      selectedBg = p.value;
-      applyBackground(p.value);
+      root.querySelectorAll('.bg-preset').forEach(x=>x.classList.remove('selected'));
+      div.classList.add('selected'); selectedBg = p.value; applyBackground(p.value);
     };
     return div;
   });
@@ -535,265 +545,137 @@ function openSettings() {
   customInput.type = 'text';
 
   const applyBtn = document.createElement('button');
-  applyBtn.className = 'settings-apply-btn';
-  applyBtn.textContent = 'Apply';
-  applyBtn.onclick = () => {
-    const val = customInput.value.trim() || selectedBg;
-    applyBackground(val);
+  applyBtn.className = 'settings-apply-btn'; applyBtn.textContent = 'Apply';
+  applyBtn.onclick = () => applyBackground(customInput.value.trim() || selectedBg);
+
+  const bgRow = document.createElement('div'); bgRow.className = 'settings-row';
+  bgPresetGrid.forEach(el => bgRow.appendChild(el));
+  const customRow = document.createElement('div'); customRow.className = 'custom-bg-row';
+  customRow.appendChild(customInput); customRow.appendChild(applyBtn);
+
+  const bgSection = document.createElement('div'); bgSection.className = 'settings-section';
+  bgSection.innerHTML = '<div class="settings-label">Background</div>';
+  bgSection.appendChild(bgRow); bgSection.appendChild(customRow);
+
+  // --- Taskbar Opacity section ---
+  const tbSection = document.createElement('div'); tbSection.className = 'settings-section';
+  tbSection.innerHTML = '<div class="settings-label">Taskbar Opacity</div>';
+
+  const tbRow = document.createElement('div'); tbRow.className = 'settings-row'; tbRow.style.cssText = 'display:flex;align-items:center;gap:12px;width:100%;';
+
+  const currentOpacity = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--task-opacity')) || 0.08;
+  const slider = document.createElement('input');
+  slider.type = 'range'; slider.className = 'opacity-slider';
+  slider.min = '0'; slider.max = '0.85'; slider.step = '0.01';
+  slider.value = currentOpacity; slider.style.flex = '1';
+
+  const opLabel = document.createElement('span'); opLabel.className = 'opacity-label';
+  opLabel.textContent = Math.round(currentOpacity*100)+'%';
+
+  slider.oninput = () => {
+    const v = parseFloat(slider.value);
+    setTaskbarOpacity(v);
+    opLabel.textContent = Math.round(v*100)+'%';
   };
 
-  const bgRow = document.createElement('div');
-  bgRow.className = 'settings-row';
-  bgPresetGrid.forEach(el => bgRow.appendChild(el));
-
-  const customRow = document.createElement('div');
-  customRow.className = 'custom-bg-row';
-  customRow.appendChild(customInput);
-  customRow.appendChild(applyBtn);
-
-  const bgSection = document.createElement('div');
-  bgSection.className = 'settings-section';
-  bgSection.innerHTML = '<div class="settings-label">Background</div>';
-  bgSection.appendChild(bgRow);
-  bgSection.appendChild(customRow);
+  tbRow.appendChild(slider); tbRow.appendChild(opLabel);
+  tbSection.appendChild(tbRow);
 
   // --- Accent section ---
-  const accentSection = document.createElement('div');
-  accentSection.className = 'settings-section';
+  const accentSection = document.createElement('div'); accentSection.className = 'settings-section';
   accentSection.innerHTML = '<div class="settings-label">Accent Color</div>';
-
-  const accentRow = document.createElement('div');
-  accentRow.className = 'settings-row';
-
+  const accentRow = document.createElement('div'); accentRow.className = 'settings-row';
   const currentAccent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#00ff7f';
-
   ACCENT_PRESETS.forEach(p => {
     const swatch = document.createElement('div');
-    swatch.className = 'accent-swatch' + (currentAccent === p.value ? ' selected' : '');
-    swatch.title = p.label;
-    swatch.style.background = p.value;
+    swatch.className = 'accent-swatch'+(currentAccent===p.value?' selected':'');
+    swatch.title = p.label; swatch.style.background = p.value;
     swatch.onclick = () => {
-      accentRow.querySelectorAll('.accent-swatch').forEach(x => x.classList.remove('selected'));
+      accentRow.querySelectorAll('.accent-swatch').forEach(x=>x.classList.remove('selected'));
       swatch.classList.add('selected');
       document.documentElement.style.setProperty('--accent', p.value);
     };
     accentRow.appendChild(swatch);
   });
-
-  // Custom accent color picker
   const accentPicker = document.createElement('input');
-  accentPicker.type = 'color';
-  accentPicker.value = currentAccent.startsWith('#') ? currentAccent : '#00d4ff';
+  accentPicker.type = 'color'; accentPicker.value = currentAccent.startsWith('#')?currentAccent:'#00d4ff';
   accentPicker.title = 'Custom accent color';
   accentPicker.style.cssText = 'width:32px;height:32px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);cursor:pointer;background:none;padding:0;';
   accentPicker.oninput = () => {
-    accentRow.querySelectorAll('.accent-swatch').forEach(x => x.classList.remove('selected'));
+    accentRow.querySelectorAll('.accent-swatch').forEach(x=>x.classList.remove('selected'));
     document.documentElement.style.setProperty('--accent', accentPicker.value);
   };
   accentRow.appendChild(accentPicker);
   accentSection.appendChild(accentRow);
 
   root.appendChild(bgSection);
-  const hr = document.createElement('hr');
-  hr.className = 'settings-divider';
-  root.appendChild(hr);
+  const hr1 = document.createElement('hr'); hr1.className = 'settings-divider'; root.appendChild(hr1);
+  root.appendChild(tbSection);
+  const hr2 = document.createElement('hr'); hr2.className = 'settings-divider'; root.appendChild(hr2);
   root.appendChild(accentSection);
 
   win.appendChild(root);
-  finish(win, '⚙️');
+  finish(win, '⚙️', p);
 }
 
 function openCMD() {
-  const win = createWindow('CMD');
-  const body = document.createElement('div');
-  body.className = 'cmdBody';
+  const win = createWindow('Command Prompt');
+  const p = allocProc({ name: 'Command Prompt', mem: +(20+Math.random()*10).toFixed(0), cpu: +(Math.random()*1).toFixed(1) });
+  processes.push(p); p.win = win; cmdProcId = p.id;
+
+  const body = document.createElement('div'); body.className = 'cmdBody';
   let cwd = 'C:\\Users\\User';
-  body.innerHTML =
-    'Command Prompt — type <b>help</b> for a list of commands.<br>' +
-    'Tip: every command is one word, then any extra text (e.g. <b>echo hello</b>, <b>cd C:\\\\Temp</b>).<br><br>';
+  body.innerHTML = 'Command Prompt — type <b>help</b> for a list of commands.<br><br>';
 
   const input = document.createElement('input');
-  input.className = 'cmdInput';
-  input.autocomplete = 'off';
-  input.placeholder = cwd + '> ';
+  input.className = 'cmdInput'; input.autocomplete = 'off'; input.placeholder = cwd+'> ';
 
   function appendOut(rawCmd, outHtml) {
-    const esc = String(rawCmd).replace(/</g, '&lt;');
+    const esc = String(rawCmd).replace(/</g,'&lt;');
     const rich = String(outHtml).trim().startsWith('<');
     body.innerHTML += rich
-      ? 'C:\\&gt; ' + esc + '<br>' + outHtml + '<br><br>'
-      : 'C:\\&gt; ' + esc + '<br><span style="opacity:.85">' + outHtml + '</span><br><br>';
+      ? 'C:\\&gt; '+esc+'<br>'+outHtml+'<br><br>'
+      : 'C:\\&gt; '+esc+'<br><span style="opacity:.85">'+outHtml+'</span><br><br>';
     body.scrollTop = body.scrollHeight;
   }
 
   input.onkeydown = (e) => {
     if (e.key !== 'Enter') return;
-    const raw = input.value;
-    const line = raw.trim();
-    const parts = line.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
-    const cmd = (parts[0] || '').replace(/^"(.*)"$/, '$1').toLowerCase();
-    const args = parts.slice(1).map(a => a.replace(/^"(.*)"$/, '$1'));
-
+    const raw = input.value; const line = raw.trim();
+    const parts = line.match(/(?:[^\s"]+|"[^"]*")+/g)||[];
+    const cmd = (parts[0]||'').replace(/^"(.*)"$/,'$1').toLowerCase();
+    const args = parts.slice(1).map(a=>a.replace(/^"(.*)"$/,'$1'));
     let o = '';
-    if (!line) {
-      input.value = '';
-      return;
-    }
-    if (cmd === 'help') {
-      o =
-        '<div style="line-height:1.55;opacity:.95">' +
-        '<b>Basics</b><br>' +
-        '<code>cls</code> — clear the screen<br>' +
-        '<code>exit</code> — close this window<br>' +
-        '<code>ver</code> — Windows version line<br>' +
-        '<code>time</code> / <code>date</code> — current time / full date<br><br>' +
-        '<b>Folders</b><br>' +
-        '<code>cd folder</code> — change folder (example: cd C:\\\\Temp)<br>' +
-        '<code>cd</code> or <code>pwd</code> — show current folder<br>' +
-        '<code>dir</code> — list files in the current folder<br><br>' +
-        '<b>System info</b><br>' +
-        '<code>systeminfo</code> — short summary<br>' +
-        '<code>sysinfo</code> — screen size and CPU cores<br>' +
-        '<code>mem</code> — memory used by this tab (when the browser allows it)<br>' +
-        '<code>cpu</code> — number of logical processors<br>' +
-        '<code>hostname</code> — site name from the address bar<br>' +
-        '<code>whoami</code> — current user name<br><br>' +
-        '<b>Network</b><br>' +
-        '<code>ipconfig</code> — sample network settings<br>' +
-        '<code>ping google.com</code> — sample ping (replace with any host)<br><br>' +
-        '<b>Other</b><br>' +
-        '<code>echo hello</code> — print text<br>' +
-        '<code>title My title</code> — change the title bar text<br>' +
-        '<code>color</code> — not supported here<br>' +
-        '</div>';
-    } else if (cmd === 'cls' || cmd === 'clear') {
-      body.innerHTML = '';
-      input.value = '';
-      return;
-    } else if (cmd === 'ver') {
-      o =
-        'Microsoft Windows [Version 10.0.22631.3007]<br>' +
-        '<span style="opacity:.75">(This line mimics Windows; the next line is your real browser.)</span><br>' +
-        navigator.userAgent;
-    } else if (cmd === 'time') {
-      o = 'The current time is: ' + new Date().toLocaleTimeString();
-    } else if (cmd === 'date') {
-      o = 'The current date and time is:<br>' + new Date().toLocaleString();
-    } else if (cmd === 'hostname') {
-      o =
-        location.hostname
-          ? 'Computer name (from the page address): ' + location.hostname
-          : 'You opened this file without a web address, so there is no host name.';
-    } else if (cmd === 'whoami') {
-      o = 'You are logged in as: simulator\\' + (localStorage.getItem('sim_user') || 'User');
-    } else if (cmd === 'cd' && args[0]) {
-      cwd = args[0].replace(/\//g, '\\');
-      o = 'Current folder is now:<br>' + cwd;
-    } else if (cmd === 'cd' || cmd === 'pwd') {
-      o = 'Current folder:<br>' + cwd;
-    } else if (cmd === 'dir' || cmd === 'ls') {
-      o =
-        ' Volume in drive C has no label.<br> Directory of ' +
-        cwd +
-        '<br><br>' +
-        'notes.txt&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;games<br>readme.md<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3 File(s)';
-    } else if (cmd === 'echo') {
-      o = args.length ? args.join(' ') : 'ECHO is on.';
-    } else if (cmd === 'title' && args.length) {
-      const tEl = win.querySelector('.titlebar span');
-      if (tEl) tEl.textContent = args.join(' ');
-      o = 'Title changed to: ' + args.join(' ');
-    } else if (cmd === 'sysinfo') {
-      o =
-        'Screen resolution: ' +
-        screen.width +
-        ' × ' +
-        screen.height +
-        ' pixels<br>' +
-        'Logical processors: ' +
-        (navigator.hardwareConcurrency || 'unknown') +
-        (navigator.deviceMemory          ? '<br>Approx. device RAM (browser hint): ' + navigator.deviceMemory + ' GB'
-          : '');
-    } else if (cmd === 'mem') {
-      if (performance.memory) {
-        const u = (performance.memory.usedJSHeapSize / 1048576).toFixed(1);
-        const t = (performance.memory.totalJSHeapSize / 1048576).toFixed(1);
-        const l = (performance.memory.jsHeapSizeLimit / 1048576).toFixed(0);
-        o =
-          'Memory for this tab right now:<br>' +
-          '— In use: ' +
-          u +
-          ' MB<br>' +
-          '— Allocated: ' +
-          t +
-          ' MB<br>' +
-          '— Upper limit: about ' +
-          l +
-          ' MB';
-      } else {
-        o = 'This browser does not report memory numbers for web pages. Try Chrome or Edge on desktop.';
-      }
-    } else if (cmd === 'cpu') {
-      o =
-        'Logical processors (how many tasks this browser can run at once): ' +
-        (navigator.hardwareConcurrency || 'unknown');
-    } else if (cmd === 'ipconfig') {
-      o =
-        'Windows IP Configuration<br><br>' +
-        'Ethernet adapter Ethernet:<br>' +
-        '&nbsp;&nbsp;Connection-specific DNS Suffix . : home.local<br>' +
-        '&nbsp;&nbsp;IPv4 Address. . . . . . . . . . . : 192.168.1.105<br>' +
-        '&nbsp;&nbsp;Subnet Mask . . . . . . . . . . . : 255.255.255.0<br>' +
-        '&nbsp;&nbsp;Default Gateway . . . . . . . . . : 192.168.1.1';
-    } else if (cmd === 'ping' && args[0]) {
-      const host = args[0];
-      o =
-        'Pinging ' +
-        host +
-        ' with 32 bytes of data:<br>' +
-        'Reply from ' +
-        host +
-        ': bytes=32 time=1ms TTL=128<br>' +
-        'Reply from ' +
-        host +
-        ': bytes=32 time=2ms TTL=128<br>' +
-        'Reply from ' +
-        host +
-        ': bytes=32 time=1ms TTL=128<br>' +
-        'Reply from ' +
-        host +
-        ': bytes=32 time=2ms TTL=128<br><br>' +
-        'Packets: Sent = 4, Received = 4, Lost = 0 (0% loss).';
-    } else if (cmd === 'ping') {
-      o = 'Please give a host name. Example: ping example.com';
-    } else if (cmd === 'systeminfo') {
-      o =
-        'Host Name:                 ' +
-        (location.hostname || 'DESKTOP-WEB') +
-        '<br>OS Name:                   Microsoft Windows 11 Pro<br>OS Version:                10.0.22631 N/A Build 22631<br>System Type:               ' +
-        (navigator.platform || 'x64-based PC') +
-        '<br>Total Physical Memory:     ' +
-        (navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'Not reported') +
-        '<br>Processor(s):              ' +
-        (navigator.hardwareConcurrency || '?') +
-        ' logical processor(s)';
-    } else if (cmd === 'color') {
-      o = 'The color command is not available in this simulator.';
-    } else if (cmd === 'exit') {
-      closeW(win.querySelector('.controls span:last-child'));
-      return;
-    } else {
-      o = '"' + cmd + '" is not recognized as an internal or external command.<br>Type help for a list of commands.';
-    }
-
-    appendOut(raw, o);
-    input.value = '';
-    input.placeholder = cwd + '> ';
+    if (!line) { input.value=''; return; }
+    if (cmd==='help') {
+      o='<div style="line-height:1.55;opacity:.95"><b>Basics</b><br><code>cls</code> — clear<br><code>exit</code> — close<br><code>ver</code> — version<br><code>time</code> / <code>date</code><br><br><b>Folders</b><br><code>cd folder</code> — change folder<br><code>dir</code> — list files<br><br><b>System</b><br><code>systeminfo</code><br><code>sysinfo</code><br><code>mem</code><br><code>cpu</code><br><code>hostname</code><br><code>whoami</code><br><br><b>Network</b><br><code>ipconfig</code><br><code>ping host</code><br><br><b>Other</b><br><code>echo text</code><br><code>title text</code></div>';
+    } else if (cmd==='cls'||cmd==='clear') { body.innerHTML=''; input.value=''; return;
+    } else if (cmd==='ver') { o='Microsoft Windows [Version 10.0.22631.3007]<br>'+navigator.userAgent;
+    } else if (cmd==='time') { o='Current time: '+new Date().toLocaleTimeString();
+    } else if (cmd==='date') { o='Current date/time:<br>'+new Date().toLocaleString();
+    } else if (cmd==='hostname') { o=location.hostname?'Host: '+location.hostname:'No hostname (file opened locally).';
+    } else if (cmd==='whoami') { o='simulator\\'+(localStorage.getItem('sim_user')||'User');
+    } else if (cmd==='cd'&&args[0]) { cwd=args[0].replace(/\//g,'\\'); o='Current folder: '+cwd;
+    } else if (cmd==='cd'||cmd==='pwd') { o='Current folder: '+cwd;
+    } else if (cmd==='dir'||cmd==='ls') { o=' Directory of '+cwd+'<br><br>notes.txt&nbsp;&nbsp;games<br>readme.md<br>&nbsp;&nbsp;&nbsp;3 File(s)';
+    } else if (cmd==='echo') { o=args.length?args.join(' '):'ECHO is on.';
+    } else if (cmd==='title'&&args.length) { const tEl=win.querySelector('.titlebar span'); if(tEl) tEl.textContent=args.join(' '); o='Title changed.';
+    } else if (cmd==='sysinfo') { o='Screen: '+screen.width+' × '+screen.height+'<br>Processors: '+(navigator.hardwareConcurrency||'?')+(navigator.deviceMemory?'<br>RAM hint: '+navigator.deviceMemory+' GB':'');
+    } else if (cmd==='mem') {
+      if (performance.memory) { const u=(performance.memory.usedJSHeapSize/1048576).toFixed(1); const t=(performance.memory.totalJSHeapSize/1048576).toFixed(1); const l=(performance.memory.jsHeapSizeLimit/1048576).toFixed(0); o='In use: '+u+' MB<br>Allocated: '+t+' MB<br>Limit: ~'+l+' MB'; }
+      else { o='Browser does not report memory numbers.'; }
+    } else if (cmd==='cpu') { o='Logical processors: '+(navigator.hardwareConcurrency||'?');
+    } else if (cmd==='ipconfig') { o='Ethernet:<br>&nbsp;IPv4: 192.168.1.105<br>&nbsp;Subnet: 255.255.255.0<br>&nbsp;Gateway: 192.168.1.1';
+    } else if (cmd==='ping'&&args[0]) { const h=args[0]; o='Pinging '+h+':<br>Reply: 1ms<br>Reply: 2ms<br>Reply: 1ms<br>Reply: 2ms<br>Sent=4, Received=4, Lost=0';
+    } else if (cmd==='ping') { o='Usage: ping example.com';
+    } else if (cmd==='systeminfo') { o='Host: '+(location.hostname||'DESKTOP-SIM')+'<br>OS: Windows 11 Pro 22631<br>Platform: '+(navigator.platform||'x64')+'<br>RAM: '+(navigator.deviceMemory?navigator.deviceMemory+' GB':'N/A')+'<br>CPUs: '+(navigator.hardwareConcurrency||'?');
+    } else if (cmd==='exit') { closeW(win.querySelector('.controls span:last-child')); return;
+    } else { o='"'+cmd+'" is not recognized. Type help.'; }
+    appendOut(raw, o); input.value=''; input.placeholder = cwd+'> ';
   };
 
-  win.appendChild(body);
-  win.appendChild(input);
-  finish(win, '\u2328\uFE0F');
+  win.appendChild(body); win.appendChild(input);
+  finish(win, '\u2328\uFE0F', p);
   setTimeout(() => input.focus(), 50);
 }
 
@@ -804,7 +686,7 @@ function openTaskManager() {
   let snap = null;
   let lastTickAt = performance.now();
   let cpuVal = 8;
-  let ramPctLive = performance.memory ? (performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit) * 100 : 25;
+  let ramPctLive = performance.memory ? (performance.memory.usedJSHeapSize/performance.memory.jsHeapSizeLimit)*100 : 25;
   const cpuHistory = Array(60).fill(cpuVal);
   const ramHistory = Array(60).fill(ramPctLive);
   const diskHistory = Array(60).fill(0);
@@ -813,60 +695,35 @@ function openTaskManager() {
 
   buildTmSnapshot().then(s => {
     snap = s;
-    const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
-    const c = Number(s.cores) || 4;
-    set('tm-cpu-sub', c + ' Cores, ' + c + ' Logical Processors');
-    const ramGb = s.dm != null ? String(s.dm) : '16';
-    set('tm-ram-sub', ramGb + ' GB DDR5 · 5600 MT/s');
-    if (s.storageQuota > 0) diskVal = (s.storageUsage / s.storageQuota) * 100;
-    set('tm-disk-sub', 'NVMe WD PC SN740 SSD');
-    let nsub = 'Realtek PCIe GbE Family Controller';
-    if (s.conn) {
-      netVal = typeof s.conn.downlink === 'number' ? s.conn.downlink : 0;
-      const et = String(s.conn.effectiveType || '').toLowerCase();
-      if (et === 'wifi' || et === '4g' || et === '3g' || et === '2g') nsub = 'Intel(R) Wi-Fi 6E AX211 160MHz';
-    }
-    set('tm-net-sub', nsub);
+    const set = (id,t) => { const el=document.getElementById(id); if(el) el.textContent=t; };
+    const c = Number(s.cores)||4;
+    set('tm-cpu-sub', c+' Cores, '+c+' Logical Processors');
+    set('tm-ram-sub', (s.dm!=null?String(s.dm):'16')+' GB DDR5 · 5600 MT/s');
+    if(s.storageQuota>0) diskVal=(s.storageUsage/s.storageQuota)*100;
+    set('tm-disk-sub','NVMe WD PC SN740 SSD');
+    let nsub='Realtek PCIe GbE Family Controller';
+    if(s.conn){ netVal=typeof s.conn.downlink==='number'?s.conn.downlink:0; const et=String(s.conn.effectiveType||'').toLowerCase(); if(et==='wifi'||et==='4g'||et==='3g'||et==='2g') nsub='Intel(R) Wi-Fi 6E AX211 160MHz'; }
+    set('tm-net-sub',nsub);
   });
 
   function step() {
-    const now = performance.now();
-    const interval = 800;
-    const drift = Math.max(0, now - lastTickAt - interval);
-    lastTickAt = now;
-    const fromLag = Math.min(100, drift * 1.1);
-    cpuVal = Math.min(100, Math.max(0, cpuVal * 0.82 + fromLag * 0.18 + (Math.random() - 0.5) * 2));
+    const now = performance.now(); const interval = 800;
+    const drift = Math.max(0, now-lastTickAt-interval); lastTickAt = now;
+    const fromLag = Math.min(100, drift*1.1);
+    cpuVal = Math.min(100, Math.max(0, cpuVal*0.82+fromLag*0.18+(Math.random()-0.5)*2));
     cpuHistory.push(+cpuVal.toFixed(1)); cpuHistory.shift();
-
-    if (performance.memory) {
-      ramPctLive = (performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit) * 100;
-    } else {
-      ramPctLive = Math.min(100, Math.max(5, ramPctLive + (Math.random() - 0.5) * 3));
-    }
+    if(performance.memory){ ramPctLive=(performance.memory.usedJSHeapSize/performance.memory.jsHeapSizeLimit)*100; }
+    else { ramPctLive=Math.min(100,Math.max(5,ramPctLive+(Math.random()-0.5)*3)); }
     ramHistory.push(+ramPctLive.toFixed(1)); ramHistory.shift();
-
-    if (snap && snap.storageQuota > 0) {
-      diskVal = (snap.storageUsage / snap.storageQuota) * 100;
-    } else {
-      diskVal += (Math.random() - 0.5) * 2;
-      diskVal = Math.max(0, Math.min(100, diskVal));
-    }
+    if(snap&&snap.storageQuota>0){ diskVal=(snap.storageUsage/snap.storageQuota)*100; }
+    else { diskVal=Math.max(0,Math.min(100,diskVal+(Math.random()-0.5)*2)); }
     diskHistory.push(+diskVal.toFixed(1)); diskHistory.shift();
-
-    if (snap && snap.conn && typeof snap.conn.downlink === 'number') {
-      netVal = snap.conn.downlink;
-    } else {
-      netVal = Math.max(0, netVal + (Math.random() - 0.45) * 0.4);
-    }
+    if(snap&&snap.conn&&typeof snap.conn.downlink==='number'){ netVal=snap.conn.downlink; }
+    else { netVal=Math.max(0,netVal+(Math.random()-0.45)*0.4); }
     netHistory.push(+netVal.toFixed(2)); netHistory.shift();
-
-    processes.forEach(p => {
-      p.cpu = Math.max(0, Math.min(99, p.cpu + (Math.random()-0.5)*3));
-      p.mem = Math.max(20, Math.min(600, p.mem + (Math.random()-0.5)*5));
-    });
+    processes.forEach(p=>{ p.cpu=Math.max(0,Math.min(99,p.cpu+(Math.random()-0.5)*3)); p.mem=Math.max(20,Math.min(600,p.mem+(Math.random()-0.5)*5)); });
   }
 
-  // ---- Build the UI ----
   const tm = document.createElement('div');
   tm.className = 'tm-root';
   tm.innerHTML = `
@@ -874,8 +731,6 @@ function openTaskManager() {
       <div class="tm-tab active" data-tab="perf">Performance</div>
       <div class="tm-tab" data-tab="proc">Processes</div>
     </div>
-
-    <!-- PERFORMANCE PANEL -->
     <div class="tm-panel active" id="tm-perf">
       <div class="perf-layout">
         <div class="perf-sidebar" id="perf-sidebar">
@@ -900,54 +755,24 @@ function openTaskManager() {
             <canvas class="perf-sidebar-mini" id="mini-net" height="36"></canvas>
           </div>
         </div>
-
         <div class="perf-content" id="perf-detail-cpu">
-          <div class="perf-header">
-            <div class="perf-title">CPU</div>
-            <div class="perf-subtitle" id="tm-cpu-sub">8 Cores, 8 Logical Processors</div>
-          </div>
+          <div class="perf-header"><div class="perf-title">CPU</div><div class="perf-subtitle" id="tm-cpu-sub">8 Cores, 8 Logical Processors</div></div>
           <div class="chart-wrap">
-            <div class="chart-label">
-              <span>% Utilization — 60 seconds</span>
-              <span id="cpu-peak-label">Peak: 0%</span>
-            </div>
-            <div style="position:relative;height:180px;">
-              <canvas id="main-chart" role="img" aria-label="CPU utilization over time" style="width:100%;height:180px;"></canvas>
-            </div>
+            <div class="chart-label"><span>% Utilization — 60 seconds</span><span id="cpu-peak-label">Peak: 0%</span></div>
+            <div style="position:relative;height:180px;"><canvas id="main-chart" style="width:100%;height:180px;"></canvas></div>
           </div>
           <div class="perf-stats-row">
-            <div class="perf-stat">
-              <div class="perf-stat-label">Utilization</div>
-              <div class="perf-stat-val" id="stat-cpu-util">0%</div>
-            </div>
-            <div class="perf-stat">
-              <div class="perf-stat-label">Speed</div>
-              <div class="perf-stat-val" id="stat-cpu-speed">3.8 GHz</div>
-            </div>
-            <div class="perf-stat">
-              <div class="perf-stat-label">Processes</div>
-              <div class="perf-stat-val" id="stat-proc-count">0</div>
-            </div>
-            <div class="perf-stat">
-              <div class="perf-stat-label">Uptime</div>
-              <div class="perf-stat-val" id="stat-uptime">0:00:00</div>
-            </div>
+            <div class="perf-stat"><div class="perf-stat-label">Utilization</div><div class="perf-stat-val" id="stat-cpu-util">0%</div></div>
+            <div class="perf-stat"><div class="perf-stat-label">Speed</div><div class="perf-stat-val" id="stat-cpu-speed">3.8 GHz</div></div>
+            <div class="perf-stat"><div class="perf-stat-label">Processes</div><div class="perf-stat-val" id="stat-proc-count">0</div></div>
+            <div class="perf-stat"><div class="perf-stat-label">Uptime</div><div class="perf-stat-val" id="stat-uptime">0:00:00</div></div>
           </div>
         </div>
-
         <div class="perf-content" id="perf-detail-ram" style="display:none;">
-          <div class="perf-header">
-            <div class="perf-title">Memory</div>
-            <div class="perf-subtitle" id="tm-ram-sub">16 GB DDR5 · 5600 MT/s</div>
-          </div>
+          <div class="perf-header"><div class="perf-title">Memory</div><div class="perf-subtitle" id="tm-ram-sub">16 GB DDR5</div></div>
           <div class="chart-wrap">
-            <div class="chart-label">
-              <span>% In Use — 60 seconds</span>
-              <span id="ram-peak-label">Peak: 0%</span>
-            </div>
-            <div style="position:relative;height:180px;">
-              <canvas id="ram-chart" role="img" aria-label="Memory usage over time" style="width:100%;height:180px;"></canvas>
-            </div>
+            <div class="chart-label"><span>% In Use — 60 seconds</span><span id="ram-peak-label">Peak: 0%</span></div>
+            <div style="position:relative;height:180px;"><canvas id="ram-chart" style="width:100%;height:180px;"></canvas></div>
           </div>
           <div class="perf-stats-row">
             <div class="perf-stat"><div class="perf-stat-label">In Use</div><div class="perf-stat-val" id="stat-ram-used">0 GB</div></div>
@@ -956,61 +781,44 @@ function openTaskManager() {
             <div class="perf-stat"><div class="perf-stat-label">Slots Used</div><div class="perf-stat-val">2 / 4</div></div>
           </div>
         </div>
-
         <div class="perf-content" id="perf-detail-disk" style="display:none;">
-          <div class="perf-header">
-            <div class="perf-title">Disk 0 (C:)</div>
-            <div class="perf-subtitle" id="tm-disk-sub">NVMe SSD</div>
-          </div>
+          <div class="perf-header"><div class="perf-title">Disk 0 (C:)</div><div class="perf-subtitle" id="tm-disk-sub">NVMe SSD</div></div>
           <div class="chart-wrap">
             <div class="chart-label"><span>% Active Time — 60 seconds</span></div>
-            <div style="position:relative;height:180px;">
-              <canvas id="disk-chart" role="img" aria-label="Disk activity over time" style="width:100%;height:180px;"></canvas>
-            </div>
+            <div style="position:relative;height:180px;"><canvas id="disk-chart" style="width:100%;height:180px;"></canvas></div>
           </div>
           <div class="perf-stats-row">
             <div class="perf-stat"><div class="perf-stat-label">Active Time</div><div class="perf-stat-val" id="stat-disk-val">0%</div></div>
             <div class="perf-stat"><div class="perf-stat-label">Read Speed</div><div class="perf-stat-val" id="stat-disk-r">0 MB/s</div></div>
             <div class="perf-stat"><div class="perf-stat-label">Write Speed</div><div class="perf-stat-val" id="stat-disk-w">0 MB/s</div></div>
-            <div class="perf-stat"><div class="perf-stat-label">Capacity</div><div class="perf-stat-val" id="stat-disk-cap">512 GB</div></div>
+            <div class="perf-stat"><div class="perf-stat-label">Capacity</div><div class="perf-stat-val">512 GB</div></div>
           </div>
         </div>
-
         <div class="perf-content" id="perf-detail-net" style="display:none;">
-          <div class="perf-header">
-            <div class="perf-title">Network</div>
-            <div class="perf-subtitle" id="tm-net-sub">Ethernet</div>
-          </div>
+          <div class="perf-header"><div class="perf-title">Network</div><div class="perf-subtitle" id="tm-net-sub">Ethernet</div></div>
           <div class="chart-wrap">
             <div class="chart-label"><span>Throughput Mbps — 60 seconds</span></div>
-            <div style="position:relative;height:180px;">
-              <canvas id="net-chart" role="img" aria-label="Network throughput over time" style="width:100%;height:180px;"></canvas>
-            </div>
+            <div style="position:relative;height:180px;"><canvas id="net-chart" style="width:100%;height:180px;"></canvas></div>
           </div>
           <div class="perf-stats-row">
             <div class="perf-stat"><div class="perf-stat-label">Send</div><div class="perf-stat-val" id="stat-net-s">0 Mbps</div></div>
             <div class="perf-stat"><div class="perf-stat-label">Receive</div><div class="perf-stat-val" id="stat-net-r">0 Mbps</div></div>
-                       <div class="perf-stat"><div class="perf-stat-label">IPv4 address</div><div class="perf-stat-val" style="font-size:13px;" id="stat-net-ip">192.168.1.105</div></div>
-            <div class="perf-stat"><div class="perf-stat-label">Link speed</div><div class="perf-stat-val" style="font-size:12px;" id="stat-net-link">1000/1000 Mbps</div></div>
+            <div class="perf-stat"><div class="perf-stat-label">IPv4</div><div class="perf-stat-val" style="font-size:13px;" id="stat-net-ip">192.168.1.105</div></div>
+            <div class="perf-stat"><div class="perf-stat-label">Link Speed</div><div class="perf-stat-val" style="font-size:12px;" id="stat-net-link">1000/1000 Mbps</div></div>
           </div>
         </div>
-
       </div>
     </div>
-
-    <!-- PROCESSES PANEL -->
     <div class="tm-panel" id="tm-proc">
       <div class="proc-scroll">
         <table class="proc-table">
-          <thead>
-            <tr>
-              <th style="width:40%">Name</th>
-              <th style="width:15%">CPU</th>
-              <th style="width:15%">Memory</th>
-              <th style="width:15%">Status</th>
-              <th style="width:15%">Action</th>
-            </tr>
-          </thead>
+          <thead><tr>
+            <th style="width:40%">Name</th>
+            <th style="width:15%">CPU</th>
+            <th style="width:15%">Memory</th>
+            <th style="width:15%">Status</th>
+            <th style="width:15%">Action</th>
+          </tr></thead>
           <tbody id="proc-tbody"></tbody>
         </table>
       </div>
@@ -1020,180 +828,117 @@ function openTaskManager() {
   win.appendChild(tm);
   finish(win, '\uD83D\uDCCA');
 
-  // ---- Tab switching ----
   tm.querySelectorAll('.tm-tab').forEach(tab => {
     tab.onclick = () => {
-      tm.querySelectorAll('.tm-tab').forEach(t => t.classList.remove('active'));
-      tm.querySelectorAll('.tm-panel').forEach(p => p.classList.remove('active'));
+      tm.querySelectorAll('.tm-tab').forEach(t=>t.classList.remove('active'));
+      tm.querySelectorAll('.tm-panel').forEach(p=>p.classList.remove('active'));
       tab.classList.add('active');
       tm.querySelector(`#tm-${tab.dataset.tab}`).classList.add('active');
     };
   });
 
-  // ---- Sidebar metric switching ----
   const allDetails = ['cpu','ram','disk','net'];
   tm.querySelectorAll('.perf-sidebar-item').forEach(item => {
     item.onclick = () => {
-      tm.querySelectorAll('.perf-sidebar-item').forEach(i => i.classList.remove('active'));
+      tm.querySelectorAll('.perf-sidebar-item').forEach(i=>i.classList.remove('active'));
       item.classList.add('active');
-      allDetails.forEach(m => {
-        const el = document.getElementById(`perf-detail-${m}`);
-        if (el) el.style.display = m === item.dataset.metric ? 'flex' : 'none';
-      });
+      allDetails.forEach(m => { const el=document.getElementById(`perf-detail-${m}`); if(el) el.style.display=m===item.dataset.metric?'flex':'none'; });
     };
   });
 
-  // ---- Chart drawing utility ----
   function drawSparkline(canvas, data, color, fill, dataMax) {
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const W = canvas.offsetWidth || canvas.parentElement.offsetWidth || 170;
-    const H = canvas.height;
-    canvas.width = W;
-    ctx.clearRect(0, 0, W, H);
-    const max = dataMax != null ? dataMax : 100;
-    const pts = data.slice(-30);
-    ctx.beginPath();
-    const denom = Math.max(pts.length - 1, 1);
-    pts.forEach((v, i) => {
-      const x = (i / denom) * W;
-      const y = H - (v / max) * H;
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    });
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    if (fill) {
-      ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
-      ctx.fillStyle = fill;
-      ctx.fill();
-    }
+    if(!canvas) return;
+    const ctx=canvas.getContext('2d'); const W=canvas.offsetWidth||canvas.parentElement.offsetWidth||170; const H=canvas.height;
+    canvas.width=W; ctx.clearRect(0,0,W,H);
+    const max=dataMax!=null?dataMax:100; const pts=data.slice(-30);
+    ctx.beginPath(); const denom=Math.max(pts.length-1,1);
+    pts.forEach((v,i)=>{ const x=(i/denom)*W; const y=H-(v/max)*H; i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+    ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.stroke();
+    if(fill){ ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath(); ctx.fillStyle=fill; ctx.fill(); }
   }
 
   function drawMainChart(canvasId, data, color, fillColor, maxVal) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const W = canvas.parentElement.offsetWidth || 600;
-    const H = 180;
-    canvas.width = W; canvas.height = H;
-    ctx.clearRect(0, 0, W, H);
-
-    // Grid lines
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-    ctx.lineWidth = 1;
-    [25,50,75].forEach(pct => {
-      const y = H - (pct / (maxVal||100)) * H;
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
-      ctx.font = '10px Segoe UI';
-      ctx.fillText(pct + (maxVal ? '' : '%'), 4, y - 3);
-    });
-
-    // Line
-    ctx.beginPath();
-    const dDenom = Math.max(data.length - 1, 1);
-    data.forEach((v, i) => {
-      const x = (i / dDenom) * W;
-      const y = H - (v / (maxVal||100)) * H;
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    });
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Fill
-    ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
-    ctx.fillStyle = fillColor;
-    ctx.fill();
+    const canvas=document.getElementById(canvasId); if(!canvas) return;
+    const ctx=canvas.getContext('2d'); const W=canvas.parentElement.offsetWidth||600; const H=180;
+    canvas.width=W; canvas.height=H; ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1;
+    [25,50,75].forEach(pct=>{ const y=H-(pct/(maxVal||100))*H; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.font='10px Segoe UI'; ctx.fillText(pct+(maxVal?'':'%'),4,y-3); });
+    ctx.beginPath(); const dDenom=Math.max(data.length-1,1);
+    data.forEach((v,i)=>{ const x=(i/dDenom)*W; const y=H-(v/(maxVal||100))*H; i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+    ctx.strokeStyle=color; ctx.lineWidth=2; ctx.stroke();
+    ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath(); ctx.fillStyle=fillColor; ctx.fill();
   }
 
-  // ---- Colors ----
   const COLORS = {
-    cpu:  { line: '#00d4ff', fill: 'rgba(0,212,255,0.12)', mini: 'rgba(0,212,255,0.5)', miniFill: 'rgba(0,212,255,0.2)' },
-    ram:  { line: '#a855f7', fill: 'rgba(168,85,247,0.12)', mini: 'rgba(168,85,247,0.6)', miniFill: 'rgba(168,85,247,0.2)' },
-    disk: { line: '#22c55e', fill: 'rgba(34,197,94,0.12)',  mini: 'rgba(34,197,94,0.5)',  miniFill: 'rgba(34,197,94,0.2)' },
-    net:  { line: '#f59e0b', fill: 'rgba(245,158,11,0.12)', mini: 'rgba(245,158,11,0.5)', miniFill: 'rgba(245,158,11,0.2)' },
+    cpu:  { line:'#00d4ff', fill:'rgba(0,212,255,0.12)', mini:'rgba(0,212,255,0.5)', miniFill:'rgba(0,212,255,0.2)' },
+    ram:  { line:'#a855f7', fill:'rgba(168,85,247,0.12)', mini:'rgba(168,85,247,0.6)', miniFill:'rgba(168,85,247,0.2)' },
+    disk: { line:'#22c55e', fill:'rgba(34,197,94,0.12)',  mini:'rgba(34,197,94,0.5)',  miniFill:'rgba(34,197,94,0.2)' },
+    net:  { line:'#f59e0b', fill:'rgba(245,158,11,0.12)', mini:'rgba(245,158,11,0.5)', miniFill:'rgba(245,158,11,0.2)' },
   };
 
-  // ---- Uptime ----
   const startTime = Date.now();
-
-  // ---- Main update loop ----
   let loopId;
+
+  function setText(id, val) { const el=document.getElementById(id); if(el) el.textContent=val; }
+
   function update() {
     step();
+    const cpu=cpuVal, disk=diskVal, net=netVal;
+    let ramPct=ramPctLive;
+    if(performance.memory) ramPct=(performance.memory.usedJSHeapSize/performance.memory.jsHeapSizeLimit)*100;
+    const totalRamGb=(snap&&snap.dm!=null)?snap.dm:16;
+    const usedRamGb=Math.min(totalRamGb,(totalRamGb*ramPct)/100);
+    const availRamGb=Math.max(0,totalRamGb-usedRamGb);
 
-    const cpu = cpuVal;
-    const disk = diskVal;
-    const net  = netVal;
-    let ramPct = ramPctLive;
-    if (performance.memory) {
-      ramPct = (performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit) * 100;
-    }
-
-    const totalRamGb = (snap && snap.dm != null) ? snap.dm : 16;
-    const usedRamGb = Math.min(totalRamGb, (totalRamGb * ramPct) / 100);
-    const availRamGb = Math.max(0, totalRamGb - usedRamGb);
-
-    setText('sb-cpu',  cpu.toFixed(1)+'%');
-    setText('sb-ram',  usedRamGb.toFixed(1) + ' / ' + totalRamGb.toFixed(1) + ' GB');
+    setText('sb-cpu', cpu.toFixed(1)+'%');
+    setText('sb-ram', usedRamGb.toFixed(1)+' / '+totalRamGb.toFixed(1)+' GB');
     setText('sb-disk', disk.toFixed(0)+'%');
-    setText('sb-net',  net.toFixed(1) + ' Mbps');
+    setText('sb-net', net.toFixed(1)+' Mbps');
 
-    const netSparkMax = Math.max(10, ...netHistory, 1);
-    drawSparkline(document.getElementById('mini-cpu'),  cpuHistory,  COLORS.cpu.mini,  COLORS.cpu.miniFill);
-    drawSparkline(document.getElementById('mini-ram'),  ramHistory,  COLORS.ram.mini,  COLORS.ram.miniFill);
+    const netSparkMax = Math.max(10,...netHistory,1);
+    drawSparkline(document.getElementById('mini-cpu'), cpuHistory, COLORS.cpu.mini, COLORS.cpu.miniFill);
+    drawSparkline(document.getElementById('mini-ram'), ramHistory, COLORS.ram.mini, COLORS.ram.miniFill);
     drawSparkline(document.getElementById('mini-disk'), diskHistory, COLORS.disk.mini, COLORS.disk.miniFill);
-    drawSparkline(document.getElementById('mini-net'),  netHistory,  COLORS.net.mini,  COLORS.net.miniFill, netSparkMax);
-
+    drawSparkline(document.getElementById('mini-net'), netHistory, COLORS.net.mini, COLORS.net.miniFill, netSparkMax);
     drawMainChart('main-chart', cpuHistory, COLORS.cpu.line, COLORS.cpu.fill, 100);
-    drawMainChart('ram-chart',  ramHistory, COLORS.ram.line, COLORS.ram.fill, 100);
+    drawMainChart('ram-chart', ramHistory, COLORS.ram.line, COLORS.ram.fill, 100);
     drawMainChart('disk-chart', diskHistory, COLORS.disk.line, COLORS.disk.fill, 100);
-    drawMainChart('net-chart',  netHistory, COLORS.net.line, COLORS.net.fill, netSparkMax);
+    drawMainChart('net-chart', netHistory, COLORS.net.line, COLORS.net.fill, netSparkMax);
 
-    const cpuPeak = Math.max(...cpuHistory);
     setText('stat-cpu-util', cpu.toFixed(1)+'%');
-    setText('stat-cpu-speed', (3.1 + cpu / 200).toFixed(2) + ' GHz');
-    setText('stat-proc-count', (processes.length + 42).toString());
-    setText('cpu-peak-label', 'Peak: '+cpuPeak.toFixed(1)+'%');
-
-    const secs = Math.floor((Date.now()-startTime)/1000);
-    const h=Math.floor(secs/3600), m=Math.floor((secs%3600)/60), s=secs%60;
+    setText('stat-cpu-speed', (3.1+cpu/200).toFixed(2)+' GHz');
+    setText('stat-proc-count', (processes.length+42).toString());
+    setText('cpu-peak-label', 'Peak: '+Math.max(...cpuHistory).toFixed(1)+'%');
+    const secs=Math.floor((Date.now()-startTime)/1000);
+    const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;
     setText('stat-uptime', `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`);
-
-    setText('stat-ram-used', usedRamGb.toFixed(1) + ' GB');
-    setText('stat-ram-avail', availRamGb.toFixed(1) + ' GB');
+    setText('stat-ram-used', usedRamGb.toFixed(1)+' GB');
+    setText('stat-ram-avail', availRamGb.toFixed(1)+' GB');
     setText('ram-peak-label', 'Peak: '+Math.max(...ramHistory).toFixed(1)+'%');
-    setText('stat-ram-total', (usedRamGb + 2.1).toFixed(1) + ' GB');
-
+    setText('stat-ram-total', (usedRamGb+2.1).toFixed(1)+' GB');
     setText('stat-disk-val', disk.toFixed(0)+'%');
-    setText('stat-disk-r', (8 + disk * 0.42).toFixed(1) + ' MB/s');
-    setText('stat-disk-w', (2 + disk * 0.28).toFixed(1) + ' MB/s');
-    setText('stat-disk-cap', '512 GB');
-
-    setText('stat-net-s', (net * 0.22).toFixed(1) + ' Mbps');
-    setText('stat-net-r', (net * 0.78).toFixed(1) + ' Mbps');
-    setText('stat-net-ip', '192.168.1.105');
-    if (snap && snap.conn && snap.conn.downlink != null) {
-      const lk = Math.max(100, Math.round(snap.conn.downlink * 100));
-      setText('stat-net-link', lk + '/' + lk + ' Mbps');
-    } else {
-      setText('stat-net-link', '1000/1000 Mbps');
-    }
+    setText('stat-disk-r', (8+disk*0.42).toFixed(1)+' MB/s');
+    setText('stat-disk-w', (2+disk*0.28).toFixed(1)+' MB/s');
+    setText('stat-net-s', (net*0.22).toFixed(1)+' Mbps');
+    setText('stat-net-r', (net*0.78).toFixed(1)+' Mbps');
+    if(snap&&snap.conn&&snap.conn.downlink!=null){ const lk=Math.max(100,Math.round(snap.conn.downlink*100)); setText('stat-net-link',lk+'/'+lk+' Mbps'); }
+    else { setText('stat-net-link','1000/1000 Mbps'); }
 
     const tbody = document.getElementById('proc-tbody');
     if (tbody) {
       const fakeProcs = [
-        { name:'System', icon:'\uD83D\uDDA5', cpu: +(cpuVal*0.05).toFixed(1), mem:+(12+Math.random()*2).toFixed(0) },
-        { name:'Explorer.exe', icon:'\uD83D\uDCC1', cpu: +(cpuVal*0.02).toFixed(1), mem:+(55+Math.random()*5).toFixed(0) },
-        { name:'Dwm.exe', icon:'\uD83E\uDE9F', cpu: +(cpuVal*0.03).toFixed(1), mem:+(80+Math.random()*5).toFixed(0) },
-        { name:'Antimalware', icon:'\uD83D\uDEE1', cpu: +(cpuVal*0.04).toFixed(1), mem:+(120+Math.random()*10).toFixed(0) },
-        { name:'svchost.exe', icon:'\u2699', cpu: +(cpuVal*0.06).toFixed(1), mem:+(45+Math.random()*4).toFixed(0) },
-        { name:'RuntimeBroker', icon:'\uD83D\uDD11', cpu: +(cpuVal*0.01).toFixed(1), mem:+(30+Math.random()*3).toFixed(0) },
-        ...processes.map(p => ({ name:p.name, icon:'\uD83C\uDFAE', cpu:+p.cpu.toFixed(1), mem:+p.mem.toFixed(0), killId: p.id }))
+        { name:'System', icon:'🖥', cpu:+(cpuVal*0.05).toFixed(1), mem:+(12+Math.random()*2).toFixed(0) },
+        { name:'Explorer.exe', icon:'📁', cpu:+(cpuVal*0.02).toFixed(1), mem:+(55+Math.random()*5).toFixed(0) },
+        { name:'Dwm.exe', icon:'🪟', cpu:+(cpuVal*0.03).toFixed(1), mem:+(80+Math.random()*5).toFixed(0) },
+        { name:'Antimalware Service', icon:'🛡', cpu:+(cpuVal*0.04).toFixed(1), mem:+(120+Math.random()*10).toFixed(0) },
+        { name:'svchost.exe', icon:'⚙', cpu:+(cpuVal*0.06).toFixed(1), mem:+(45+Math.random()*4).toFixed(0) },
+        { name:'RuntimeBroker.exe', icon:'🔑', cpu:+(cpuVal*0.01).toFixed(1), mem:+(30+Math.random()*3).toFixed(0) },
+        // Always include Settings and CMD as system processes if not open
+        ...(settingsProcId===null?[{ name:'Settings', icon:'⚙️', cpu:+(cpuVal*0.005).toFixed(1), mem:'18' }]:[]),
+        ...(cmdProcId===null?[{ name:'Command Prompt', icon:'⌨', cpu:+(cpuVal*0.002).toFixed(1), mem:'8' }]:[]),
+        ...processes.map(p=>({ name:p.name, icon: p.name==='Settings'?'⚙️': p.name==='Command Prompt'?'⌨':'🎮', cpu:+p.cpu.toFixed(1), mem:+p.mem.toFixed(0), killId:p.id }))
       ];
-      tbody.innerHTML = fakeProcs.map(p => `
+      tbody.innerHTML = fakeProcs.map(p=>`
         <tr>
           <td><div class="proc-name"><span class="proc-icon">${p.icon}</span>${p.name}</div></td>
           <td>
@@ -1205,20 +950,14 @@ function openTaskManager() {
             <div class="mini-bar"><div class="mini-bar-fill" style="width:${Math.min(p.mem/8,100)}%;background:${COLORS.ram.mini};"></div></div>
           </td>
           <td style="color:#22c55e;font-size:11px;">Running</td>
-          <td>${p.killId !== undefined ? `<button type="button" class="kill-btn" data-kill="${p.killId}">End</button>` : ''}</td>
+          <td>${p.killId!==undefined?`<button type="button" class="kill-btn" data-kill="${p.killId}">End</button>`:''}</td>
         </tr>
       `).join('');
-      tbody.querySelectorAll('[data-kill]').forEach(btn => {
-        btn.addEventListener('click', () => killById(+btn.dataset.kill));
+      tbody.querySelectorAll('[data-kill]').forEach(btn=>{
+        btn.addEventListener('click',()=>killById(+btn.dataset.kill));
       });
     }
-
     loopId = setTimeout(update, 800);
-  }
-
-  function setText(id, val) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = val;
   }
 
   update();
@@ -1226,52 +965,53 @@ function openTaskManager() {
 }
 
 function killById(id) {
-  const i = processes.findIndex(p => p.id === id);
-  if (i < 0) return;
+  const i = processes.findIndex(p=>p.id===id);
+  if(i<0) return;
   const p = processes[i];
-  if (p.win) {
-    if (p.win.task) p.win.task.remove();
-    if (p.win._tmCleanup) p.win._tmCleanup();
-    const wi = windows.indexOf(p.win);
-    if (wi >= 0) windows.splice(wi, 1);
+  if(p.id===settingsProcId) settingsProcId=null;
+  if(p.id===cmdProcId) cmdProcId=null;
+  if(p.win){
+    if(p.win.task) p.win.task.remove();
+    if(p.win._tmCleanup) p.win._tmCleanup();
+    const wi=windows.indexOf(p.win); if(wi>=0) windows.splice(wi,1);
     p.win.remove();
   }
-  processes.splice(i, 1);
+  processes.splice(i,1);
 }
 
 /* DRAG */
 function drag(w) {
-  let dx=0, dy=0, d=false;
-  w.addEventListener('mousedown', e => {
-    if (w.classList.contains('fullscreen')) return;
-    if (e.target.tagName === 'IFRAME' || e.target.closest('.controls')) return;
-    if (!e.target.closest('.titlebar')) return;
+  let dx=0,dy=0,d=false;
+  w.addEventListener('mousedown',e=>{
+    if(w.classList.contains('fullscreen')) return;
+    if(e.target.tagName==='IFRAME'||e.target.closest('.controls')) return;
+    if(!e.target.closest('.titlebar')) return;
     d=true; dx=e.clientX-w.offsetLeft; dy=e.clientY-w.offsetTop; bring(w);
   });
-  document.addEventListener('mousemove', e => { if(!d)return; w.style.left=(e.clientX-dx)+'px'; w.style.top=(e.clientY-dy)+'px'; });
-  document.addEventListener('mouseup', ()=>d=false);
+  document.addEventListener('mousemove',e=>{ if(!d)return; w.style.left=(e.clientX-dx)+'px'; w.style.top=(e.clientY-dy)+'px'; });
+  document.addEventListener('mouseup',()=>d=false);
 }
 
 /* RESIZE */
 function resize(w) {
-  const r = w.querySelector('.resizeHandle');
-  r.onmousedown = (e) => {
-    if (w.classList.contains('fullscreen')) return;
+  const r=w.querySelector('.resizeHandle');
+  r.onmousedown=(e)=>{
+    if(w.classList.contains('fullscreen')) return;
     e.stopPropagation();
-    document.onmousemove = ev => { w.style.width=(ev.clientX-w.offsetLeft)+'px'; w.style.height=(ev.clientY-w.offsetTop)+'px'; };
-    document.onmouseup = () => { document.onmousemove=null; document.onmouseup=null; };
+    document.onmousemove=ev=>{ w.style.width=(ev.clientX-w.offsetLeft)+'px'; w.style.height=(ev.clientY-w.offsetTop)+'px'; };
+    document.onmouseup=()=>{ document.onmousemove=null; document.onmouseup=null; };
   };
 }
 
 /* CONTEXT MENU */
-document.addEventListener('contextmenu', e => {
+document.addEventListener('contextmenu',e=>{
   e.preventDefault();
-  const m = document.getElementById('menu');
+  const m=document.getElementById('menu');
   m.style.display='block'; m.style.left=e.clientX+'px'; m.style.top=e.clientY+'px';
 });
-document.addEventListener('click', e => {
+document.addEventListener('click',e=>{
   document.getElementById('menu').style.display='none';
-  if (!e.target.closest('#start') && !e.target.closest('.taskBtn')) start.classList.remove('active');
+  if(!e.target.closest('#start')&&!e.target.closest('.taskBtn')) start.classList.remove('active');
 });
 </script>
 </body>
