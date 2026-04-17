@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Games</title>
+
+<style>
+
+:root { --theme:#0b8f4a; --theme-rgb:11,143,74; }
+
+html,body { margin:0; padding:0; overflow:hidden; font-family:system-ui,sans-serif; background:radial-gradient(circle at center, rgba(var(--theme-rgb),0.25), #000 70%); user-select:none; }
+
+canvas { position:fixed; top:0; left:0; width:100%; height:100%; z-index:0; }
+
+#leftText { position:fixed; top:20px; left:40px; color:var(--theme); padding:18px 45px; border-radius:10px; border:1px solid var(--theme); background:rgba(var(--theme-rgb),0.08); box-shadow:0 0 18px rgba(var(--theme-rgb),0.35); z-index:5; }
+
+#leftText h1{margin:0;font-size:32px;}
+
+#leftText p{margin:6px 0 0;font-size:15px;opacity:.8;}
+
+#buttons { position:fixed; top:140px; left:40px; display:grid; grid-template-columns:repeat(3,minmax(100px,1fr)); gap:8px; z-index:5; max-width:760px; }
+
+button { padding:3px 8px; border-radius:6px; border:1px solid var(--theme); background:transparent; color:var(--theme); cursor:pointer; transition:.2s; height:28px; display:flex; align-items:center; justify-content:center; font-size:13px; white-space:nowrap; }
+
+button:hover { background:rgba(var(--theme-rgb),0.12); box-shadow:0 0 8px rgba(var(--theme-rgb),0.6); }
+
+#customizeBubble,#updatesButton { position:fixed; top:20px; width:42px; height:42px; display:flex; align-items:center; justify-content:center; border-radius:50%; border:1px solid var(--theme); color:var(--theme); cursor:pointer; background:rgba(0,0,0,0.6); box-shadow:0 0 10px rgba(var(--theme-rgb),0.5); z-index:100; user-select:none; }
+
+#customizeBubble { right:20px; }
+
+#updatesButton { right:75px; }
+
+.panel { position:absolute; top:30%; left:50%; background:#050505; border:1px solid var(--theme); border-radius:10px; width:230px; color:var(--theme); display:none; z-index:200; box-shadow:0 0 18px rgba(var(--theme-rgb),0.5); }
+
+.panelHeader { padding:10px; cursor:grab; position:relative; font-weight:bold; user-select:none; }
+
+.closeBtn { position:absolute; top:8px; right:10px; cursor:pointer; opacity:.7; user-select:none; }
+
+.closeBtn:hover { opacity:1; }
+
+#divider { height:1px; background:rgba(var(--theme-rgb),0.4); }
+
+.panelContent { padding:12px; }
+
+select { width:100%; margin:6px 0 12px; background:#000; color:var(--theme); border:1px solid var(--theme); padding:5px; font-size:13px; }
+
+label { display:block; margin-bottom:4px; font-size:13px; }
+
+.switch { position:relative; display:inline-block; width:50px; height:28px; vertical-align:middle; }
+
+.switch input { opacity:0; width:0; height:0; }
+
+.slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#ccc; transition:0.4s; border-radius:28px; }
+
+.slider:before { position:absolute; content:""; height:22px; width:22px; left:3px; bottom:3px; background-color:white; transition:0.4s; border-radius:50%; }
+
+input:checked + .slider { background-color:var(--theme); }
+
+input:checked + .slider:before { transform:translateX(22px); }
+
+.switch-label { display:inline-block; margin-left:8px; vertical-align:middle; font-size:13px; }
+
+.versionLabel, .updateMessage { display:block; margin-top:4px; font-size:12px; color:var(--theme); }
+
+.updateHeader { font-size:16px; font-weight:bold; margin-bottom:8px; color:var(--theme); }
+
+#overlay { position:fixed; inset:0; background:rgba(0,0,0,0.95); display:none; z-index:999; }
+
+#overlay iframe { width:100%; height:100%; border:none; }
+
+.overlayButtons { position:absolute; top:15px; right:15px; display:flex; gap:8px; }
+
+#credit { position:fixed; top:8px; left:50%; transform:translateX(-50%); font-size:14px; color:var(--theme); z-index:100; display:flex; align-items:center; gap:4px; user-select:none; font-weight:bold; }
+
+.heart { width:16px; height:16px; display:inline-block; position:relative; }
+
+.heart::before, .heart::after { content:""; position:absolute; width:8px; height:8px; border:2px solid var(--theme); border-radius:50%; background:transparent; }
+
+.heart::before { left:4px; top:0; }
+
+.heart::after { left:0; top:4px; }
+
+</style>
+
+</head>
+
+<body>
+
+
+<canvas id="space"></canvas>
+
+
+<div id="credit">made with <span class="heart"></span> by Ethan W</div>
+
+
+<div id="leftText">
+
+<h1>Welcome</h1>
+
+<p>Be Responsible</p>
+
+</div>
+
+
+<div id="buttons">
+
+<button onclick="openGame('https://irv77.github.io/hd_fnaf/1/')">FNAF 1</button>
+
+<button onclick="openGame('https://irv77.github.io/hd_fnaf/2/')">FNAF 2</button>
+
+<button onclick="openGame('https://irv77.github.io/hd_fnaf/3/')">FNAF 3</button>
+
+<button onclick="openGame('https://irv77.github.io/hd_fnaf/4/')">FNAF 4</button>
+
+<button onclick="openGame('https://freesh11.github.io/Games/EaglercraftX_1.8_WASM-GC_Offline_Download.html')">Minecraft</button>
+
+<button onclick="openGame('https://freesh11.github.io/Games/fnae.html')">Five Nights at Epstiens</button>
+
+<button onclick="openGame('https://omegafredo.github.io/worst-time-simulator/')">Worst Time Simulator</button>
+
+</div>
+
+
+<div id="customizeBubble" onclick="bringToFront(settingsPanel); toggleSettings();">✎</div>
+
+<div id="updatesButton" onclick="bringToFront(updatesPanel); toggleUpdates();">📓</div>
+
+
+<div id="overlay">
+
+<div class="overlayButtons">
+
+<button onclick="fullscreenGame()">Fullscreen</button>
+
+<button onclick="closeOverlay()">Close</button>
+
+</div>
+
+<iframe id="gameFrame"></iframe>
+
+</div>
+
+
+<div id="settingsPanel" class="panel">
+
+<div class="panelHeader">Customization<div class="closeBtn" onclick="closeSettings()">✕</div></div>
+
+<div id="divider"></div>
+
+<div class="panelContent">
+
+<label>Battery Saver</label>
+
+<label class="switch">
+
+<input type="checkbox" id="batterySaverToggle"><span class="slider"></span>
+
+</label><span class="switch-label" id="batteryLabel">Off</span>
+
+
+<label style="margin-top:12px;">Theme</label>
+
+<select id="themeSelect">
+
+<option value="#0b8f4a">Green</option>
+
+<option value="#3a7bff">Blue</option>
+
+<option value="#ff3a3a">Red</option>
+
+<option value="#a855f7">Purple</option>
+
+<option value="#f97316">Orange</option>
+
+<option value="#ec4899">Pink</option>
+
+<option value="#06b6d4">Cyan</option>
+
+<option value="#eab308">Yellow</option>
+
+<option value="#8b5cf6">Indigo</option>
+
+<option value="#14b8a6">Teal</option>
+
+<option value="#facc15">Gold</option>
+
+<option value="#f43f5e">Rose</option>
+
+</select>
+
+<button onclick="applyTheme()">Change</button>
+
+</div>
+
+</div>
+
+
+<div id="updatesPanel" class="panel">
+
+<div class="panelHeader">Updates<div class="closeBtn" onclick="closeUpdates()">✕</div></div>
+
+<div id="divider"></div>
+
+<div class="panelContent">
+
+<span class="updateHeader">-Huge UI update</span>
+
+<span class="updateMessage">I am aware of the reload bug where the colors do not save. I am working on adding games.</span>
+
+<span class="versionLabel">v1.1.9</span>
+
+</div>
+
+</div>
+
+
+<script>
+
+let currentGame="", batterySaver=false, zIndexCounter=200;
+
+const overlay=document.getElementById("overlay"), gameFrame=document.getElementById("gameFrame");
+
+const settingsPanel=document.getElementById("settingsPanel"), updatesPanel=document.getElementById("updatesPanel");
+
+const themeSelect=document.getElementById("themeSelect");
+
+const batteryToggle=document.getElementById("batterySaverToggle"), batteryLabel=document.getElementById("batteryLabel");
+
+
+function bringToFront(panel){ zIndexCounter++; panel.style.zIndex=zIndexCounter; panel.style.display="block"; }
+
+
+function openGame(url){
+
+currentGame=url;
+
+overlay.style.display="block";
+
+overlay.style.zIndex=zIndexCounter+10;
+
+gameFrame.src=url;
+
+}
+
+function closeOverlay(){ overlay.style.display="none"; gameFrame.src=""; }
+
+
+function fullscreenGame(){ let w=window.open(); w.document.write(`<iframe src="${currentGame}" style="width:100%;height:100%;border:none"></iframe>`); }
+
+
+function toggleSettings(){ bringToFront(settingsPanel); }
+
+function toggleUpdates(){ bringToFront(updatesPanel); }
+
+function closeSettings(){ settingsPanel.style.display="none"; }
+
+function closeUpdates(){ updatesPanel.style.display="none"; }
+
+
+function hexToRgb(h){ h=h.replace("#",""); let n=parseInt(h,16); return (n>>16&255)+","+(n>>8&255)+","+(n&255); }
+
+function applyTheme(){ 
+
+let c=themeSelect.value; 
+
+let rgb=hexToRgb(c); 
+
+document.documentElement.style.setProperty("--theme",c); 
+
+document.documentElement.style.setProperty("--theme-rgb",rgb); 
+
+document.body.style.background=`radial-gradient(circle at center, rgba(${rgb},0.25), #000 70%)`; 
+
+document.querySelectorAll(".versionLabel, .updateMessage, .updateHeader").forEach(el=>el.style.color=c); 
+
+document.querySelectorAll("#credit .heart").forEach(h=>h.style.borderColor=c);
+
+localStorage.setItem("themeColor",c);
+
+}
+
+
+let saved=localStorage.getItem("themeColor"); 
+
+if(saved){ 
+
+let rgb=hexToRgb(saved); 
+
+document.documentElement.style.setProperty("--theme",saved); 
+
+document.documentElement.style.setProperty("--theme-rgb",rgb); 
+
+document.body.style.background=`radial-gradient(circle at center, rgba(${rgb},0.25), #000 70%)`; 
+
+themeSelect.value=saved; 
+
+document.querySelectorAll(".versionLabel, .updateMessage, .updateHeader").forEach(el=>el.style.color=saved);
+
+document.querySelectorAll("#credit .heart").forEach(h=>h.style.borderColor=saved);
+
+}
+
+
+batteryToggle.addEventListener("change",()=>{ batterySaver=batteryToggle.checked; batteryLabel.textContent=batterySaver?"On":"Off"; });
+
+
+function makeDraggable(panel){
+
+  let header=panel.querySelector(".panelHeader"), dragging=false, offsetX=0, offsetY=0;
+
+  header.addEventListener("mousedown",e=>{
+
+    dragging=true; panel.style.transform="none"; 
+
+    offsetX=e.clientX - panel.getBoundingClientRect().left; 
+
+    offsetY=e.clientY - panel.getBoundingClientRect().top; 
+
+    bringToFront(panel);
+
+  });
+
+  document.addEventListener("mousemove",e=>{
+
+    if(!dragging) return;
+
+    let x=e.clientX-offsetX;
+
+    let y=e.clientY-offsetY;
+
+    x=Math.max(0,Math.min(x,window.innerWidth-panel.offsetWidth));
+
+    y=Math.max(0,Math.min(y,window.innerHeight-panel.offsetHeight));
+
+    panel.style.left=x+"px";
+
+    panel.style.top=y+"px";
+
+  });
+
+  document.addEventListener("mouseup",()=>{ dragging=false; });
+
+}
+
+makeDraggable(settingsPanel);
+
+makeDraggable(updatesPanel);
+
+
+// Particles & constellations
+
+const c=document.getElementById("space"), ctx=c.getContext("2d");
+
+function resize(){ c.width=innerWidth; c.height=innerHeight; } resize(); window.onresize=resize;
+
+let stars=[]; for(let i=0;i<140;i++){ stars.push({x:Math.random()*c.width,y:Math.random()*c.height,vx:(Math.random()-0.5)*0.3,vy:(Math.random()-0.5)*0.3}); }
+
+let mouse={x:-999,y:-999}; document.onmousemove=function(e){ mouse.x=e.clientX; mouse.y=e.clientY; }
+
+function draw(){
+
+  ctx.fillStyle="rgba(0,0,0,0.2)"; ctx.fillRect(0,0,c.width,c.height);
+
+  for(let s of stars){
+
+    if(!batterySaver){
+
+      if(s.x<0||s.x>c.width)s.vx*=-1;
+
+      if(s.y<0||s.y>c.height)s.vy*=-1;
+
+      s.x+=s.vx; s.y+=s.vy;
+
+      let dx=s.x-mouse.x, dy=s.y-mouse.y, d=Math.hypot(dx,dy);
+
+      if(d<100){ s.x+=dx*0.01; s.y+=dy*0.01; }
+
+    }
+
+    ctx.beginPath(); ctx.arc(s.x,s.y,1.3,0,Math.PI*2); ctx.fillStyle="white"; ctx.fill();
+
+  }
+
+  if(!batterySaver){
+
+    for(let i=0;i<stars.length;i++){
+
+      for(let j=i+1;j<stars.length;j++){
+
+        let dx=stars[i].x-stars[j].x, dy=stars[i].y-stars[j].y, dist=Math.hypot(dx,dy);
+
+        if(dist<120){ ctx.beginPath(); ctx.moveTo(stars[i].x,stars[i].y); ctx.lineTo(stars[j].x,stars[j].y); ctx.strokeStyle=`rgba(255,255,255,${1-dist/120})`; ctx.lineWidth=0.3; ctx.stroke(); }
+
+      }
+
+    }
+
+  }
+
+  requestAnimationFrame(draw);
+
+}
+
+draw();
+
+</script>
+
+</body>
+
+</html>
