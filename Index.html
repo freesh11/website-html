@@ -249,11 +249,11 @@ canvas.sparkline{width:100%!important;display:block;}
 .mini-bar{height:4px;border-radius:2px;background:rgba(255,255,255,0.08);overflow:hidden;}
 .mini-bar-fill{height:100%;border-radius:2px;transition:width .4s;}
 .proc-scroll{flex:1;overflow-y:auto;}
-.kill-btn{
+.end-btn{
   background:rgba(255,60,60,0.15);color:rgba(255,100,100,0.9);
   border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;
 }
-.kill-btn:hover{background:rgba(255,60,60,0.3);}
+.end-btn:hover{background:rgba(255,60,60,0.3);}
 </style>
 </head>
 <body>
@@ -265,16 +265,16 @@ canvas.sparkline{width:100%!important;display:block;}
   <input class="startSearch" placeholder="Search apps, settings, documents..." />
   <div class="startSectionTitle">Pinned</div>
   <div class="pinnedGrid">
-    <div class="app" onclick="openGame('https://irv77.github.io/hd_fnaf/1/','FNAF 1')">&#x1F3AE; FNAF 1</div>
-    <div class="app" onclick="openGame('https://irv77.github.io/hd_fnaf/2/','FNAF 2')">&#x1F3AE; FNAF 2</div>
-    <div class="app" onclick="openGame('https://irv77.github.io/hd_fnaf/3/','FNAF 3')">&#x1F3AE; FNAF 3</div>
-    <div class="app" onclick="openGame('https://irv77.github.io/hd_fnaf/4/','FNAF 4')">&#x1F3AE; FNAF 4</div>
-    <div class="app" onclick="openGame('https://freesh11.github.io/Games/EaglercraftX_1.8_WASM-GC_Offline_Download.html','MC')">&#x26CF; Minecraft</div>
-    <div class="app" onclick="openGame('https://freesh11.github.io/Games/fnae.html','FNAE')">&#x1F3AD; FNAE</div>
+    <div class="app" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8xLw=='),'Game 1')">&#x1F3AE; Game 1</div>
+    <div class="app" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8yLw=='),'Game 2')">&#x1F3AE; Game 2</div>
+    <div class="app" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8zLw=='),'Game 3')">&#x1F3AE; Game 3</div>
+    <div class="app" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi80Lw=='),'Game 4')">&#x1F3AE; Game 4</div>
+    <div class="app" onclick="openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvRWFnbGVyY3JhZnRYXzEuOF9XQVNNLUdDX09mZmxpbmVfRG93bmxvYWQuaHRtbA=='),'MC')">&#x26CF; Minecraft</div>
+    <div class="app" onclick="openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvZm5hZS5odG1s'),'Game 5')">&#x1F3AE; Game 5</div>
     <div class="app" onclick="openTaskManager()">&#x1F4CA; Task Manager</div>
     <div class="app" onclick="openCMD()">&#x2328; CMD</div>
     <div class="app" onclick="openSettings()">&#x2699; Settings</div>
-    <div class="app" onclick="openGame('https://nzp.gay/','NZP')">&#x1F52B; NZP</div>
+    <div class="app" onclick="openGame(atob('aHR0cHM6Ly9uenAuZ2F5Lw=='),'NZP')">&#x1F3AE; NZP</div>
   </div>
   <div class="startBottom">
     <div class="userBox">&#x1F464; User</div>
@@ -936,7 +936,7 @@ function openTaskManager() {
         // Always include Settings and CMD as system processes if not open
         ...(settingsProcId===null?[{ name:'Settings', icon:'⚙️', cpu:+(cpuVal*0.005).toFixed(1), mem:'18' }]:[]),
         ...(cmdProcId===null?[{ name:'Command Prompt', icon:'⌨', cpu:+(cpuVal*0.002).toFixed(1), mem:'8' }]:[]),
-        ...processes.map(p=>({ name:p.name, icon: p.name==='Settings'?'⚙️': p.name==='Command Prompt'?'⌨':'🎮', cpu:+p.cpu.toFixed(1), mem:+p.mem.toFixed(0), killId:p.id }))
+        ...processes.map(p=>({ name:p.name, icon: p.name==='Settings'?'⚙️': p.name==='Command Prompt'?'⌨':'🎮', cpu:+p.cpu.toFixed(1), mem:+p.mem.toFixed(0), endId:p.id }))
       ];
       tbody.innerHTML = fakeProcs.map(p=>`
         <tr>
@@ -950,11 +950,11 @@ function openTaskManager() {
             <div class="mini-bar"><div class="mini-bar-fill" style="width:${Math.min(p.mem/8,100)}%;background:${COLORS.ram.mini};"></div></div>
           </td>
           <td style="color:#22c55e;font-size:11px;">Running</td>
-          <td>${p.killId!==undefined?`<button type="button" class="kill-btn" data-kill="${p.killId}">End</button>`:''}</td>
+          <td>${p.endId!==undefined?`<button type="button" class="end-btn" data-end="${p.endId}">Stop</button>`:''}</td>
         </tr>
       `).join('');
-      tbody.querySelectorAll('[data-kill]').forEach(btn=>{
-        btn.addEventListener('click',()=>killById(+btn.dataset.kill));
+      tbody.querySelectorAll('[data-end]').forEach(btn=>{
+        btn.addEventListener('click',()=>endById(+btn.dataset.end));
       });
     }
     loopId = setTimeout(update, 800);
@@ -964,7 +964,7 @@ function openTaskManager() {
   win._tmCleanup = () => clearTimeout(loopId);
 }
 
-function killById(id) {
+function endById(id) {
   const i = processes.findIndex(p=>p.id===id);
   if(i<0) return;
   const p = processes[i];
