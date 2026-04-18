@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HTML Sandbox IDE</title>
+
+<style>
+body {
+margin: 0;
+background: #000;
+font-family: Arial, sans-serif;
+color: white;
+height: 100vh;
+overflow: hidden;
+}
+
+/* APP LAYOUT */
+.app {
+display: flex;
+height: 100vh;
+}
+
+/* LEFT EDITOR */
+.editor {
+width: 45%;
+display: flex;
+flex-direction: column;
+gap: 10px;
+padding: 10px;
+box-sizing: border-box;
+border-right: 1px solid #222;
+}
+
+textarea {
+flex: 1;
+background: #111;
+color: white;
+border: 1px solid #333;
+border-radius: 6px;
+padding: 10px;
+font-family: monospace;
+resize: none;
+}
+
+input[type="file"] {
+color: white;
+}
+
+button {
+padding: 10px;
+background: #222;
+border: 1px solid #333;
+color: white;
+border-radius: 6px;
+cursor: pointer;
+}
+
+button:hover {
+background: #333;
+}
+
+/* RIGHT PREVIEW */
+.preview {
+width: 55%;
+display: flex;
+flex-direction: column;
+background: #000;
+}
+
+.bar {
+background: #111;
+padding: 8px;
+border-bottom: 1px solid #222;
+display: flex;
+justify-content: space-between;
+align-items: center;
+}
+
+iframe {
+flex: 1;
+width: 100%;
+border: none;
+}
+
+/* FULLSCREEN */
+.overlay {
+position: fixed;
+inset: 0;
+background: #000;
+display: none;
+flex-direction: column;
+z-index: 9999;
+}
+
+.overlay-header {
+background: #111;
+padding: 10px;
+display: flex;
+justify-content: flex-end;
+}
+
+.close-btn {
+background: #550000;
+border: none;
+color: white;
+padding: 8px 14px;
+border-radius: 6px;
+cursor: pointer;
+}
+
+.close-btn:hover {
+background: #770000;
+}
+
+.overlay iframe {
+flex: 1;
+width: 100%;
+border: none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<!-- EDITOR -->
+<div class="editor">
+<h3>HTML Editor</h3>
+
+<textarea id="htmlInput" placeholder="Write or paste HTML here..."></textarea>
+
+<input type="file" id="fileInput" accept=".html">
+
+<button onclick="render(preview)">Render</button>
+<button onclick="openFullscreen()">Fullscreen</button>
+</div>
+
+<!-- PREVIEW -->
+<div class="preview">
+<div class="bar">
+<span>Live Preview</span>
+</div>
+<iframe id="preview"></iframe>
+</div>
+
+</div>
+
+<!-- FULLSCREEN -->
+<div class="overlay" id="overlay">
+<div class="overlay-header">
+<button class="close-btn" onclick="closeFullscreen()">Close ✖</button>
+</div>
+<iframe id="fullscreenFrame"></iframe>
+</div>
+
+<script>
+const textarea = document.getElementById("htmlInput");
+const fileInput = document.getElementById("fileInput");
+
+const preview = document.getElementById("preview");
+const fullscreenFrame = document.getElementById("fullscreenFrame");
+const overlay = document.getElementById("overlay");
+
+fileInput.addEventListener("change", function () {
+const file = this.files[0];
+if (!file) return;
+
+const reader = new FileReader();
+reader.onload = e => textarea.value = e.target.result;
+reader.readAsText(file);
+});
+
+// FIXED RENDER (stable + dark background injected)
+function render(target) {
+const content = textarea.value;
+
+const doc = target.contentWindow.document;
+
+doc.open();
+doc.write(`
+<style>
+html, body {
+margin: 0;
+padding: 0;
+background: #111; /* grey-black preview background */
+color: white;
+}
+</style>
+${content}
+`);
+doc.close();
+}
+
+function openFullscreen() {
+render(fullscreenFrame);
+overlay.style.display = "flex";
+}
+
+function closeFullscreen() {
+overlay.style.display = "none";
+}
+
+// initial load
+render(preview);
+</script>
+
+</body>
+</html>
