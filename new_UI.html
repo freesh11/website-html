@@ -473,7 +473,7 @@ white-space:nowrap;
 <div class="app" data-name="Minecraft" onclick="openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvRWFnbGVyY3JhZnRYXzEuOF9XQVNNLUdDX09mZmxpbmVfRG93bmxvYWQuaHRtbA=='),'MC')">&#x26CF; Minecraft</div>
 <div class="app" data-name="FNAE" onclick="openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvZm5hZS5odG1s'),'FNAE')">&#x1F3AE; FNAE</div>
 <div class="app" data-name="NZP" onclick="openGame(atob('aHR0cHM6Ly9uenAuZ2F5Lw=='),'NZP')">&#x1F3AE; NZP</div>
-<div class="app" data-name="Cookie Clicker" onclick="openGame('https://freesh11.github.io/cookieclicker/','Cookie Clicker')">&#x1F36A; Cookie Clicker</div>
+<div class="app" data-name="Cookie Clicker" onclick="openGame('https://plasma4.github.io/cookieclicker/','Cookie Clicker')">&#x1F36A; Cookie Clicker</div>
 <div class="app" data-name="Camera" onclick="openCamera()">&#x1F4F7; Camera</div>
 <div class="app" data-name="Task Manager" onclick="openTaskManager()">&#x1F4CA; Task Manager</div>
 <div class="app" data-name="Notepad" onclick="openNotepad()">&#x1F4DD; Notepad</div>
@@ -839,7 +839,7 @@ const p=allocProc({name:label,mem:+(100+Math.random()*80).toFixed(0),cpu:+(Math.
 processes.push(p);
 const ifr=document.createElement('iframe');
 ifr.src=url;
-ifr.sandbox='allow-scripts allow-same-origin allow-forms allow-pointer-lock';
+ifr.allow='autoplay; fullscreen; storage-access';
 ifr.style.flex='1';ifr.style.border='none';ifr.style.background='#000';
 win.appendChild(ifr);
 finish(win,'🎮',p);
