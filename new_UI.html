@@ -23,20 +23,75 @@ color:white;
 #desktop{position:absolute;inset:0;padding:20px}
 
 /* TASKBAR */
+:root{
+--tb-height:60px;
+--tb-icon:40px;
+}
 #taskbar{
-position:absolute;bottom:0;width:100%;height:60px;
+position:fixed;bottom:0;left:0;width:100%;height:var(--tb-height);
 background:rgba(255,255,255,var(--task-opacity));
 backdrop-filter:blur(20px);
 display:flex;align-items:center;justify-content:center;z-index:9999;
-transition:background .3s;
+transition:background .3s, transform .35s cubic-bezier(.4,0,.2,1), opacity .3s, width .35s, left .35s, border-radius .35s;
+box-sizing:border-box;
 }
-#taskIcons{display:flex;gap:8px;align-items:center}
+
+/* ── FULL-WIDTH MODE layout ── */
+#taskbar:not(.dock-mode) #taskIcons{
+display:flex;gap:8px;align-items:center;
+}
+#taskbar:not(.dock-mode) #taskRight{
+position:absolute;right:0;top:0;bottom:0;
+display:flex;align-items:center;padding-right:4px;gap:2px;
+}
+
+/* ── DOCK MODE layout ── */
+#taskbar.dock-mode{
+width:auto!important;
+left:50%!important;
+transform:translateX(-50%);
+border-radius:20px 20px 0 0;
+bottom:0;
+padding:0 8px;
+gap:6px;
+background:rgba(20,20,20,0.75);
+border:1px solid rgba(255,255,255,0.1);
+border-bottom:none;
+justify-content:center;
+align-items:center;
+}
+/* In dock mode the icons section becomes a pill */
+#taskbar.dock-mode #taskIcons{
+display:flex;gap:4px;align-items:center;
+background:rgba(255,255,255,0.06);
+border-radius:14px;
+padding:4px 6px;
+}
+/* In dock mode the right tray becomes its own pill */
+#taskbar.dock-mode #taskRight{
+position:static;
+display:flex;align-items:center;gap:2px;
+background:rgba(255,255,255,0.06);
+border-radius:14px;
+padding:4px 8px;
+}
+/* Separator between dock pills */
+#taskbar.dock-mode .dock-sep{
+width:1px;height:32px;
+background:rgba(255,255,255,0.1);
+flex-shrink:0;
+}
+
+/* ── TASK BUTTONS (shared) ── */
 .taskBtn{
-width:44px;height:44px;display:flex;align-items:center;justify-content:center;
-border-radius:10px;cursor:pointer;background:rgba(255,255,255,0.05);font-size:18px;
-position:relative;
+width:var(--tb-icon);height:var(--tb-icon);
+display:flex;align-items:center;justify-content:center;
+border-radius:10px;cursor:pointer;
+background:rgba(255,255,255,0.05);font-size:18px;
+position:relative;transition:background .15s;
+flex-shrink:0;
 }
-.taskBtn:hover{background:var(--glass2)}
+.taskBtn:hover{background:var(--glass2,rgba(255,255,255,0.18));}
 .taskBtn:not(.taskBtn--start)::after{
 content:'';position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
 width:6px;height:3px;border-radius:2px;
@@ -44,38 +99,47 @@ background:rgba(255,255,255,0.35);
 transition:width .25s cubic-bezier(.34,1.56,.64,1), background .25s, box-shadow .25s;
 }
 .taskBtn.open::after{
-width:18px;
-background:var(--accent,#00d4ff);
+width:18px;background:var(--accent,#00d4ff);
 box-shadow:0 0 7px var(--accent,#00d4ff);
 }
 
-/* TASKBAR RIGHT ZONE */
-#taskRight{
-position:absolute;right:0;top:0;bottom:0;
-display:flex;align-items:center;padding-right:4px;gap:2px;
-}
+/* ── TRAY ICONS (shared) ── */
 .tray-icon{
-width:36px;height:44px;display:flex;align-items:center;justify-content:center;
+width:32px;height:var(--tb-icon);
+display:flex;align-items:center;justify-content:center;
 border-radius:8px;cursor:pointer;font-size:14px;transition:.15s;
+flex-shrink:0;
 }
-.tray-icon:hover{background:var(--glass);}
+.tray-icon:hover{background:var(--glass,rgba(255,255,255,0.12));}
 #taskClock{
 display:flex;flex-direction:column;align-items:center;justify-content:center;
-padding:0 10px;cursor:default;border-radius:8px;transition:.15s;
-line-height:1.3;height:44px;
+padding:0 8px;cursor:default;border-radius:8px;transition:.15s;
+line-height:1.3;height:var(--tb-icon);flex-shrink:0;
 }
-#taskClock:hover{background:var(--glass);}
+#taskClock:hover{background:var(--glass,rgba(255,255,255,0.12));}
 #clockTime{font-size:13px;font-weight:500;}
 #clockDate{font-size:10px;opacity:.6;}
 #showDesktop{
-width:6px;height:44px;border-left:1px solid rgba(255,255,255,0.12);
-cursor:pointer;transition:.15s;flex-shrink:0;border-radius:0 0 0 0;
+width:6px;height:var(--tb-icon);
+border-left:1px solid rgba(255,255,255,0.12);
+cursor:pointer;transition:.15s;flex-shrink:0;
 }
 #showDesktop:hover{background:rgba(255,255,255,0.18);}
+/* Hide show-desktop strip in dock mode */
+#taskbar.dock-mode #showDesktop{display:none;}
+
+/* ── FULLSCREEN HIDE ── */
+#taskbar.fs-hidden{transform:translateY(100%)!important;opacity:0!important;pointer-events:none!important;}
+#taskbar.dock-mode.fs-hidden{transform:translateX(-50%) translateY(100%)!important;}
+
+/* When taskbar is hidden, maximized windows fill the full viewport */
+body.tb-hidden .window.maximized{
+height:100vh!important;
+}
 
 /* SNAP OVERLAY */
 #snapOverlay{
-position:fixed;inset:0 0 60px 0;
+position:fixed;inset:0 0 var(--tb-height) 0;
 background:rgba(0,212,255,0.06);border:2px solid rgba(0,212,255,0.25);
 border-radius:10px;pointer-events:none;opacity:0;
 transition:opacity .12s;z-index:9997;
@@ -200,7 +264,7 @@ transition:box-shadow .15s;
 .window:focus-within{box-shadow:0 28px 80px rgba(0,0,0,0.75);}
 .window.maximized{
 left:0!important;top:0!important;width:100vw!important;
-height:calc(100vh - 60px)!important;border-radius:0;
+height:calc(100vh - var(--tb-height))!important;border-radius:0;
 }
 .window.maximized .resizeHandle{display:none;}
 .titlebar{
@@ -218,6 +282,7 @@ user-select:none;
 }
 .ctrl-btn:hover{background:rgba(255,255,255,0.1);color:#fff;}
 .ctrl-btn.ctrl-close:hover{background:#c42b1c;color:#fff;}
+.ctrl-btn.ctrl-popout:hover{background:rgba(255,255,255,0.1);color:#fff;}
 .ctrl-btn svg{pointer-events:none;}
 iframe{flex:1;border:none;background:#000}
 /* 8-direction resize handles */
@@ -473,7 +538,8 @@ white-space:nowrap;
 <div class="app" data-name="Minecraft" onclick="openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvRWFnbGVyY3JhZnRYXzEuOF9XQVNNLUdDX09mZmxpbmVfRG93bmxvYWQuaHRtbA=='),'MC')">&#x26CF; Minecraft</div>
 <div class="app" data-name="FNAE" onclick="openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvZm5hZS5odG1s'),'FNAE')">&#x1F3AE; FNAE</div>
 <div class="app" data-name="NZP" onclick="openGame(atob('aHR0cHM6Ly9uenAuZ2F5Lw=='),'NZP')">&#x1F3AE; NZP</div>
-<div class="app" data-name="Cookie Clicker" onclick="openGame('https://plasma4.github.io/cookieclicker/','Cookie Clicker')">&#x1F36A; Cookie Clicker</div>
+<div class="app" data-name="Cookie Clicker" onclick="openGameExternal('https://orteil.dashnet.org/cookieclicker/','Cookie Clicker','🍪')">&#x1F36A; Cookie Clicker</div>
+<div class="app" data-name="Poly Track" onclick="openPolyTrack()">&#x1F3CE; Poly Track</div>
 <div class="app" data-name="Camera" onclick="openCamera()">&#x1F4F7; Camera</div>
 <div class="app" data-name="Task Manager" onclick="openTaskManager()">&#x1F4CA; Task Manager</div>
 <div class="app" data-name="Notepad" onclick="openNotepad()">&#x1F4DD; Notepad</div>
@@ -571,11 +637,14 @@ t.addEventListener('click',()=>{clearTimeout(tid);t.classList.add('out');setTime
 const SETTINGS_KEY='desktop_settings_v2';
 function saveSettings(){
 try{
+const tb=document.getElementById('taskbar');
 const s={
 bg:document.body.style.backgroundImage||document.body.style.background||'',
 bgImg:document.body.style.backgroundImage||'',
 accent:getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
 taskOpacity:getComputedStyle(document.documentElement).getPropertyValue('--task-opacity').trim(),
+tbHeight:getComputedStyle(document.documentElement).getPropertyValue('--tb-height').trim()||'60px',
+tbMode:tb.dataset.tbMode||'full',
 };
 localStorage.setItem(SETTINGS_KEY,JSON.stringify(s));
 }catch(e){}
@@ -588,6 +657,8 @@ const s=JSON.parse(raw);
 if(s.bg){applyBackground(s.bg);}
 if(s.accent){document.documentElement.style.setProperty('--accent',s.accent);}
 if(s.taskOpacity){setTaskbarOpacity(parseFloat(s.taskOpacity));}
+if(s.tbHeight){setTaskbarHeight(s.tbHeight);}
+if(s.tbMode){setTaskbarMode(s.tbMode);}
 }catch(e){}
 }
 function applyBackground(val){
@@ -607,9 +678,51 @@ saveSettings();
 }
 function setTaskbarOpacity(val){
 document.documentElement.style.setProperty('--task-opacity',val);
-document.getElementById('taskbar').style.background='rgba(255,255,255,'+val+')';
+const tb=document.getElementById('taskbar');
+// Only override inline background in full-width mode; dock mode uses its own CSS background
+if(!tb.classList.contains('dock-mode')){
+  tb.style.background='rgba(255,255,255,'+val+')';
+}
 saveSettings();
 }
+function setTaskbarHeight(val){
+document.documentElement.style.setProperty('--tb-height',val);
+// Scale icon size proportionally: icon = height - 20px padding, clamped 28–60
+const h=parseInt(val);
+const icon=Math.min(60,Math.max(28,h-20))+'px';
+document.documentElement.style.setProperty('--tb-icon',icon);
+saveSettings();
+}
+function setTaskbarMode(mode){
+const tb=document.getElementById('taskbar');
+tb.dataset.tbMode=mode;
+// Remove any existing dock separator
+tb.querySelectorAll('.dock-sep').forEach(s=>s.remove());
+if(mode==='dock'){
+tb.classList.add('dock-mode');
+// In dock mode we need a separator pill between icons and tray
+const sep=document.createElement('div');
+sep.className='dock-sep';
+const taskRight=document.getElementById('taskRight');
+tb.insertBefore(sep,taskRight);
+} else {
+tb.classList.remove('dock-mode');
+// Restore full-width styles that dock may have overridden
+tb.style.width='';
+tb.style.left='';
+tb.style.transform='';
+tb.style.borderRadius='';
+tb.style.padding='';
+tb.style.gap='';
+tb.style.background='';
+tb.style.border='';
+// Re-apply the opacity background
+const opacity=getComputedStyle(document.documentElement).getPropertyValue('--task-opacity').trim()||'0.08';
+tb.style.background='rgba(255,255,255,'+opacity+')';
+}
+saveSettings();
+}
+// (autohide removed — taskbar hides automatically on fullscreen only)
 
 // ===================== VOLUME TRAY =====================
 let volState=2; // 0=mute,1=low,2=high
@@ -769,17 +882,6 @@ return win;
 function toggleMaximize(el){
 const win=el.closest('.window');
 if(!win) return;
-if(win.dataset.gameUrl){
-// Game: open in new tab
-const u=win.dataset.gameUrl;
-const t=window.open('about:blank','_blank');
-if(t){
-t.document.open();
-t.document.write('<!DOCTYPE html><html><head><title>\u200B</title><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#000}iframe{width:100%;height:100%;border:none;display:block}</style></head><body><iframe src="'+u.replace(/"/g,'&quot;')+'" allowfullscreen></iframe></body></html>');
-t.document.close();
-} else alert('Pop-up blocked.');
-return;
-}
 _maximizeToggle(win);
 }
 // Keep legacy name for any existing calls
@@ -788,6 +890,7 @@ function toggleFullscreen(el){ toggleMaximize(el); }
 function _maximizeToggle(win){
 const RESTORE_SVG=`<svg width="10" height="10" viewBox="0 0 10 10"><rect x=".5" y="2.5" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1"/><polyline points="2.5,2.5 2.5,0.5 9.5,0.5 9.5,7.5 7.5,7.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>`;
 const MAX_SVG=`<svg width="10" height="10" viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1"/></svg>`;
+const tb=document.getElementById('taskbar');
 if(win.classList.contains('maximized')){
 win.classList.remove('maximized');
 if(win._maxBackup){
@@ -795,10 +898,16 @@ win.style.left=win._maxBackup.left;win.style.top=win._maxBackup.top;
 win.style.width=win._maxBackup.width;win.style.height=win._maxBackup.height;
 }
 const btn=win.querySelector('.ctrl-max'); if(btn) btn.innerHTML=MAX_SVG;
+// Show taskbar again when any window restores
+const anyMaxed=windows.some(w=>w.classList.contains('maximized'));
+if(!anyMaxed){tb.classList.remove('fs-hidden');document.body.classList.remove('tb-hidden');}
 } else {
 win._maxBackup={left:win.style.left,top:win.style.top,width:win.style.width,height:win.style.height};
 win.classList.add('maximized');
 const btn=win.querySelector('.ctrl-max'); if(btn) btn.innerHTML=RESTORE_SVG;
+// Hide taskbar when a window maximizes (autohide on fullscreen)
+tb.classList.add('fs-hidden');
+document.body.classList.add('tb-hidden');
 }
 bring(win);
 }
@@ -819,6 +928,9 @@ processes=processes.filter(p=>p.win!==win);
 if(win.task) win.task.remove();
 if(win._tmCleanup) win._tmCleanup();
 win.remove();
+// Restore taskbar if no maximized windows remain
+const anyMaxed=windows.some(w=>w.classList.contains('maximized'));
+if(!anyMaxed){document.getElementById('taskbar').classList.remove('fs-hidden');document.body.classList.remove('tb-hidden');}
 }
 function closeWBtn(e){ closeW(e.closest('.window')); }
 
@@ -833,18 +945,146 @@ function openGame(url,name){
 const label=name||'Game';
 const win=createWindow(label);
 win.dataset.gameUrl=url;
-const fs=win.querySelector('.ctrl-max');
-if(fs){fs.innerHTML='<svg width="10" height="10" viewBox="0 0 10 10"><polyline points="6,1 9,1 9,4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><line x1="9" y1="1" x2="5" y2="5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><rect x=".5" y="4.5" width="5" height="5" fill="none" stroke="currentColor" stroke-width="1"/></svg>';fs.title='Open in new tab';}
+
+// Add a pop-out button (↗) into the controls bar, before the min button
+const popoutBtn=document.createElement('button');
+popoutBtn.className='ctrl-btn ctrl-popout';
+popoutBtn.title='Open in new tab';
+popoutBtn.innerHTML='<svg width="10" height="10" viewBox="0 0 10 10"><polyline points="5.5,1 9,1 9,4.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><line x1="9" y1="1" x2="4.5" y2="5.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><polyline points="4,2 1,2 1,9 8,9 8,6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+popoutBtn.addEventListener('click',()=>{
+  const u=win.dataset.gameUrl;
+  const t=window.open('about:blank','_blank');
+  if(t){
+    t.document.open();
+    t.document.write('<!DOCTYPE html><html><head><title>\u200B</title><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#000}iframe{width:100%;height:100%;border:none;display:block}</style></head><body><iframe src="'+u.replace(/"/g,'&quot;')+'" allowfullscreen></iframe></body></html>');
+    t.document.close();
+  } else alert('Pop-up blocked — please allow pop-ups for this site.');
+});
+const controls=win.querySelector('.controls');
+controls.insertBefore(popoutBtn,controls.firstChild);
+
 const p=allocProc({name:label,mem:+(100+Math.random()*80).toFixed(0),cpu:+(Math.random()*40).toFixed(1)});
 processes.push(p);
 const ifr=document.createElement('iframe');
 ifr.src=url;
 ifr.allow='autoplay; fullscreen; storage-access';
 ifr.style.flex='1';ifr.style.border='none';ifr.style.background='#000';
+// Fallback: if the iframe can't load (X-Frame-Options etc), show an open-in-tab prompt
+const fallbackDiv=document.createElement('div');
+fallbackDiv.style.cssText='display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#0d0d0d;color:rgba(255,255,255,0.7);font-family:"Segoe UI",sans-serif;font-size:13px;text-align:center;padding:24px;';
+fallbackDiv.innerHTML=`<div style="font-size:40px;">🎮</div><div style="font-size:15px;font-weight:500;color:#fff;">${label}</div><div style="opacity:0.6;max-width:300px;">This game can't be embedded directly.<br>Click below to open it in a new tab.</div><button style="margin-top:8px;padding:10px 28px;border-radius:22px;border:none;background:var(--accent,#00ff7f);color:#000;font-size:13px;font-weight:600;cursor:pointer;" onclick="window.open('${url.replace(/'/g,"\\'")}','_blank')">Open ${label} ↗</button>`;
+ifr.addEventListener('error',()=>{ifr.style.display='none';fallbackDiv.style.display='flex';});
+// Also detect load failures via a timeout heuristic for X-Frame-Options
+const ifrTimer=setTimeout(()=>{
+  try{
+    // If contentDocument is null, it's cross-origin blocked (can't read it, but blank src would give about:blank)
+    // We can't detect X-Frame-Options directly; instead we use the fallback on load with blank check
+    void ifr.contentWindow;
+  } catch(e){ifr.style.display='none';fallbackDiv.style.display='flex';}
+},3000);
+ifr.addEventListener('load',()=>{
+  clearTimeout(ifrTimer);
+  try{
+    const doc=ifr.contentDocument||ifr.contentWindow.document;
+    if(!doc||doc.location.href==='about:blank'||doc.title===''){ifr.style.display='none';fallbackDiv.style.display='flex';}
+  } catch(e){
+    // Cross-origin — iframe loaded something, probably fine; but could be blocked
+    // Check if it's visually blank by leaving it — user will see content or error page
+  }
+});
 win.appendChild(ifr);
+win.appendChild(fallbackDiv);
 finish(win,'🎮',p);
 start.classList.remove('active');
 showToast('Opening '+label,'info','🎮',2000);
+}
+
+// ===================== POLY TRACK =====================
+function openPolyTrack(){
+const polyHtml=`<!DOCTYPE html><html><head><style>*{margin:0;padding:0;box-sizing:border-box;}html,body{width:100%;height:100%;overflow:hidden;background:#000;}#screen{position:fixed;top:0;left:0;width:100%!important;height:100%!important;display:block;}#ui{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;}#ui *{pointer-events:auto;}#transition-layer{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;}</style><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/wergboy/NLP@e46f2d7f33015cf93201e664a2e493800c03284d/pt/css/message_box_ui.css"><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/wergboy/NLP@e46f2d7f33015cf93201e664a2e493800c03284d/pt/css/customization.css"><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/wergboy/NLP@e46f2d7f33015cf93201e664a2e493800c03284d/pt/css/debug_ui.css"><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/wergboy/NLP@e46f2d7f33015cf93201e664a2e493800c03284d/pt/css/editor.css"><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/wergboy/NLP@e46f2d7f33015cf93201e664a2e493800c03284d/pt/css/editor_height_selector.css"><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/wergboy/NLP@e46f2d7f33015cf93201e664a2e493800c03284d/pt/css/hint.css"><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/wergboy/NLP@e46f2d7f33015cf93201e664a2e493800c03284d/pt/css/loading_ui.css"><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/wergboy/NLP@e46f2d7f33015cf93201e664a2e493800c03284d/pt/css/menu.css"><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/wergboy/NLP@e46f2d7f33015cf93201e664a2e493800c03284d/pt/css/speedometer.css"><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/wergboy/NLP@e46f2d7f33015cf93201e664a2e493800c03284d/pt//css/theme.css"><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/wergboy/NLP@e46f2d7f33015cf93201e664a2e493800c03284d/pt/css/time_announcer.css"><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/wergboy/NLP@e46f2d7f33015cf93201e664a2e493800c03284d/pt/css/timer.css"><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/wergboy/NLP@e46f2d7f33015cf93201e664a2e493800c03284d/pt/css/track_export_ui.css"><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/wergboy/NLP@e46f2d7f33015cf93201e664a2e493800c03284d/pt/css/track_selection_ui.css"><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/wergboy/NLP@e46f2d7f33015cf93201e664a2e493800c03284d/pt/css/transition_system.css"></head><body><canvas id="screen"></canvas><div id="ui"></div><div id="transition-layer"></div><script>
+function resizeCanvas(){
+  var c=document.getElementById('screen');
+  if(!c)return;
+  c.width=window.innerWidth;
+  c.height=window.innerHeight;
+  c.style.width=window.innerWidth+'px';
+  c.style.height=window.innerHeight+'px';
+}
+resizeCanvas();
+window.addEventListener('resize',resizeCanvas);
+var ro=new ResizeObserver(resizeCanvas);
+ro.observe(document.documentElement);
+<\/script><script src="https://cdn.jsdelivr.net/gh/wergboy/NLP@e46f2d7f33015cf93201e664a2e493800c03284d/pt/lib/ammo.js" defer><\/script><script type="module" src="https://cdn.jsdelivr.net/gh/wergboy/NLP@22f6094b69b1c9d45e17a82e93a41b7d88f99574/pt/dist/bundle.js" defer><\/script></body></html>`;
+const blob=new Blob([polyHtml],{type:'text/html'});
+const blobUrl=URL.createObjectURL(blob);
+
+// Use openGame which handles the pop-out button and iframe setup,
+// then hook into the iframe load to fire resize events
+const label='Poly Track';
+const win=createWindow(label);
+win.dataset.gameUrl=blobUrl;
+
+// Add pop-out button (same as openGame does)
+const popoutBtn=document.createElement('button');
+popoutBtn.className='ctrl-btn ctrl-popout';
+popoutBtn.title='Open in new tab';
+popoutBtn.innerHTML='<svg width="10" height="10" viewBox="0 0 10 10"><polyline points="5.5,1 9,1 9,4.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><line x1="9" y1="1" x2="4.5" y2="5.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><polyline points="4,2 1,2 1,9 8,9 8,6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+popoutBtn.addEventListener('click',()=>{
+  const t=window.open('about:blank','_blank');
+  if(t){
+    t.document.open();
+    t.document.write('<!DOCTYPE html><html><head><title>\u200B</title><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#000}iframe{width:100%;height:100%;border:none;display:block}</style></head><body><iframe src="'+blobUrl.replace(/"/g,'&quot;')+'" allowfullscreen></iframe></body></html>');
+    t.document.close();
+  } else alert('Pop-up blocked — please allow pop-ups for this site.');
+});
+win.querySelector('.controls').insertBefore(popoutBtn, win.querySelector('.controls').firstChild);
+
+const p=allocProc({name:label,mem:+(100+Math.random()*80).toFixed(0),cpu:+(Math.random()*40).toFixed(1)});
+processes.push(p);
+
+const ifr=document.createElement('iframe');
+ifr.src=blobUrl;
+ifr.allow='autoplay; fullscreen; storage-access';
+ifr.style.cssText='flex:1;border:none;background:#000;display:block;width:100%;';
+
+// Whenever the game window div changes size, fire a resize event inside the iframe
+const ifrRO=new ResizeObserver(()=>{
+  try{ if(ifr.contentWindow) ifr.contentWindow.dispatchEvent(new Event('resize')); }catch(e){}
+});
+ifr.addEventListener('load',()=>{
+  ifrRO.observe(win);
+  try{if(ifr.contentWindow) ifr.contentWindow.dispatchEvent(new Event('resize'));}catch(e){}
+},{once:true});
+
+win.appendChild(ifr);
+finish(win,'🏎️',p);
+start.classList.remove('active');
+showToast('Opening Poly Track','info','🏎️',2000);
+}
+
+// ===================== OPEN GAME EXTERNAL (iframe-blocked games) =====================
+function openGameExternal(url, name, icon){
+const label=name||'Game';
+const emoji=icon||'🎮';
+const win=createWindow(label, 520, 340);
+win.dataset.gameUrl=url;
+// Override the max button to open in new tab
+const fs=win.querySelector('.ctrl-max');
+if(fs){fs.innerHTML='<svg width="10" height="10" viewBox="0 0 10 10"><polyline points="6,1 9,1 9,4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><line x1="9" y1="1" x2="5" y2="5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><rect x=".5" y="4.5" width="5" height="5" fill="none" stroke="currentColor" stroke-width="1"/></svg>';fs.title='Open in new tab';}
+const p=allocProc({name:label,mem:0,cpu:0});
+processes.push(p);
+const placeholder=document.createElement('div');
+placeholder.style.cssText='flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#0d0d0d;color:rgba(255,255,255,0.7);font-family:"Segoe UI",sans-serif;text-align:center;padding:24px;';
+placeholder.innerHTML=`<div style="font-size:56px;">${emoji}</div><div style="font-size:16px;font-weight:600;color:#fff;">${label}</div><div style="font-size:12px;opacity:0.55;max-width:320px;line-height:1.6;">This game runs best in its own tab.<br>Click the button below to launch it.</div><button id="extOpenBtn_${p.id}" style="margin-top:8px;padding:11px 32px;border-radius:24px;border:none;background:var(--accent,#00ff7f);color:#000;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Open ${label} ↗</button>`;
+placeholder.querySelector('button').addEventListener('click',()=>{
+  const t=window.open('about:blank','_blank');
+  if(t){t.document.open();t.document.write('<!DOCTYPE html><html><head><title>'+label+'</title><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#000}iframe{width:100%;height:100%;border:none;display:block}</style></head><body><iframe src="'+url.replace(/"/g,'&quot;')+'" allowfullscreen></iframe></body></html>');t.document.close();}
+  else alert('Pop-up blocked — please allow pop-ups for this site.');
+});
+win.appendChild(placeholder);
+finish(win,emoji,p);
+start.classList.remove('active');
+showToast('Opening '+label,'info',emoji,2000);
 }
 
 // ===================== CAMERA =====================
@@ -1301,6 +1541,58 @@ const opLabel=document.createElement('span');opLabel.className='opacity-label';o
 slider.oninput=()=>{const v=parseFloat(slider.value);setTaskbarOpacity(v);opLabel.textContent=Math.round(v*100)+'%';};
 tbRow.appendChild(slider);tbRow.appendChild(opLabel);tbSection.appendChild(tbRow);
 
+// Taskbar customization section
+const tbCustomSection=document.createElement('div');tbCustomSection.className='settings-section';
+tbCustomSection.innerHTML='<div class="settings-label">Taskbar Style</div>';
+
+// Height presets
+const tbHeightRow=document.createElement('div');tbHeightRow.className='settings-row';tbHeightRow.style.cssText='gap:8px;flex-wrap:wrap;align-items:center;';
+const tbHeightLabel=document.createElement('span');tbHeightLabel.style.cssText='font-size:11px;opacity:.5;min-width:44px;';tbHeightLabel.textContent='Height';
+const currentTbH=getComputedStyle(document.documentElement).getPropertyValue('--tb-height').trim()||'60px';
+const tbHeightPresets=[{label:'Slim',val:'40px'},{label:'Normal',val:'60px'},{label:'Large',val:'80px'},{label:'XL',val:'100px'}];
+tbHeightRow.appendChild(tbHeightLabel);
+tbHeightPresets.forEach(pr=>{
+  const b=document.createElement('button');
+  b.className='settings-apply-btn';
+  b.style.cssText='padding:5px 12px;font-size:11px;'+(currentTbH===pr.val?'':'background:rgba(255,255,255,0.08);color:#fff;');
+  b.textContent=pr.label;
+  b.addEventListener('click',()=>{
+    setTaskbarHeight(pr.val);
+    tbHeightRow.querySelectorAll('button').forEach(x=>{x.style.background='rgba(255,255,255,0.08)';x.style.color='#fff';});
+    b.style.background='var(--accent,#00ff7f)';b.style.color='#000';
+    showToast('Taskbar: '+pr.label,'info','📐',1500);
+  });
+  if(currentTbH===pr.val){b.style.background='var(--accent,#00ff7f)';b.style.color='#000';}
+  tbHeightRow.appendChild(b);
+});
+
+// Mode presets
+const tbModeRow=document.createElement('div');tbModeRow.className='settings-row';tbModeRow.style.cssText='gap:8px;flex-wrap:wrap;align-items:center;';
+const tbModeLabel=document.createElement('span');tbModeLabel.style.cssText='font-size:11px;opacity:.5;min-width:44px;';tbModeLabel.textContent='Mode';
+const currentMode=document.getElementById('taskbar').dataset.tbMode||'full';
+const tbModePresets=[
+  {label:'🖥 Full Width',val:'full'},
+  {label:'⬛ Dock',val:'dock'},
+];
+tbModeRow.appendChild(tbModeLabel);
+tbModePresets.forEach(pr=>{
+  const b=document.createElement('button');
+  b.className='settings-apply-btn';
+  b.style.cssText='padding:5px 14px;font-size:11px;'+(currentMode===pr.val?'':'background:rgba(255,255,255,0.08);color:#fff;');
+  b.textContent=pr.label;
+  b.addEventListener('click',()=>{
+    setTaskbarMode(pr.val);
+    tbModeRow.querySelectorAll('button').forEach(x=>{x.style.background='rgba(255,255,255,0.08)';x.style.color='#fff';});
+    b.style.background='var(--accent,#00ff7f)';b.style.color='#000';
+    showToast('Taskbar mode: '+pr.label,'info','🎛',1500);
+  });
+  if(currentMode===pr.val){b.style.background='var(--accent,#00ff7f)';b.style.color='#000';}
+  tbModeRow.appendChild(b);
+});
+
+tbCustomSection.appendChild(tbHeightRow);
+tbCustomSection.appendChild(tbModeRow);
+
 // Accent section
 const accentSection=document.createElement('div');accentSection.className='settings-section';
 accentSection.innerHTML='<div class="settings-label">Accent Color</div>';
@@ -1346,6 +1638,8 @@ kbSection.innerHTML=`<div class="settings-label">Keyboard Shortcuts</div>
 root.appendChild(bgSection);
 const hr1=document.createElement('hr');hr1.className='settings-divider';root.appendChild(hr1);
 root.appendChild(tbSection);
+const hr1b=document.createElement('hr');hr1b.className='settings-divider';root.appendChild(hr1b);
+root.appendChild(tbCustomSection);
 const hr2=document.createElement('hr');hr2.className='settings-divider';root.appendChild(hr2);
 root.appendChild(accentSection);
 const hr3=document.createElement('hr');hr3.className='settings-divider';root.appendChild(hr3);
@@ -1358,83 +1652,176 @@ start.classList.remove('active');
 
 // ===================== CMD =====================
 function openCMD(){
-const win=createWindow('Command Prompt');
+if(cmdProcId!==null){const p=processes.find(x=>x.id===cmdProcId);if(p&&p.win){p.win.style.display='flex';bring(p.win);if(p.win.task)p.win.task.classList.add('open');}start.classList.remove('active');return;}
+const win=createWindow('⌨ Command Prompt');
 const p=allocProc({name:'Command Prompt',mem:+(20+Math.random()*10).toFixed(0),cpu:+(Math.random()*1).toFixed(1)});
 processes.push(p);p.win=win;cmdProcId=p.id;
 
-const body=document.createElement('div');body.className='cmdBody';
-let cwd='C:\\Users\\User';
-body.innerHTML='Command Prompt — type <b>help</b> for a list of commands.<br><br>';
+// Wrapper holds both output + input in a single flex column, filling the window
+const wrapper=document.createElement('div');
+wrapper.style.cssText='flex:1;display:flex;flex-direction:column;overflow:hidden;background:#000;';
 
-const inputRow=document.createElement('div');
-inputRow.style.cssText='display:flex;align-items:center;background:#000;border-top:1px solid rgba(255,255,255,0.06);flex-shrink:0;';
-const prompt=document.createElement('span');
-prompt.style.cssText='color:var(--accent);font-family:monospace;padding:5px 0 5px 5px;white-space:nowrap;font-size:13px;';
-prompt.textContent=cwd+'> ';
-const input=document.createElement('input');
-input.className='cmdInput';input.autocomplete='off';
-input.style.borderTop='none';
-inputRow.appendChild(prompt);inputRow.appendChild(input);
+// Output area — scrollable, grows to fill space
+const output=document.createElement('div');
+output.style.cssText='flex:1;overflow-y:auto;padding:10px 10px 4px 10px;font-family:monospace;font-size:13px;color:var(--accent);line-height:1.6;word-break:break-word;cursor:text;';
 
-let history=[];let histIdx=-1;
-
-function appendOut(rawCmd,outHtml){
-const esc=String(rawCmd).replace(/</g,'&lt;');
-const rich=String(outHtml).trim().startsWith('<');
-body.innerHTML+='<span style="opacity:.5">'+cwd+'&gt; </span>'+esc+'<br>'+(rich?outHtml:'<span style="opacity:.85">'+String(outHtml)+'</span>')+'<br><br>';
-body.scrollTop=body.scrollHeight;
+// Append a line to the output area using DOM nodes (avoids innerHTML += destroying state)
+function printLine(html){
+  const div=document.createElement('div');
+  div.innerHTML=html;
+  output.appendChild(div);
+  output.scrollTop=output.scrollHeight;
 }
 
-input.onkeydown=(e)=>{
-if(e.key==='ArrowUp'){e.preventDefault();if(histIdx<history.length-1){histIdx++;input.value=history[history.length-1-histIdx];}return;}
-if(e.key==='ArrowDown'){e.preventDefault();if(histIdx>0){histIdx--;input.value=history[history.length-1-histIdx];}else{histIdx=-1;input.value='';}return;}
-if(e.key!=='Enter') return;
-const raw=input.value;const line=raw.trim();
-if(!line){input.value='';return;}
-history.push(raw);histIdx=-1;
-const parts=line.match(/(?:[^\s"]+|"[^"]*")+/g)||[];
-const cmd=(parts[0]||'').replace(/^"(.*)"$/,'$1').toLowerCase();
-const args=parts.slice(1).map(a=>a.replace(/^"(.*)"$/,'$1'));
-let o='';
-if(cmd==='help'){
-o='<div style="line-height:1.6;opacity:.95"><b>Basics</b><br><code>cls / clear</code> · <code>exit</code> · <code>ver</code> · <code>time</code> · <code>date</code><br><br><b>Files</b><br><code>cd [folder]</code> · <code>dir / ls</code> · <code>type [file]</code><br><br><b>System</b><br><code>systeminfo</code> · <code>sysinfo</code> · <code>mem</code> · <code>cpu</code> · <code>hostname</code> · <code>whoami</code><br><br><b>Network</b><br><code>ipconfig</code> · <code>ping [host]</code><br><br><b>Other</b><br><code>echo [text]</code> · <code>title [text]</code> · <code>color [hex]</code> · <code>history</code></div>';
-} else if(cmd==='cls'||cmd==='clear'){body.innerHTML='';input.value='';return;
-} else if(cmd==='ver'){o='Microsoft Windows [Version 11.0.26100.3915]<br>'+navigator.userAgent;
-} else if(cmd==='time'){o='Current time: '+new Date().toLocaleTimeString();
-} else if(cmd==='date'){o='Current date/time: '+new Date().toLocaleString();
-} else if(cmd==='hostname'){o='Host: '+(location.hostname||'DESKTOP-SIM');
-} else if(cmd==='whoami'){o='simulator\\'+(localStorage.getItem('sim_user')||'User');
-} else if(cmd==='cd'&&args[0]){cwd=args[0].replace(/\//g,'\\');prompt.textContent=cwd+'> ';o='';
-} else if(cmd==='cd'||cmd==='pwd'){o='Current folder: '+cwd;
-} else if(cmd==='dir'||cmd==='ls'){o=' Directory of '+cwd+'<br><br>&nbsp;&lt;DIR&gt;&nbsp; .<br>&nbsp;&lt;DIR&gt;&nbsp; ..<br>notes.txt&nbsp;&nbsp;&nbsp;games&nbsp;&nbsp;&nbsp;readme.md<br><br>3 File(s)';
-} else if(cmd==='echo'){o=args.length?args.join(' '):'ECHO is on.';
-} else if(cmd==='title'&&args.length){const tEl=win.querySelector('.titlebar span');if(tEl)tEl.textContent=args.join(' ');o='Title changed.';
-} else if(cmd==='color'){
-if(args[0]){document.documentElement.style.setProperty('--accent',args[0]);o='Accent color set to '+args[0]+'.';}
-else o='Usage: color #hexcode';
-} else if(cmd==='history'){o=history.slice(-20).map((h,i)=>(i+1)+'. '+h).join('<br>');
-} else if(cmd==='sysinfo'){o='Screen: '+screen.width+' × '+screen.height+'<br>CPUs: '+(navigator.hardwareConcurrency||'?')+(navigator.deviceMemory?'<br>RAM: '+navigator.deviceMemory+' GB':'');
-} else if(cmd==='mem'){
-if(performance.memory){const u=(performance.memory.usedJSHeapSize/1048576).toFixed(1),t=(performance.memory.totalJSHeapSize/1048576).toFixed(1),l=(performance.memory.jsHeapSizeLimit/1048576).toFixed(0);o='In use: '+u+' MB<br>Allocated: '+t+' MB<br>Limit: ~'+l+' MB';}
-else o='Memory info not available in this browser.';
-} else if(cmd==='cpu'){o='Logical processors: '+(navigator.hardwareConcurrency||'?');
-} else if(cmd==='ipconfig'){o='Ethernet adapter:<br>&nbsp;IPv4 Address: 192.168.1.105<br>&nbsp;Subnet Mask: 255.255.255.0<br>&nbsp;Default Gateway: 192.168.1.1';
-} else if(cmd==='ping'&&args[0]){const h2=args[0];o='Pinging '+h2+'...<br>Reply: 1ms&nbsp; Reply: 2ms&nbsp; Reply: 1ms&nbsp; Reply: 2ms<br>Sent=4, Received=4, Lost=0 (0% loss)';
-} else if(cmd==='ping'){o='Usage: ping example.com';
-} else if(cmd==='systeminfo'){o='Host: '+(location.hostname||'DESKTOP-SIM')+'<br>OS: Windows 11 Pro 26100<br>Platform: '+(navigator.platform||'x64')+'<br>RAM: '+(navigator.deviceMemory?navigator.deviceMemory+' GB':'N/A')+'<br>CPUs: '+(navigator.hardwareConcurrency||'?')+'<br>Language: '+navigator.language;
-} else if(cmd==='notepad'){openNotepad(args.join(' '));o='Notepad opened.';
-} else if(cmd==='exit'){closeWBtn(win.querySelector('.controls span:last-child'));return;
-} else {o='"'+cmd+'" is not recognized as a command. Type <b>help</b>.';}
-if(o!=='') appendOut(raw,o);
-else body.innerHTML+='<span style="opacity:.5">'+cwd+'&gt; </span>'+raw.replace(/</g,'&lt;')+'<br>';
-body.scrollTop=body.scrollHeight;
-input.value='';
-};
+printLine('Command Prompt &mdash; type <b>help</b> for a list of commands.<br>');
 
-win.appendChild(body);win.appendChild(inputRow);
+// Input row at the bottom
+const inputRow=document.createElement('div');
+inputRow.style.cssText='display:flex;align-items:center;flex-shrink:0;background:#000;border-top:1px solid rgba(255,255,255,0.08);padding:4px 6px;';
+
+let cwd='C:\\Users\\User';
+
+const promptSpan=document.createElement('span');
+promptSpan.style.cssText='color:var(--accent);font-family:monospace;font-size:13px;white-space:nowrap;user-select:none;';
+promptSpan.textContent=cwd+'> ';
+
+const input=document.createElement('input');
+input.type='text';
+input.autocomplete='off';
+input.spellcheck=false;
+input.style.cssText='flex:1;background:transparent;border:none;outline:none;color:var(--accent);font-family:monospace;font-size:13px;padding:2px 0;user-select:text;caret-color:var(--accent);';
+
+inputRow.appendChild(promptSpan);
+inputRow.appendChild(input);
+
+// Click anywhere in output → refocus input
+output.addEventListener('mousedown',()=>setTimeout(()=>input.focus(),0));
+
+let cmdHistory=[];
+let histIdx=-1;
+
+function appendCmd(raw,outHtml){
+  // Echo the command
+  const cmdLine=document.createElement('div');
+  cmdLine.innerHTML='<span style="opacity:.45">'+cwd.replace(/</g,'&lt;')+'&gt; </span>'+(String(raw).replace(/</g,'&lt;'));
+  output.appendChild(cmdLine);
+  // Output
+  if(outHtml!==null&&outHtml!==''){
+    const outDiv=document.createElement('div');
+    outDiv.style.cssText='margin-bottom:6px;';
+    outDiv.innerHTML=String(outHtml);
+    output.appendChild(outDiv);
+  }
+  const gap=document.createElement('div');gap.style.height='2px';output.appendChild(gap);
+  output.scrollTop=output.scrollHeight;
+}
+
+input.addEventListener('keydown',(e)=>{
+  if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(histIdx<cmdHistory.length-1){histIdx++;input.value=cmdHistory[cmdHistory.length-1-histIdx];}
+    return;
+  }
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(histIdx>0){histIdx--;input.value=cmdHistory[cmdHistory.length-1-histIdx];}
+    else{histIdx=-1;input.value='';}
+    return;
+  }
+  if(e.key!=='Enter') return;
+  e.preventDefault();
+  const raw=input.value;
+  const line=raw.trim();
+  input.value='';
+  if(!line) return;
+  cmdHistory.push(raw);histIdx=-1;
+
+  const parts=line.match(/(?:[^\s"]+|"[^"]*")+/g)||[];
+  const cmd=(parts[0]||'').replace(/^"(.*)"$/,'$1').toLowerCase();
+  const args=parts.slice(1).map(a=>a.replace(/^"(.*)"$/,'$1'));
+  let o='';
+
+  if(cmd==='help'){
+    o='<span style="opacity:.9"><b>Basics:</b> cls · clear · exit · ver · time · date<br>'
+     +'<b>Files:</b> cd [path] · dir · ls · pwd<br>'
+     +'<b>System:</b> systeminfo · sysinfo · mem · cpu · hostname · whoami<br>'
+     +'<b>Network:</b> ipconfig · ping [host]<br>'
+     +'<b>Other:</b> echo [text] · title [text] · color [#hex] · history · notepad</span>';
+  } else if(cmd==='cls'||cmd==='clear'){
+    output.innerHTML='';
+    return;
+  } else if(cmd==='ver'){
+    o='Microsoft Windows [Version 11.0.26100.3915]<br><span style="opacity:.6">'+navigator.userAgent+'</span>';
+  } else if(cmd==='time'){
+    o='Current time: '+new Date().toLocaleTimeString();
+  } else if(cmd==='date'){
+    o='Current date: '+new Date().toLocaleDateString()+' '+new Date().toLocaleTimeString();
+  } else if(cmd==='hostname'){
+    o='DESKTOP-SIM'+(location.hostname?'  ('+location.hostname+')':'');
+  } else if(cmd==='whoami'){
+    o='simulator\\'+(localStorage.getItem('sim_user')||'User');
+  } else if(cmd==='cd'&&args[0]){
+    const newPath=args[0];
+    cwd=newPath.includes('\\')||newPath.includes('/')?newPath.replace(/\//g,'\\'):'C:\\Users\\User\\'+newPath;
+    promptSpan.textContent=cwd+'> ';
+    appendCmd(raw,null);
+    return;
+  } else if(cmd==='cd'||cmd==='pwd'){
+    o=cwd;
+  } else if(cmd==='dir'||cmd==='ls'){
+    o='<span style="opacity:.6"> Directory of '+cwd.replace(/</g,'&lt;')+'</span><br><br>'
+     +'&nbsp;&lt;DIR&gt;&nbsp;&nbsp; .<br>&nbsp;&lt;DIR&gt;&nbsp;&nbsp; ..<br>'
+     +'notes.txt&nbsp;&nbsp;&nbsp;&nbsp; games&nbsp;&nbsp;&nbsp;&nbsp; readme.md<br><br>'
+     +'<span style="opacity:.6">3 File(s)</span>';
+  } else if(cmd==='echo'){
+    o=args.length?args.join(' '):'ECHO is on.';
+  } else if(cmd==='title'&&args.length){
+    const tEl=win.querySelector('.title-text');
+    if(tEl) tEl.textContent=args.join(' ');
+    appendCmd(raw,null);return;
+  } else if(cmd==='color'){
+    if(args[0]){document.documentElement.style.setProperty('--accent',args[0]);promptSpan.style.color=args[0];input.style.color=args[0];o='Accent color set to '+args[0]+'.';}
+    else o='Usage: color #hexcode';
+  } else if(cmd==='history'){
+    o=cmdHistory.slice(-20).map((h,i)=>(i+1)+'.&nbsp;'+h.replace(/</g,'&lt;')).join('<br>');
+  } else if(cmd==='sysinfo'||cmd==='systeminfo'){
+    o='Host: DESKTOP-SIM<br>OS: Windows 11 Pro 26100<br>'
+     +'Platform: '+(navigator.platform||'x64')+'<br>'
+     +'RAM: '+(navigator.deviceMemory?navigator.deviceMemory+' GB':'N/A')+'<br>'
+     +'CPUs: '+(navigator.hardwareConcurrency||'?')+'<br>'
+     +'Screen: '+screen.width+' × '+screen.height+'<br>'
+     +'Language: '+navigator.language;
+  } else if(cmd==='mem'){
+    if(performance.memory){
+      const u=(performance.memory.usedJSHeapSize/1048576).toFixed(1);
+      const t=(performance.memory.totalJSHeapSize/1048576).toFixed(1);
+      const l=(performance.memory.jsHeapSizeLimit/1048576).toFixed(0);
+      o='In use: '+u+' MB<br>Allocated: '+t+' MB<br>Limit: ~'+l+' MB';
+    } else o='Memory info not available in this browser.';
+  } else if(cmd==='cpu'){
+    o='Logical processors: '+(navigator.hardwareConcurrency||'?');
+  } else if(cmd==='ipconfig'){
+    o='Ethernet adapter Ethernet:<br>&nbsp;&nbsp;IPv4 Address: 192.168.1.105<br>&nbsp;&nbsp;Subnet Mask: 255.255.255.0<br>&nbsp;&nbsp;Default Gateway: 192.168.1.1';
+  } else if(cmd==='ping'){
+    if(args[0]){o='Pinging '+args[0].replace(/</g,'&lt;')+' with 32 bytes of data:<br>Reply from 192.168.1.1: bytes=32 time=1ms TTL=64<br>Reply from 192.168.1.1: bytes=32 time=2ms TTL=64<br>Reply from 192.168.1.1: bytes=32 time=1ms TTL=64<br>Reply from 192.168.1.1: bytes=32 time=2ms TTL=64<br><br>Sent=4, Received=4, Lost=0 (0% loss)';}
+    else o='Usage: ping &lt;hostname&gt;';
+  } else if(cmd==='notepad'){
+    openNotepad(args.join(' '));o='Notepad opened.';
+  } else if(cmd==='exit'){
+    closeW(win);return;
+  } else {
+    o='\''+cmd.replace(/</g,'&lt;')+'\' is not recognized as a command. Type <b>help</b>.';
+  }
+
+  appendCmd(raw,o);
+});
+
+wrapper.appendChild(output);
+wrapper.appendChild(inputRow);
+win.appendChild(wrapper);
 finish(win,'⌨️',p);
 start.classList.remove('active');
-setTimeout(()=>input.focus(),50);
+setTimeout(()=>input.focus(),80);
 }
 
 // ===================== TASK MANAGER =====================
