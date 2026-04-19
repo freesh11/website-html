@@ -1871,7 +1871,7 @@ diskHistory.push(+diskVal.toFixed(1));diskHistory.shift();
 if(snap&&snap.conn&&typeof snap.conn.downlink==='number')netVal=snap.conn.downlink;
 else netVal=Math.max(0,netVal+(Math.random()-0.45)*0.4);
 netHistory.push(+netVal.toFixed(2));netHistory.shift();
-processes.forEach(p=>{p.cpu=Math.max(0,Math.min(99,p.cpu+(Math.random()-0.5)*3));p.mem=Math.max(20,Math.min(600,p.mem+(Math.random()-0.5)*5));});
+processes.forEach(p=>{p.cpu=0;});
 }
 
 const tm=document.createElement('div');
@@ -2021,7 +2021,7 @@ drawMainChart('disk-chart',diskHistory,COLORS.disk.line,COLORS.disk.fill,100);
 drawMainChart('net-chart',netHistory,COLORS.net.line,COLORS.net.fill,netSparkMax);
 setText('stat-cpu-util',cpu.toFixed(1)+'%');
 setText('stat-cpu-speed',(3.1+cpu/200).toFixed(2)+' GHz');
-setText('stat-proc-count',(processes.length+42).toString());
+setText('stat-proc-count',(processes.length+1).toString());
 setText('cpu-peak-label','Peak: '+Math.max(...cpuHistory).toFixed(1)+'%');
 const secs=Math.floor((Date.now()-startTime)/1000);
 const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;
@@ -2040,24 +2040,31 @@ else setText('stat-net-link','1000/1000 Mbps');
 
 const tbody=document.getElementById('proc-tbody');
 if(tbody){
-const fakeProcs=[
-{name:'System',icon:'🖥',cpu:+(cpuVal*0.05).toFixed(1),mem:+(12+Math.random()*2).toFixed(0)},
-{name:'Explorer.exe',icon:'📁',cpu:+(cpuVal*0.02).toFixed(1),mem:+(55+Math.random()*5).toFixed(0)},
-{name:'Dwm.exe',icon:'🪟',cpu:+(cpuVal*0.03).toFixed(1),mem:+(80+Math.random()*5).toFixed(0)},
-{name:'Antimalware Service',icon:'🛡',cpu:+(cpuVal*0.04).toFixed(1),mem:+(120+Math.random()*10).toFixed(0)},
-{name:'svchost.exe',icon:'⚙',cpu:+(cpuVal*0.06).toFixed(1),mem:+(45+Math.random()*4).toFixed(0)},
-{name:'RuntimeBroker.exe',icon:'🔑',cpu:+(cpuVal*0.01).toFixed(1),mem:+(30+Math.random()*3).toFixed(0)},
-...(settingsProcId===null?[{name:'Settings',icon:'⚙️',cpu:+(cpuVal*0.005).toFixed(1),mem:'18'}]:[]),
-...(cmdProcId===null?[{name:'Command Prompt',icon:'⌨',cpu:+(cpuVal*0.002).toFixed(1),mem:'8'}]:[]),
-...processes.map(p=>({name:p.name,icon:p.name==='Settings'?'⚙️':p.name==='Command Prompt'?'⌨':p.name==='Notepad'?'📝':'🎮',cpu:+p.cpu.toFixed(1),mem:+p.mem.toFixed(0),endId:p.id}))
+// UI process — real JS heap memory, never endable
+const uiMemMb=performance.memory
+  ? (performance.memory.usedJSHeapSize/1048576).toFixed(1)
+  : '—';
+
+// Real open processes — games tracked separately, others shown normally
+const procRows=processes.map(p=>{
+  const isGame=p.name!=='Settings'&&p.name!=='Command Prompt'&&p.name!=='Notepad'&&p.name!=='Camera'&&p.name!=='Task Manager';
+  const icon=p.name==='Settings'?'⚙️':p.name==='Command Prompt'?'⌨️':p.name==='Notepad'?'📝':p.name==='Camera'?'📷':p.name==='Task Manager'?'📊':'🎮';
+  return {name:p.name,icon,mem:+p.mem.toFixed(1),endId:p.id,isGame};
+});
+
+const allRows=[
+  // UI process first — no end button
+  {name:'UI',icon:'🖥️',mem:parseFloat(uiMemMb)||0,endId:undefined,isUI:true},
+  ...procRows
 ];
-tbody.innerHTML=fakeProcs.map(p=>`
+
+tbody.innerHTML=allRows.map(p=>`
 <tr>
-<td><div class="proc-name"><span class="proc-icon">${p.icon}</span>${p.name}</div></td>
-<td><div style="font-size:12px;margin-bottom:3px;">${p.cpu}%</div><div class="mini-bar"><div class="mini-bar-fill" style="width:${Math.min(p.cpu,100)}%;background:${COLORS.cpu.line};"></div></div></td>
+<td><div class="proc-name"><span class="proc-icon">${p.icon}</span>${p.name}${p.isUI?'<span style="font-size:10px;opacity:.4;margin-left:6px;">system</span>':p.isGame?'<span style="font-size:10px;opacity:.4;margin-left:6px;">game</span>':''}</div></td>
+<td style="font-size:11px;opacity:.4;">—</td>
 <td><div style="font-size:12px;margin-bottom:3px;">${p.mem} MB</div><div class="mini-bar"><div class="mini-bar-fill" style="width:${Math.min(p.mem/8,100)}%;background:${COLORS.ram.mini};"></div></div></td>
 <td style="color:#22c55e;font-size:11px;">Running</td>
-<td>${p.endId!==undefined?`<button type="button" class="end-btn" data-end="${p.endId}">Stop</button>`:''}</td>
+<td>${p.endId!==undefined?`<button type="button" class="end-btn" data-end="${p.endId}">End</button>`:''}</td>
 </tr>
 `).join('');
 tbody.querySelectorAll('[data-end]').forEach(btn=>{
@@ -2073,10 +2080,8 @@ win._tmCleanup=()=>clearTimeout(loopId);
 function endById(id){
 const i=processes.findIndex(p=>p.id===id);if(i<0)return;
 const p=processes[i];
-if(p.id===settingsProcId)settingsProcId=null;
-if(p.id===cmdProcId)cmdProcId=null;
-if(p.win){if(p.win.task)p.win.task.remove();if(p.win._tmCleanup)p.win._tmCleanup();const wi=windows.indexOf(p.win);if(wi>=0)windows.splice(wi,1);p.win.remove();}
-processes.splice(i,1);
+if(p.win) closeW(p.win);
+else processes.splice(i,1);
 }
 
 // ===================== DRAG + SNAP + DBLCLICK MAXIMIZE =====================
