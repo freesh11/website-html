@@ -133,10 +133,7 @@ cursor:pointer;transition:.15s;flex-shrink:0;
 #taskbar.fs-hidden{transform:translateY(100%)!important;opacity:0!important;pointer-events:none!important;}
 #taskbar.dock-mode.fs-hidden{transform:translateX(-50%) translateY(100%)!important;}
 
-/* When taskbar is hidden, maximized windows fill the full viewport */
-body.tb-hidden .window.maximized{
-height:100vh!important;
-}
+/* Maximized windows always stop at the taskbar — no full-viewport override needed */
 
 /* SNAP OVERLAY */
 #snapOverlay{
@@ -906,14 +903,13 @@ win.style.width=win._maxBackup.width;win.style.height=win._maxBackup.height;
 const btn=win.querySelector('.ctrl-max'); if(btn) btn.innerHTML=MAX_SVG;
 // Show taskbar again when any window restores
 const anyMaxed=windows.some(w=>w.classList.contains('maximized'));
-if(!anyMaxed){tb.classList.remove('fs-hidden');document.body.classList.remove('tb-hidden');}
+if(!anyMaxed){tb.classList.remove('fs-hidden');}
 } else {
 win._maxBackup={left:win.style.left,top:win.style.top,width:win.style.width,height:win.style.height};
 win.classList.add('maximized');
 const btn=win.querySelector('.ctrl-max'); if(btn) btn.innerHTML=RESTORE_SVG;
 // Hide taskbar when a window maximizes (autohide on fullscreen)
 tb.classList.add('fs-hidden');
-document.body.classList.add('tb-hidden');
 }
 bring(win);
 }
@@ -936,7 +932,7 @@ if(win._tmCleanup) win._tmCleanup();
 win.remove();
 // Restore taskbar if no maximized windows remain
 const anyMaxed=windows.some(w=>w.classList.contains('maximized'));
-if(!anyMaxed){document.getElementById('taskbar').classList.remove('fs-hidden');document.body.classList.remove('tb-hidden');}
+if(!anyMaxed){document.getElementById('taskbar').classList.remove('fs-hidden');}
 }
 function closeWBtn(e){ closeW(e.closest('.window')); }
 
@@ -949,7 +945,6 @@ if(win.task) win.task.classList.remove('open');
 const anyVisibleMaxed=windows.some(w=>w!==win&&w.classList.contains('maximized')&&w.style.display!=='none');
 if(!anyVisibleMaxed){
   document.getElementById('taskbar').classList.remove('fs-hidden');
-  document.body.classList.remove('tb-hidden');
 }
 }
 
