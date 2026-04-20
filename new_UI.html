@@ -11,6 +11,8 @@
 --glass:rgba(255,255,255,0.12);
 --glass2:rgba(255,255,255,0.18);
 --accent:#00ff7f;
+--tb-height:clamp(44px,6vh,60px);
+--tb-icon:clamp(28px,4.5vh,40px);
 }
 *{box-sizing:border-box;user-select:none}
 body{
@@ -21,19 +23,9 @@ overflow:hidden;
 color:white;
 width:100vw;height:100vh;
 }
-#scaleRoot{
-width:1280px;height:800px;
-transform-origin:top left;
-position:absolute;top:0;left:0;
-overflow:hidden;
-}
 #desktop{position:absolute;inset:0;padding:20px}
 
 /* TASKBAR */
-:root{
---tb-height:60px;
---tb-icon:40px;
-}
 #taskbar{
 position:fixed;bottom:0;left:0;width:100%;height:var(--tb-height);
 background:rgba(255,255,255,var(--task-opacity));
@@ -223,9 +215,9 @@ box-shadow:0 0 6px var(--accent,#00d4ff);
 
 /* START MENU */
 #start{
-position:absolute;bottom:80px;left:50%;
+position:fixed;bottom:70px;left:50%;
 transform:translateX(-50%) translateY(10px);
-width:560px;height:640px;
+width:min(520px,90vw);height:min(580px,80vh);
 background:rgba(18,18,18,0.55);backdrop-filter:blur(40px);
 border:1px solid rgba(255,255,255,0.08);border-radius:20px;
 padding:16px;display:flex;flex-direction:column;gap:12px;
@@ -262,7 +254,7 @@ cursor:pointer;transition:.15s;
 
 /* WINDOW SYSTEM */
 .window{
-position:absolute;width:900px;height:600px;background:#111;
+position:absolute;width:820px;height:520px;background:#111;
 border-radius:12px;overflow:hidden;display:none;flex-direction:column;
 box-shadow:0 25px 70px rgba(0,0,0,0.6);
 transition:box-shadow .15s;
@@ -526,7 +518,6 @@ white-space:nowrap;
 </style>
 </head>
 <body style="background:#1a1a1a">
-<div id="scaleRoot">
 
 <div id="desktop"></div>
 <div id="snapOverlay"></div>
@@ -593,25 +584,7 @@ white-space:nowrap;
 <div id="tbMenuClose">&#x2716; Close window</div>
 </div>
 
-</div><!-- #scaleRoot -->
-
 <script>
-// ===================== RESPONSIVE SCALE =====================
-const BASE_W=1280, BASE_H=800;
-function applyScale(){
-const scaleX=window.innerWidth/BASE_W;
-const scaleY=window.innerHeight/BASE_H;
-const scale=Math.min(scaleX,scaleY);
-const sr=document.getElementById('scaleRoot');
-sr.style.transform='scale('+scale+')';
-sr.style.width=BASE_W+'px';
-sr.style.height=BASE_H+'px';
-sr.style.left=((window.innerWidth-BASE_W*scale)/2)+'px';
-sr.style.top=((window.innerHeight-BASE_H*scale)/2)+'px';
-}
-applyScale();
-window.addEventListener('resize',applyScale);
-
 
 (function(){
 try{
@@ -899,10 +872,9 @@ if(_tbMenuTarget) closeW(_tbMenuTarget);
 document.getElementById('tbMenu').style.display='none';
 };
 
-function createWindow(title,w=900,h=600){
+function createWindow(title,w=820,h=520){
 const win=document.createElement('div');
 win.className='window';
-// Center the window in the desktop area
 const vw=window.innerWidth, vh=window.innerHeight-60;
 const left=Math.max(20,Math.round((vw-w)/2));
 const top=Math.max(20,Math.round((vh-h)/2));
