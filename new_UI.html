@@ -2264,11 +2264,9 @@ function _updateFsBtn(){
   const label = document.getElementById('fsBtnLabel');
   if(!icon) return;
   if(document.fullscreenElement){
-    // Exit icon: inward arrows
     icon.innerHTML='<path d="M4 1V4H1M13 4H10V1M10 13V10H13M1 10H4V13" stroke="rgba(255,255,255,0.85)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>';
     if(label) label.textContent='Exit';
   } else {
-    // Enter icon: outward arrows
     icon.innerHTML='<path d="M1 4V1H4M10 1H13V4M13 10V13H10M4 13H1V10" stroke="rgba(255,255,255,0.85)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>';
     if(label) label.textContent='Fullscreen';
   }
@@ -2277,11 +2275,10 @@ function _updateFsBtn(){
 function enterFS(){
   const el = document.documentElement;
   const req = el.requestFullscreen || el.webkitRequestFullscreen;
-  if(!req) return;
-  req.call(el).then(() => {
-    if(navigator.keyboard && navigator.keyboard.lock){
+  if(!req) return Promise.resolve();
+  return req.call(el).then(()=>{
+    if(navigator.keyboard && navigator.keyboard.lock)
       navigator.keyboard.lock(['Escape']).catch(()=>{});
-    }
   }).catch(()=>{});
 }
 function exitFS(){
@@ -2294,41 +2291,80 @@ function toggleFS(){
   if(document.fullscreenElement){ exitFS(); } else { _userExitedFS=false; enterFS(); }
 }
 
-// Capture-phase Esc block (fallback for browsers without Keyboard Lock API)
-document.addEventListener('keydown', e => {
-  if(e.key === 'Escape' && document.fullscreenElement && !_userExitedFS){
+// ── FULLSCREEN RECOVERY OVERLAY ──
+// When the browser exits FS and we can't re-enter automatically (no gesture),
+// show a full-screen click-to-recover overlay. The click IS a user gesture.
+(function(){
+  const ov = document.createElement('div');
+  ov.id = 'fsRecoverOverlay';
+  ov.style.cssText = [
+    'position:fixed;inset:0;z-index:2147483646',
+    'display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px',
+    'background:rgba(0,0,0,0.82);backdrop-filter:blur(18px)',
+    'cursor:pointer;transition:opacity .25s'
+  ].join(';');
+  ov.innerHTML = `
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <path d="M6 16V6H16M32 6H42V16M42 32V42H32M16 42H6V32"
+        stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div style="font-size:18px;font-weight:600;color:#fff">Click to return to fullscreen</div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.5)">Press the Exit button in the taskbar to leave</div>
+  `;
+  ov.addEventListener('click', ()=>{
+    _userExitedFS = false;
+    enterFS().then(()=>{ ov.style.display='none'; });
+  });
+  document.body.appendChild(ov);
+  window._fsRecoverOverlay = ov;
+})();
+
+document.addEventListener('fullscreenchange', ()=>{
+  const hint = document.getElementById('fsHint');
+  _updateFsBtn();
+  if(document.fullscreenElement){
+    _userExitedFS = false;
+    if(window._fsRecoverOverlay) window._fsRecoverOverlay.style.display='none';
+    if(hint) hint.classList.remove('show');
+    clearTimeout(_fsHintTimer);
+  } else {
+    if(navigator.keyboard && navigator.keyboard.unlock) navigator.keyboard.unlock();
+    if(_userExitedFS){
+      // Intentional exit — show hint briefly
+      if(hint){
+        hint.classList.add('show');
+        clearTimeout(_fsHintTimer);
+        _fsHintTimer = setTimeout(()=> hint.classList.remove('show'), 4000);
+      }
+    } else {
+      // Unintended exit (ESC from cross-origin context, iframe, etc.)
+      // Try silent re-enter first; if browser blocks it (no gesture), show overlay.
+      enterFS().catch(()=>{
+        if(window._fsRecoverOverlay) window._fsRecoverOverlay.style.display='flex';
+      });
+      // Also show overlay after short delay if still not in FS
+      // (enterFS may "succeed" in the promise but browser can still block)
+      setTimeout(()=>{
+        if(!document.fullscreenElement && !_userExitedFS && window._fsRecoverOverlay){
+          window._fsRecoverOverlay.style.display='flex';
+        }
+      }, 300);
+    }
+  }
+});
+
+// Capture-phase Esc intercept — fires before browser acts on it where possible
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && document.fullscreenElement && !_userExitedFS){
     e.preventDefault();
     e.stopImmediatePropagation();
   }
 }, true);
 
-document.addEventListener('fullscreenchange', () => {
-  const hint = document.getElementById('fsHint');
-  _updateFsBtn();
-  if(document.fullscreenElement){
-    _userExitedFS = false;
-    if(hint){ hint.classList.remove('show'); }
-    clearTimeout(_fsHintTimer);
-  } else {
-    if(navigator.keyboard && navigator.keyboard.unlock) navigator.keyboard.unlock();
-    if(_userExitedFS){
-      if(hint){
-        hint.classList.add('show');
-        clearTimeout(_fsHintTimer);
-        _fsHintTimer = setTimeout(() => hint.classList.remove('show'), 4000);
-      }
-    } else {
-      // Unintended exit (e.g. iframe) — silently re-enter
-      enterFS();
-    }
-  }
-});
-
-// ── CLICK-TO-FULLSCREEN ──
-// Clicking the desktop (not windows, taskbar, menus, or buttons) enters FS.
-document.addEventListener('click', e => {
-  if(document.fullscreenElement) return; // already fullscreen
-  // Ignore clicks on interactive UI regions
+// ── CLICK-TO-FULLSCREEN on desktop ──
+document.addEventListener('click', e=>{
+  if(document.fullscreenElement) return;
+  if(e.target.closest('#fsRecoverOverlay')) return; // handled by overlay itself
   const ignored = ['#taskbar','#start','.window','#menu','#tbMenu','#fsHint'];
   if(ignored.some(sel => e.target.closest(sel))) return;
   _userExitedFS = false;
@@ -2338,16 +2374,15 @@ document.addEventListener('click', e => {
 // ===================== BOOT =====================
 document.body.style.background = '#1a1a1a';
 loadSettings();
-setTimeout(() => { showToast('Desktop ready','success','🖥️',2500); }, 600);
+setTimeout(()=>{ showToast('Desktop ready','success','🖥️',2500); }, 600);
 _updateFsBtn();
 
-// Show the fullscreen hint briefly on first load
 (function(){
   const hint = document.getElementById('fsHint');
   if(!hint) return;
-  setTimeout(() => {
+  setTimeout(()=>{
     hint.classList.add('show');
-    _fsHintTimer = setTimeout(() => hint.classList.remove('show'), 4500);
+    _fsHintTimer = setTimeout(()=> hint.classList.remove('show'), 4500);
   }, 800);
 })();
 </script>
