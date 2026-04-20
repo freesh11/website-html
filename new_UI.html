@@ -583,7 +583,7 @@ white-space:nowrap;
 <div class="app" data-name="FNAF 2" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8yLw=='),'FNAF 2')">&#x1F3AE; FNAF 2</div>
 <div class="app" data-name="FNAF 3" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8zLw=='),'FNAF 3')">&#x1F3AE; FNAF 3</div>
 <div class="app" data-name="FNAF 4" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi80Lw=='),'FNAF 4')">&#x1F3AE; FNAF 4</div>
-<div class="app" data-name="Minecraft" onclick="openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvRWFnbGVyY3JhZnRYXzEuOF9XQVNNLUdDX09mZmxpbmVfRG93bmxvYWQuaHRtbA=='),'MC')">&#x26CF; Minecraft</div>
+<div class="app" data-name="Minecraft" onclick="openMinecraft()">&#x26CF; Minecraft</div>
 <div class="app" data-name="FNAE" onclick="openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvZm5hZS5odG1s'),'FNAE')">&#x1F3AE; FNAE</div>
 <div class="app" data-name="NZP" onclick="openGame(atob('aHR0cHM6Ly9uenAuZ2F5Lw=='),'NZP')">&#x1F3AE; NZP</div>
 <div class="app" data-name="Poly Track" onclick="openPolyTrack()">&#x1F3CE; Poly Track</div>
@@ -848,11 +848,8 @@ kbHintTimer=setTimeout(()=>el.classList.remove('show'),1600);
 
 // ===================== KEYBOARD SHORTCUTS =====================
 document.addEventListener('keydown',e=>{
-// Escape — exit fullscreen if UI focused (not inside a game iframe), otherwise close start menu
+// Escape — just close start menu; never touch fullscreen
 if(e.key==='Escape'){
-  // If an iframe (game) has focus, let the browser/game handle Escape natively
-  if(document.activeElement&&document.activeElement.tagName==='IFRAME') return;
-  if(document.fullscreenElement){ exitFS(); return; }
   start.classList.remove('active');
   return;
 }
@@ -861,9 +858,6 @@ if(e.key==='Meta'||e.key==='OS'){ e.preventDefault(); toggleStart(); return; }
 // Ctrl+Esc — toggle start
 if(e.key==='Escape'&&e.ctrlKey){ toggleStart(); return; }
 // Ctrl+Shift+Esc — task manager
-if(e.key==='Escape'&&e.ctrlKey&&e.shiftKey){ openTaskManager(); return; }
-if(e.code==='Escape'&&e.ctrlKey&&e.shiftKey){ openTaskManager(); return; }
-// Ctrl+Shift+Esc alternative
 if(e.ctrlKey&&e.shiftKey&&e.key==='Escape'){ openTaskManager(); flashHint('Task Manager'); return; }
 // Win+D — show desktop (Meta handled above, use Ctrl+D as alias)
 if(e.ctrlKey&&e.key==='d'){ e.preventDefault(); showDesktop(); flashHint('Win+D — Show Desktop'); return; }
@@ -1096,12 +1090,36 @@ if(!anyMaxedVisible){
 }
 
 // ===================== APPS =====================
+function openMinecraft(){
+const url=atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvRWFnbGVyY3JhZnRYXzEuOF9XQVNNLUdDX09mZmxpbmVfRG93bmxvYWQuaHRtbA==');
+const label='Minecraft';
+const win=createWindow(label,600,360,'⛏️');
+win.dataset.gameUrl=url;
+const p=allocProc({name:label,mem:+(100+Math.random()*80).toFixed(0),cpu:+(Math.random()*40).toFixed(1)});
+processes.push(p);
+const splash=document.createElement('div');
+splash.style.cssText='flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#0d0d0d;color:rgba(255,255,255,0.75);font-family:"Segoe UI",sans-serif;text-align:center;padding:32px;';
+splash.innerHTML=`
+  <div style="font-size:52px;line-height:1;">⛏️</div>
+  <div style="font-size:17px;font-weight:600;color:#fff;">Minecraft</div>
+  <div style="font-size:12px;opacity:0.55;max-width:320px;line-height:1.6;">
+    This game works best in its own tab.<br>Keyboard controls and fullscreen will work properly there.
+  </div>
+  <button style="margin-top:6px;padding:11px 32px;border-radius:24px;border:none;background:var(--accent,#00ff7f);color:#000;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;"
+    onmouseenter="this.style.opacity='.85'" onmouseleave="this.style.opacity='1'"
+    onclick="(function(){const t=window.open('about:blank','_blank');if(t){t.document.open();t.document.write('<!DOCTYPE html><html><head><title>\\u200B</title><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#000}iframe{width:100%;height:100%;border:none;display:block}</style></head><body><iframe src=\\'${url}\\' allow=\\'autoplay;fullscreen\\' allowfullscreen></iframe></body></html>');t.document.close();}else{alert('Pop-up blocked — please allow pop-ups for this site.');}})()">
+    Open Minecraft in new tab ↗
+  </button>
+`;
+win.appendChild(splash);
+finish(win,'⛏️',p);
+start.classList.remove('active');
+}
+
 function openGame(url,name){
 const label=name||'Game';
-const win=createWindow(label);
+const win=createWindow(label,900,600,'🎮');
 win.dataset.gameUrl=url;
-
-// Add a pop-out button (↗) into the controls bar, before the min button
 const popoutBtn=document.createElement('button');
 popoutBtn.className='ctrl-btn ctrl-popout';
 popoutBtn.title='Open in new tab';
@@ -1109,46 +1127,21 @@ popoutBtn.innerHTML='<svg width="10" height="10" viewBox="0 0 10 10"><polyline p
 popoutBtn.addEventListener('click',()=>{
   const u=win.dataset.gameUrl;
   const t=window.open('about:blank','_blank');
-  if(t){
-    t.document.open();
-    t.document.write('<!DOCTYPE html><html><head><title>\u200B</title><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#000}iframe{width:100%;height:100%;border:none;display:block}</style></head><body><iframe src="'+u.replace(/"/g,'&quot;')+'" allowfullscreen></iframe></body></html>');
-    t.document.close();
-  } else alert('Pop-up blocked — please allow pop-ups for this site.');
+  if(t){t.document.open();t.document.write('<!DOCTYPE html><html><head><title>\u200B</title><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#000}iframe{width:100%;height:100%;border:none;display:block}</style></head><body><iframe src="'+u.replace(/"/g,'&quot;')+'" allowfullscreen></iframe></body></html>');t.document.close();}
+  else alert('Pop-up blocked — please allow pop-ups for this site.');
 });
-const controls=win.querySelector('.controls');
-controls.insertBefore(popoutBtn,controls.firstChild);
-
+win.querySelector('.controls').insertBefore(popoutBtn,win.querySelector('.controls').firstChild);
 const p=allocProc({name:label,mem:+(100+Math.random()*80).toFixed(0),cpu:+(Math.random()*40).toFixed(1)});
 processes.push(p);
 const ifr=document.createElement('iframe');
-ifr.src=url;
-ifr.allow='autoplay; fullscreen; storage-access';
-ifr.style.flex='1';ifr.style.border='none';ifr.style.background='#000';
-// Fallback: if the iframe can't load (X-Frame-Options etc), show an open-in-tab prompt
+ifr.src=url;ifr.allow='autoplay; fullscreen; storage-access';
+ifr.style.cssText='flex:1;border:none;background:#000;';
 const fallbackDiv=document.createElement('div');
 fallbackDiv.style.cssText='display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#0d0d0d;color:rgba(255,255,255,0.7);font-family:"Segoe UI",sans-serif;font-size:13px;text-align:center;padding:24px;';
-fallbackDiv.innerHTML=`<div style="font-size:40px;">🎮</div><div style="font-size:15px;font-weight:500;color:#fff;">${label}</div><div style="opacity:0.6;max-width:300px;">This game can't be embedded directly.<br>Click below to open it in a new tab.</div><button style="margin-top:8px;padding:10px 28px;border-radius:22px;border:none;background:var(--accent,#00ff7f);color:#000;font-size:13px;font-weight:600;cursor:pointer;" onclick="window.open('${url.replace(/'/g,"\\'")}','_blank')">Open ${label} ↗</button>`;
+fallbackDiv.innerHTML=`<div style="font-size:40px;">🎮</div><div style="font-size:15px;font-weight:500;color:#fff;">${label}</div><div style="opacity:0.6;max-width:300px;">This game can't be embedded.<br>Click below to open it in a new tab.</div><button style="margin-top:8px;padding:10px 28px;border-radius:22px;border:none;background:var(--accent,#00ff7f);color:#000;font-size:13px;font-weight:600;cursor:pointer;" onclick="window.open('${url.replace(/'/g,"\\'")}','_blank')">Open ${label} ↗</button>`;
 ifr.addEventListener('error',()=>{ifr.style.display='none';fallbackDiv.style.display='flex';});
-// Also detect load failures via a timeout heuristic for X-Frame-Options
-const ifrTimer=setTimeout(()=>{
-  try{
-    // If contentDocument is null, it's cross-origin blocked (can't read it, but blank src would give about:blank)
-    // We can't detect X-Frame-Options directly; instead we use the fallback on load with blank check
-    void ifr.contentWindow;
-  } catch(e){ifr.style.display='none';fallbackDiv.style.display='flex';}
-},3000);
-ifr.addEventListener('load',()=>{
-  clearTimeout(ifrTimer);
-  try{
-    const doc=ifr.contentDocument||ifr.contentWindow.document;
-    if(!doc||doc.location.href==='about:blank'||doc.title===''){ifr.style.display='none';fallbackDiv.style.display='flex';}
-  } catch(e){
-    // Cross-origin — iframe loaded something, probably fine; but could be blocked
-    // Check if it's visually blank by leaving it — user will see content or error page
-  }
-});
-win.appendChild(ifr);
-win.appendChild(fallbackDiv);
+ifr.addEventListener('load',()=>{try{const doc=ifr.contentDocument||ifr.contentWindow.document;if(!doc||doc.location.href==='about:blank'){ifr.style.display='none';fallbackDiv.style.display='flex';}}catch(e){}});
+win.appendChild(ifr);win.appendChild(fallbackDiv);
 finish(win,'🎮',p);
 start.classList.remove('active');
 showToast('Opening '+label,'info','🎮',2000);
@@ -2405,8 +2398,9 @@ function enterFS(){
   const req = el.requestFullscreen || el.webkitRequestFullscreen;
   if(!req) return;
   req.call(el).then(()=>{
-    // Keyboard Lock API — traps Escape at the OS level so it never exits fullscreen.
-    // Only works when this page is the top-level browsing context (not in an iframe).
+    // Keyboard Lock prevents the browser from exiting fullscreen on Esc.
+    // Unlike the capture-phase block, it doesn't consume the event — the
+    // key is still dispatched normally so game iframes receive it.
     if(navigator.keyboard && navigator.keyboard.lock)
       navigator.keyboard.lock(['Escape']).catch(()=>{});
   }).catch(()=>{});
@@ -2423,15 +2417,6 @@ function toggleFS(){
   if(document.fullscreenElement){ exitFS(); } else { _userExitedFS=false; enterFS(); }
 }
 
-// Capture-phase keydown: block Escape before the browser acts on it.
-// Second layer of defence behind Keyboard Lock.
-document.addEventListener('keydown', e=>{
-  if(e.key==='Escape' && document.fullscreenElement && !_userExitedFS){
-    e.preventDefault();
-    e.stopImmediatePropagation();
-  }
-}, true);
-
 document.addEventListener('fullscreenchange', ()=>{
   const hint = document.getElementById('fsHint');
   _updateFsBtn();
@@ -2440,7 +2425,6 @@ document.addEventListener('fullscreenchange', ()=>{
     if(hint) hint.classList.remove('show');
     clearTimeout(_fsHintTimer);
   } else {
-    if(navigator.keyboard && navigator.keyboard.unlock) navigator.keyboard.unlock();
     if(_userExitedFS){
       if(hint){
         hint.classList.add('show');
@@ -2448,8 +2432,10 @@ document.addEventListener('fullscreenchange', ()=>{
         _fsHintTimer = setTimeout(()=> hint.classList.remove('show'), 4000);
       }
     } else {
-      // Unintended exit — silently re-enter fullscreen.
-      enterFS();
+      // Unintended exit (game iframe Esc) — re-enter after a short delay.
+      // The delay lets the browser settle; the click-to-enter handler also
+      // catches the next user interaction as a fallback.
+      setTimeout(()=>{ if(!document.fullscreenElement && !_userExitedFS) enterFS(); }, 80);
     }
   }
 });
