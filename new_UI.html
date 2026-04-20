@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="background:#1a1a1a">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
 <title>&#x200B;</title>
 <style>
 :root{
@@ -2275,85 +2276,28 @@ function _updateFsBtn(){
 function enterFS(){
   const el = document.documentElement;
   const req = el.requestFullscreen || el.webkitRequestFullscreen;
-  if(!req) return Promise.resolve();
-  return req.call(el).then(()=>{
+  if(!req) return;
+  req.call(el).then(()=>{
+    // Keyboard Lock API — traps Escape at the OS level so it never exits fullscreen.
+    // Only works when this page is the top-level browsing context (not in an iframe).
     if(navigator.keyboard && navigator.keyboard.lock)
       navigator.keyboard.lock(['Escape']).catch(()=>{});
   }).catch(()=>{});
 }
+
 function exitFS(){
   _userExitedFS = true;
   if(navigator.keyboard && navigator.keyboard.unlock) navigator.keyboard.unlock();
   if(document.exitFullscreen) document.exitFullscreen();
   else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
 }
+
 function toggleFS(){
   if(document.fullscreenElement){ exitFS(); } else { _userExitedFS=false; enterFS(); }
 }
 
-// ── FULLSCREEN RECOVERY OVERLAY ──
-// When the browser exits FS and we can't re-enter automatically (no gesture),
-// show a full-screen click-to-recover overlay. The click IS a user gesture.
-(function(){
-  const ov = document.createElement('div');
-  ov.id = 'fsRecoverOverlay';
-  ov.style.cssText = [
-    'position:fixed;inset:0;z-index:2147483646',
-    'display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px',
-    'background:rgba(0,0,0,0.82);backdrop-filter:blur(18px)',
-    'cursor:pointer;transition:opacity .25s'
-  ].join(';');
-  ov.innerHTML = `
-    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-      <path d="M6 16V6H16M32 6H42V16M42 32V42H32M16 42H6V32"
-        stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    <div style="font-size:18px;font-weight:600;color:#fff">Click to return to fullscreen</div>
-    <div style="font-size:13px;color:rgba(255,255,255,0.5)">Press the Exit button in the taskbar to leave</div>
-  `;
-  ov.addEventListener('click', ()=>{
-    _userExitedFS = false;
-    enterFS().then(()=>{ ov.style.display='none'; });
-  });
-  document.body.appendChild(ov);
-  window._fsRecoverOverlay = ov;
-})();
-
-document.addEventListener('fullscreenchange', ()=>{
-  const hint = document.getElementById('fsHint');
-  _updateFsBtn();
-  if(document.fullscreenElement){
-    _userExitedFS = false;
-    if(window._fsRecoverOverlay) window._fsRecoverOverlay.style.display='none';
-    if(hint) hint.classList.remove('show');
-    clearTimeout(_fsHintTimer);
-  } else {
-    if(navigator.keyboard && navigator.keyboard.unlock) navigator.keyboard.unlock();
-    if(_userExitedFS){
-      // Intentional exit — show hint briefly
-      if(hint){
-        hint.classList.add('show');
-        clearTimeout(_fsHintTimer);
-        _fsHintTimer = setTimeout(()=> hint.classList.remove('show'), 4000);
-      }
-    } else {
-      // Unintended exit (ESC from cross-origin context, iframe, etc.)
-      // Try silent re-enter first; if browser blocks it (no gesture), show overlay.
-      enterFS().catch(()=>{
-        if(window._fsRecoverOverlay) window._fsRecoverOverlay.style.display='flex';
-      });
-      // Also show overlay after short delay if still not in FS
-      // (enterFS may "succeed" in the promise but browser can still block)
-      setTimeout(()=>{
-        if(!document.fullscreenElement && !_userExitedFS && window._fsRecoverOverlay){
-          window._fsRecoverOverlay.style.display='flex';
-        }
-      }, 300);
-    }
-  }
-});
-
-// Capture-phase Esc intercept — fires before browser acts on it where possible
+// Capture-phase keydown: block Escape before the browser acts on it.
+// Second layer of defence behind Keyboard Lock.
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape' && document.fullscreenElement && !_userExitedFS){
     e.preventDefault();
@@ -2361,10 +2305,31 @@ document.addEventListener('keydown', e=>{
   }
 }, true);
 
-// ── CLICK-TO-FULLSCREEN on desktop ──
+document.addEventListener('fullscreenchange', ()=>{
+  const hint = document.getElementById('fsHint');
+  _updateFsBtn();
+  if(document.fullscreenElement){
+    _userExitedFS = false;
+    if(hint) hint.classList.remove('show');
+    clearTimeout(_fsHintTimer);
+  } else {
+    if(navigator.keyboard && navigator.keyboard.unlock) navigator.keyboard.unlock();
+    if(_userExitedFS){
+      if(hint){
+        hint.classList.add('show');
+        clearTimeout(_fsHintTimer);
+        _fsHintTimer = setTimeout(()=> hint.classList.remove('show'), 4000);
+      }
+    } else {
+      // Unintended exit — silently re-enter fullscreen.
+      enterFS();
+    }
+  }
+});
+
+// Click the desktop to enter fullscreen
 document.addEventListener('click', e=>{
   if(document.fullscreenElement) return;
-  if(e.target.closest('#fsRecoverOverlay')) return; // handled by overlay itself
   const ignored = ['#taskbar','#start','.window','#menu','#tbMenu','#fsHint'];
   if(ignored.some(sel => e.target.closest(sel))) return;
   _userExitedFS = false;
@@ -2374,7 +2339,7 @@ document.addEventListener('click', e=>{
 // ===================== BOOT =====================
 document.body.style.background = '#1a1a1a';
 loadSettings();
-setTimeout(()=>{ showToast('Desktop ready','success','🖥️',2500); }, 600);
+setTimeout(()=>{ showToast('Desktop ready','success','\u{1F5A5}\uFE0F',2500); }, 600);
 _updateFsBtn();
 
 (function(){
