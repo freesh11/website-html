@@ -298,6 +298,15 @@ user-select:none;border-bottom:1px solid rgba(255,255,255,0.06);
 .ctrl-btn svg{pointer-events:none;}
 /* Snap layout flyout removed — snapping is done by dragging to edges */
 iframe{flex:1;border:none;background:#000}
+/* Hotzone strip at bottom of maximized windows — sits above the iframe so
+   mousemove events reach the parent document and trigger the taskbar peek */
+.tb-hotzone{
+  position:absolute;bottom:0;left:0;right:0;
+  height:4px;z-index:9999;
+  background:transparent;pointer-events:auto;
+}
+/* Taskbar must always be above iframes and the hotzone */
+#taskbar{z-index:99999 !important;}
 /* 8-direction resize handles */
 .resizeHandle{position:absolute;z-index:9998;}
 .resizeHandle.se{width:12px;height:12px;right:0;bottom:0;cursor:nwse-resize;}
@@ -975,6 +984,7 @@ win.innerHTML=`
 <div class='resizeHandle nw'></div>
 <div class='resizeHandle se'></div>
 <div class='resizeHandle sw'></div>
+<div class='tb-hotzone'></div>
 `;
 document.body.appendChild(win);
 // Opening animation
@@ -988,6 +998,14 @@ drag(win);
 resize(win);
 // Click anywhere on window to bring to front
 win.addEventListener('mousedown',()=>bring(win),true);
+// Hotzone: relay mousemove from the hotzone strip to the document
+// so the taskbar peek fires even when an iframe covers the viewport
+const hz=win.querySelector('.tb-hotzone');
+if(hz){
+  hz.addEventListener('mousemove',e=>{
+    document.dispatchEvent(new MouseEvent('mousemove',{clientX:e.clientX,clientY:e.clientY,bubbles:true}));
+  });
+}
 windows.push(win);
 return win;
 }
@@ -1004,6 +1022,7 @@ function _maximizeToggle(win){
 const RESTORE_SVG=`<svg width="10" height="10" viewBox="0 0 10 10"><rect x=".5" y="2.5" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1"/><polyline points="2.5,2.5 2.5,0.5 9.5,0.5 9.5,7.5 7.5,7.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>`;
 const MAX_SVG=`<svg width="10" height="10" viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1"/></svg>`;
 const tb=document.getElementById('taskbar');
+const hz=win.querySelector('.tb-hotzone');
 if(win.classList.contains('maximized')){
 win.classList.remove('maximized');
 if(win._maxBackup){
@@ -1011,6 +1030,7 @@ win.style.left=win._maxBackup.left;win.style.top=win._maxBackup.top;
 win.style.width=win._maxBackup.width;win.style.height=win._maxBackup.height;
 }
 const btn=win.querySelector('.ctrl-max'); if(btn) btn.innerHTML=MAX_SVG;
+if(hz){hz.style.height='4px';hz.style.pointerEvents='none';}
 // Show taskbar again when any window restores
 const anyMaxed=windows.some(w=>w.classList.contains('maximized'));
 if(!anyMaxed){tb.classList.remove('fs-hidden');document.body.classList.remove('tb-hidden');}
@@ -1018,6 +1038,9 @@ if(!anyMaxed){tb.classList.remove('fs-hidden');document.body.classList.remove('t
 win._maxBackup={left:win.style.left,top:win.style.top,width:win.style.width,height:win.style.height};
 win.classList.add('maximized');
 const btn=win.querySelector('.ctrl-max'); if(btn) btn.innerHTML=RESTORE_SVG;
+// Expand hotzone to cover the full taskbar height so mousemove fires in parent
+const tbH=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tb-height'))||60;
+if(hz){hz.style.height=tbH+'px';hz.style.pointerEvents='auto';}
 // Hide taskbar when a window maximizes (autohide on fullscreen)
 tb.classList.add('fs-hidden');
 document.body.classList.add('tb-hidden');
