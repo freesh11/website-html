@@ -19,6 +19,13 @@ font-family:"Segoe UI",sans-serif;
 background:#1a1a1a;
 overflow:hidden;
 color:white;
+width:100vw;height:100vh;
+}
+#scaleRoot{
+width:1280px;height:800px;
+transform-origin:top left;
+position:absolute;top:0;left:0;
+overflow:hidden;
 }
 #desktop{position:absolute;inset:0;padding:20px}
 
@@ -518,7 +525,8 @@ white-space:nowrap;
 #kbHint.show{opacity:1;}
 </style>
 </head>
-<body>
+<body style="background:#1a1a1a">
+<div id="scaleRoot">
 
 <div id="desktop"></div>
 <div id="snapOverlay"></div>
@@ -559,6 +567,7 @@ white-space:nowrap;
 <div id="taskRight">
 <div class="tray-icon" title="Network 🌐">🌐</div>
 <div class="tray-icon" id="volIcon" title="Volume" onclick="cycleVolume()">🔊</div>
+<div id="fsBtn" class="tray-icon" title="Re-enter fullscreen" onclick="enterFS()" style="display:none;font-size:16px;">⛶</div>
 <div id="taskClock">
 <div id="clockTime">12:00</div>
 <div id="clockDate">Mon 4/17</div>
@@ -584,8 +593,26 @@ white-space:nowrap;
 <div id="tbMenuClose">&#x2716; Close window</div>
 </div>
 
+</div><!-- #scaleRoot -->
+
 <script>
-// === CLOAKING ===
+// ===================== RESPONSIVE SCALE =====================
+const BASE_W=1280, BASE_H=800;
+function applyScale(){
+const scaleX=window.innerWidth/BASE_W;
+const scaleY=window.innerHeight/BASE_H;
+const scale=Math.min(scaleX,scaleY);
+const sr=document.getElementById('scaleRoot');
+sr.style.transform='scale('+scale+')';
+sr.style.width=BASE_W+'px';
+sr.style.height=BASE_H+'px';
+sr.style.left=((window.innerWidth-BASE_W*scale)/2)+'px';
+sr.style.top=((window.innerHeight-BASE_H*scale)/2)+'px';
+}
+applyScale();
+window.addEventListener('resize',applyScale);
+
+
 (function(){
 try{
 document.title='\u200B';
@@ -636,8 +663,9 @@ const SETTINGS_KEY='desktop_settings_v2';
 function saveSettings(){
 try{
 const tb=document.getElementById('taskbar');
+const bg=document.body.style.backgroundImage||document.body.style.background||'#1a1a1a';
 const s={
-bg:document.body.style.backgroundImage||document.body.style.background||'',
+bg,
 bgImg:document.body.style.backgroundImage||'',
 accent:getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
 taskOpacity:getComputedStyle(document.documentElement).getPropertyValue('--task-opacity').trim(),
@@ -652,13 +680,48 @@ try{
 const raw=localStorage.getItem(SETTINGS_KEY);
 if(!raw)return;
 const s=JSON.parse(raw);
-if(s.bg){applyBackground(s.bg);}
+applyBackground(s.bg||'#1a1a1a');
 if(s.accent){document.documentElement.style.setProperty('--accent',s.accent);}
 if(s.taskOpacity){setTaskbarOpacity(parseFloat(s.taskOpacity));}
 if(s.tbHeight){setTaskbarHeight(s.tbHeight);}
 if(s.tbMode){setTaskbarMode(s.tbMode);}
 }catch(e){}
 }
+function exportConfig(){
+try{
+const tb=document.getElementById('taskbar');
+const cfg={
+  _type:'desktop-config',
+  _version:1,
+  bg:document.body.style.backgroundImage||document.body.style.background||'',
+  bgImg:document.body.style.backgroundImage||'',
+  accent:getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
+  taskOpacity:getComputedStyle(document.documentElement).getPropertyValue('--task-opacity').trim(),
+  tbHeight:getComputedStyle(document.documentElement).getPropertyValue('--tb-height').trim()||'60px',
+  tbMode:tb.dataset.tbMode||'full',
+};
+const blob=new Blob([JSON.stringify(cfg,null,2)],{type:'application/json'});
+const a=document.createElement('a');
+a.href=URL.createObjectURL(blob);
+a.download='desktop-config.json';
+a.click();
+URL.revokeObjectURL(a.href);
+}catch(e){showToast('Export failed','error','❌',2500);}
+}
+function importConfig(raw){
+try{
+const cfg=JSON.parse(raw);
+if(cfg._type!=='desktop-config') return false;
+if(cfg.bg) applyBackground(cfg.bg);
+if(cfg.accent) document.documentElement.style.setProperty('--accent',cfg.accent);
+if(cfg.taskOpacity) setTaskbarOpacity(parseFloat(cfg.taskOpacity));
+if(cfg.tbHeight) setTaskbarHeight(cfg.tbHeight);
+if(cfg.tbMode) setTaskbarMode(cfg.tbMode);
+saveSettings();
+return true;
+}catch(e){return false;}
+}
+
 function applyBackground(val){
 if(!val)return;
 const isGrad=val.includes('gradient')||val.startsWith('url(');
@@ -740,8 +803,14 @@ kbHintTimer=setTimeout(()=>el.classList.remove('show'),1600);
 
 // ===================== KEYBOARD SHORTCUTS =====================
 document.addEventListener('keydown',e=>{
-// Escape — close start menu
-if(e.key==='Escape'){ start.classList.remove('active'); return; }
+// Escape — exit fullscreen if UI focused (not inside a game iframe), otherwise close start menu
+if(e.key==='Escape'){
+  // If an iframe (game) has focus, let the browser/game handle Escape natively
+  if(document.activeElement&&document.activeElement.tagName==='IFRAME') return;
+  if(document.fullscreenElement){ exitFS(); return; }
+  start.classList.remove('active');
+  return;
+}
 // Meta / Win key
 if(e.key==='Meta'||e.key==='OS'){ e.preventDefault(); toggleStart(); return; }
 // Ctrl+Esc — toggle start
@@ -1624,6 +1693,37 @@ root.appendChild(accentSection);
 const hr3=document.createElement('hr');hr3.className='settings-divider';root.appendChild(hr3);
 root.appendChild(kbSection);
 
+// Config import/export section
+const hr4=document.createElement('hr');hr4.className='settings-divider';root.appendChild(hr4);
+const cfgSection=document.createElement('div');cfgSection.className='settings-section';
+cfgSection.innerHTML='<div class="settings-label">Config File</div>';
+const cfgRow=document.createElement('div');cfgRow.className='settings-row';cfgRow.style.cssText='gap:8px;flex-wrap:wrap;';
+const exportBtn=document.createElement('button');
+exportBtn.className='settings-apply-btn';exportBtn.textContent='⬇ Export Config';
+exportBtn.style.cssText='padding:8px 16px;font-size:12px;';
+exportBtn.addEventListener('click',()=>{exportConfig();showToast('Config exported!','success','⬇',2000);});
+const importLabel=document.createElement('label');
+importLabel.className='settings-apply-btn';
+importLabel.textContent='⬆ Import Config';
+importLabel.style.cssText='padding:8px 16px;font-size:12px;cursor:pointer;background:rgba(255,255,255,0.08);color:#fff;';
+const importInput=document.createElement('input');
+importInput.type='file';importInput.accept='.json';importInput.style.display='none';
+importInput.addEventListener('change',e=>{
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const ok=importConfig(ev.target.result);
+    showToast(ok?'Config imported!':'Invalid config file',ok?'success':'error',ok?'⬆':'❌',2500);
+  };
+  reader.readAsText(file);
+  importInput.value='';
+});
+importLabel.appendChild(importInput);
+cfgRow.appendChild(exportBtn);
+cfgRow.appendChild(importLabel);
+cfgSection.appendChild(cfgRow);
+root.appendChild(cfgSection);
+
 win.appendChild(root);
 finish(win,'⚙️',p);
 start.classList.remove('active');
@@ -2148,9 +2248,40 @@ document.getElementById('tbMenu').style.display='none';
 if(!e.target.closest('#start')&&!e.target.closest('.taskBtn')) start.classList.remove('active');
 });
 
+// ===================== FULLSCREEN =====================
+function enterFS(){
+const el=document.documentElement;
+if(el.requestFullscreen) el.requestFullscreen();
+else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+}
+function exitFS(){
+_userExitedFS=true;
+if(document.exitFullscreen) document.exitFullscreen();
+else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+}
+let _userExitedFS=false;
+document.addEventListener('fullscreenchange',()=>{
+const fsBtn=document.getElementById('fsBtn');
+if(document.fullscreenElement){
+  fsBtn.style.display='none';
+  _userExitedFS=false;
+} else {
+  // If the user deliberately exited (via our exitFS()), show the button.
+  // Otherwise an iframe ate the Escape — re-enter fullscreen silently.
+  if(_userExitedFS){
+    fsBtn.style.display='flex';
+  } else {
+    enterFS();
+  }
+}
+});
+
 // ===================== BOOT =====================
+// Apply default background immediately so there's never a white flash
+document.body.style.background='#1a1a1a';
 loadSettings();
 setTimeout(()=>{showToast('Desktop ready','success','🖥️',2500);},600);
+// (fullscreen is manual via the ⛶ button in the taskbar)
 </script>
 </body>
 </html>
