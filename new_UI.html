@@ -11,8 +11,6 @@
 --glass:rgba(255,255,255,0.12);
 --glass2:rgba(255,255,255,0.18);
 --accent:#00ff7f;
---tb-height:clamp(44px,6vh,60px);
---tb-icon:clamp(28px,4.5vh,40px);
 }
 *{box-sizing:border-box;user-select:none}
 body{
@@ -26,8 +24,12 @@ width:100vw;height:100vh;
 #desktop{position:absolute;inset:0;padding:20px}
 
 /* TASKBAR */
+:root{
+--tb-height:60px;
+--tb-icon:40px;
+}
 #taskbar{
-position:fixed;bottom:0;left:0;width:100%;height:var(--tb-height);
+position:absolute;bottom:0;left:0;width:100%;height:var(--tb-height);
 background:rgba(255,255,255,var(--task-opacity));
 backdrop-filter:blur(20px);
 display:flex;align-items:center;justify-content:center;z-index:9999;
@@ -137,7 +139,7 @@ height:100vh!important;
 
 /* SNAP OVERLAY */
 #snapOverlay{
-position:fixed;inset:0 0 var(--tb-height) 0;
+position:absolute;inset:0 0 var(--tb-height) 0;
 background:rgba(0,212,255,0.06);border:2px solid rgba(0,212,255,0.25);
 border-radius:10px;pointer-events:none;opacity:0;
 transition:opacity .12s;z-index:9997;
@@ -146,7 +148,7 @@ transition:opacity .12s;z-index:9997;
 
 /* TOAST */
 #toastContainer{
-position:fixed;bottom:70px;right:16px;
+position:absolute;bottom:70px;right:16px;
 display:flex;flex-direction:column;gap:8px;
 z-index:999999;pointer-events:none;
 }
@@ -215,9 +217,9 @@ box-shadow:0 0 6px var(--accent,#00d4ff);
 
 /* START MENU */
 #start{
-position:fixed;bottom:70px;left:50%;
+position:absolute;bottom:80px;left:50%;
 transform:translateX(-50%) translateY(10px);
-width:min(520px,90vw);height:min(580px,80vh);
+width:560px;height:640px;
 background:rgba(18,18,18,0.55);backdrop-filter:blur(40px);
 border:1px solid rgba(255,255,255,0.08);border-radius:20px;
 padding:16px;display:flex;flex-direction:column;gap:12px;
@@ -254,7 +256,7 @@ cursor:pointer;transition:.15s;
 
 /* WINDOW SYSTEM */
 .window{
-position:absolute;width:820px;height:520px;background:#111;
+position:absolute;width:900px;height:600px;background:#111;
 border-radius:12px;overflow:hidden;display:none;flex-direction:column;
 box-shadow:0 25px 70px rgba(0,0,0,0.6);
 transition:box-shadow .15s;
@@ -508,16 +510,41 @@ border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;
 
 /* KEYBOARD SHORTCUT HINT */
 #kbHint{
-position:fixed;bottom:70px;left:50%;transform:translateX(-50%);
+position:absolute;bottom:70px;left:50%;transform:translateX(-50%);
 background:rgba(22,22,22,0.9);border:1px solid rgba(255,255,255,0.1);
 border-radius:10px;padding:8px 16px;font-size:11px;opacity:0;
 pointer-events:none;transition:opacity .2s;z-index:999999;
 white-space:nowrap;
 }
 #kbHint.show{opacity:1;}
+
+/* ── FULLSCREEN CLICK HINT ── */
+#fsHint {
+  position: absolute;
+  top: 50%;left: 50%;
+  transform: translate(-50%,-50%);
+  background: rgba(10,10,10,0.82);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 18px 28px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.85);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s;
+  z-index: 99999998;
+  text-align: center;
+  backdrop-filter: blur(16px);
+  white-space: nowrap;
+}
+#fsHint span { opacity: 0.55; font-size: 11px; display: block; margin-top: 4px; }
+#fsHint.show { opacity: 1; }
 </style>
 </head>
 <body style="background:#1a1a1a">
+
+<!-- Click-to-fullscreen hint -->
+<div id="fsHint">⛶ Click anywhere to enter fullscreen<span>Press Esc then click again to exit</span></div>
 
 <div id="desktop"></div>
 <div id="snapOverlay"></div>
@@ -558,10 +585,28 @@ white-space:nowrap;
 <div id="taskRight">
 <div class="tray-icon" title="Network 🌐">🌐</div>
 <div class="tray-icon" id="volIcon" title="Volume" onclick="cycleVolume()">🔊</div>
-<div id="fsBtn" class="tray-icon" title="Re-enter fullscreen" onclick="enterFS()" style="display:none;font-size:16px;">⛶</div>
 <div id="taskClock">
 <div id="clockTime">12:00</div>
 <div id="clockDate">Mon 4/17</div>
+</div>
+<div id="fsBtn" onclick="toggleFS()" title="Toggle fullscreen" style="
+  display:flex;align-items:center;gap:5px;
+  height:28px;padding:0 10px;
+  border-radius:8px;
+  background:rgba(255,255,255,0.07);
+  border:1px solid rgba(255,255,255,0.1);
+  cursor:pointer;
+  transition:background .15s,border-color .15s,transform .1s;
+  flex-shrink:0;
+  margin:0 2px;
+" onmouseenter="this.style.background='rgba(255,255,255,0.14)';this.style.borderColor='rgba(255,255,255,0.22)'"
+   onmouseleave="this.style.background='rgba(255,255,255,0.07)';this.style.borderColor='rgba(255,255,255,0.1)'"
+   onmousedown="this.style.transform='scale(0.93)'" onmouseup="this.style.transform='scale(1)'">
+  <svg id="fsBtnIcon" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- enter-fs arrows (default) -->
+    <path d="M1 4V1H4M10 1H13V4M13 10V13H10M4 13H1V10" stroke="rgba(255,255,255,0.85)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <span id="fsBtnLabel" style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.75);letter-spacing:0.3px;white-space:nowrap;">Fullscreen</span>
 </div>
 <div id="showDesktop" title="Show Desktop (Win+D)" onclick="showDesktop()"></div>
 </div>
@@ -585,6 +630,10 @@ white-space:nowrap;
 </div>
 
 <script>
+// ===================== RESPONSIVE SCALE =====================
+// No transform wrapper — windows live directly in the viewport.
+// Body fills 100vw × 100vh; all coordinates are native screen pixels.
+
 
 (function(){
 try{
@@ -872,9 +921,10 @@ if(_tbMenuTarget) closeW(_tbMenuTarget);
 document.getElementById('tbMenu').style.display='none';
 };
 
-function createWindow(title,w=820,h=520){
+function createWindow(title,w=900,h=600){
 const win=document.createElement('div');
 win.className='window';
+// Center the window in the desktop area
 const vw=window.innerWidth, vh=window.innerHeight-60;
 const left=Math.max(20,Math.round((vw-w)/2));
 const top=Math.max(20,Math.round((vh-h)/2));
@@ -2142,30 +2192,15 @@ _maximizeToggle(w);
 });
 
 w.addEventListener('mousedown',e=>{
+if(w.classList.contains('maximized')) return;
 if(e.target.tagName==='IFRAME'||e.target.closest('.controls')) return;
 if(!e.target.closest('.titlebar')) return;
-if(w.classList.contains('maximized')){
-  // Remember where the cursor was as a fraction of the maximized width
-  const fracX=e.clientX/w.offsetWidth;
-  _maximizeToggle(w);
-  // Position the restored window so the titlebar is under the cursor,
-  // keeping the same horizontal fraction
-  const newLeft=Math.round(e.clientX-w.offsetWidth*fracX);
-  const newTop=Math.max(0,e.clientY-19);
-  w.style.left=newLeft+'px';
-  w.style.top=newTop+'px';
-  dx=e.clientX-newLeft;
-  dy=e.clientY-newTop;
-} else {
-  dx=e.clientX-w.offsetLeft;dy=e.clientY-w.offsetTop;
-}
-d=true;bring(w);
+d=true;dx=e.clientX-w.offsetLeft;dy=e.clientY-w.offsetTop;bring(w);
 });
 document.addEventListener('mousemove',e=>{
 if(!d) return;
 w.style.left=(e.clientX-dx)+'px';
 w.style.top=(e.clientY-dy)+'px';
-// Snap overlay if dragged to top
 if(e.clientY<8){if(!snapShowing){overlay.classList.add('show');snapShowing=true;}}
 else{if(snapShowing){overlay.classList.remove('show');snapShowing=false;}}
 });
@@ -2221,39 +2256,100 @@ if(!e.target.closest('#start')&&!e.target.closest('.taskBtn')) start.classList.r
 });
 
 // ===================== FULLSCREEN =====================
-function enterFS(){
-const el=document.documentElement;
-if(el.requestFullscreen) el.requestFullscreen();
-else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-}
-function exitFS(){
-_userExitedFS=true;
-if(document.exitFullscreen) document.exitFullscreen();
-else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
-}
-let _userExitedFS=false;
-document.addEventListener('fullscreenchange',()=>{
-const fsBtn=document.getElementById('fsBtn');
-if(document.fullscreenElement){
-  fsBtn.style.display='none';
-  _userExitedFS=false;
-} else {
-  // If the user deliberately exited (via our exitFS()), show the button.
-  // Otherwise an iframe ate the Escape — re-enter fullscreen silently.
-  if(_userExitedFS){
-    fsBtn.style.display='flex';
+let _userExitedFS = false;
+let _fsHintTimer  = null;
+
+function _updateFsBtn(){
+  const icon = document.getElementById('fsBtnIcon');
+  const label = document.getElementById('fsBtnLabel');
+  if(!icon) return;
+  if(document.fullscreenElement){
+    // Exit icon: inward arrows
+    icon.innerHTML='<path d="M4 1V4H1M13 4H10V1M10 13V10H13M1 10H4V13" stroke="rgba(255,255,255,0.85)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>';
+    if(label) label.textContent='Exit';
   } else {
-    enterFS();
+    // Enter icon: outward arrows
+    icon.innerHTML='<path d="M1 4V1H4M10 1H13V4M13 10V13H10M4 13H1V10" stroke="rgba(255,255,255,0.85)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>';
+    if(label) label.textContent='Fullscreen';
   }
 }
+
+function enterFS(){
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen;
+  if(!req) return;
+  req.call(el).then(() => {
+    if(navigator.keyboard && navigator.keyboard.lock){
+      navigator.keyboard.lock(['Escape']).catch(()=>{});
+    }
+  }).catch(()=>{});
+}
+function exitFS(){
+  _userExitedFS = true;
+  if(navigator.keyboard && navigator.keyboard.unlock) navigator.keyboard.unlock();
+  if(document.exitFullscreen) document.exitFullscreen();
+  else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+}
+function toggleFS(){
+  if(document.fullscreenElement){ exitFS(); } else { _userExitedFS=false; enterFS(); }
+}
+
+// Capture-phase Esc block (fallback for browsers without Keyboard Lock API)
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && document.fullscreenElement && !_userExitedFS){
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
+}, true);
+
+document.addEventListener('fullscreenchange', () => {
+  const hint = document.getElementById('fsHint');
+  _updateFsBtn();
+  if(document.fullscreenElement){
+    _userExitedFS = false;
+    if(hint){ hint.classList.remove('show'); }
+    clearTimeout(_fsHintTimer);
+  } else {
+    if(navigator.keyboard && navigator.keyboard.unlock) navigator.keyboard.unlock();
+    if(_userExitedFS){
+      if(hint){
+        hint.classList.add('show');
+        clearTimeout(_fsHintTimer);
+        _fsHintTimer = setTimeout(() => hint.classList.remove('show'), 4000);
+      }
+    } else {
+      // Unintended exit (e.g. iframe) — silently re-enter
+      enterFS();
+    }
+  }
 });
 
+// ── CLICK-TO-FULLSCREEN ──
+// Clicking the desktop (not windows, taskbar, menus, or buttons) enters FS.
+document.addEventListener('click', e => {
+  if(document.fullscreenElement) return; // already fullscreen
+  // Ignore clicks on interactive UI regions
+  const ignored = ['#taskbar','#start','.window','#menu','#tbMenu','#fsHint'];
+  if(ignored.some(sel => e.target.closest(sel))) return;
+  _userExitedFS = false;
+  enterFS();
+}, true);
+
 // ===================== BOOT =====================
-// Apply default background immediately so there's never a white flash
-document.body.style.background='#1a1a1a';
+document.body.style.background = '#1a1a1a';
 loadSettings();
-setTimeout(()=>{showToast('Desktop ready','success','🖥️',2500);},600);
-// (fullscreen is manual via the ⛶ button in the taskbar)
+setTimeout(() => { showToast('Desktop ready','success','🖥️',2500); }, 600);
+_updateFsBtn();
+
+// Show the fullscreen hint briefly on first load
+(function(){
+  const hint = document.getElementById('fsHint');
+  if(!hint) return;
+  setTimeout(() => {
+    hint.classList.add('show');
+    _fsHintTimer = setTimeout(() => hint.classList.remove('show'), 4500);
+  }, 800);
+})();
 </script>
 </body>
 </html>
