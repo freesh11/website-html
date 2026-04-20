@@ -17,7 +17,7 @@
 body{
 margin:0;
 font-family:"Segoe UI",sans-serif;
-background:#1a1a1a;
+background:linear-gradient(135deg,#0a1628 0%,#1a237e 30%,#1565c0 60%,#0d47a1 80%,#051428 100%);
 overflow:hidden;
 color:white;
 width:100vw;height:100vh;
@@ -132,6 +132,9 @@ cursor:pointer;transition:.15s;flex-shrink:0;
 /* ── FULLSCREEN HIDE ── */
 #taskbar.fs-hidden{transform:translateY(100%)!important;opacity:0!important;pointer-events:none!important;}
 #taskbar.dock-mode.fs-hidden{transform:translateX(-50%) translateY(100%)!important;}
+/* Peek: cursor near bottom reveals taskbar even while fs-hidden */
+#taskbar.fs-hidden.tb-peek{transform:translateY(0)!important;opacity:1!important;pointer-events:auto!important;}
+#taskbar.dock-mode.fs-hidden.tb-peek{transform:translateX(-50%) translateY(0)!important;}
 
 /* When taskbar is hidden, maximized windows fill the full viewport */
 body.tb-hidden .window.maximized{
@@ -140,10 +143,10 @@ height:100vh!important;
 
 /* SNAP OVERLAY */
 #snapOverlay{
-position:absolute;inset:0 0 var(--tb-height) 0;
-background:rgba(0,212,255,0.06);border:2px solid rgba(0,212,255,0.25);
-border-radius:10px;pointer-events:none;opacity:0;
-transition:opacity .12s;z-index:9997;
+position:fixed;
+background:rgba(0,120,212,0.12);border:2px solid rgba(0,120,212,0.4);
+border-radius:8px;pointer-events:none;opacity:0;
+transition:opacity .12s, left .1s, top .1s, width .1s, height .1s;z-index:9997;
 }
 #snapOverlay.show{opacity:1;}
 
@@ -257,34 +260,43 @@ cursor:pointer;transition:.15s;
 
 /* WINDOW SYSTEM */
 .window{
-position:absolute;width:900px;height:600px;background:#111;
-border-radius:12px;overflow:hidden;display:none;flex-direction:column;
-box-shadow:0 25px 70px rgba(0,0,0,0.6);
-transition:box-shadow .15s;
+position:absolute;width:900px;height:600px;background:#202020;
+border-radius:8px;overflow:hidden;display:none;flex-direction:column;
+box-shadow:0 8px 32px rgba(0,0,0,0.5),0 32px 64px rgba(0,0,0,0.4),0 0 0 1px rgba(255,255,255,0.08);
+transition:box-shadow .15s,opacity .18s ease,transform .18s cubic-bezier(.34,1.56,.64,1);
+border:1px solid rgba(255,255,255,0.1);
 }
-.window:focus-within{box-shadow:0 28px 80px rgba(0,0,0,0.75);}
+.window.win-opening{animation:winOpen .2s cubic-bezier(.34,1.4,.64,1) both;}
+.window.win-closing{animation:winClose .15s ease forwards;}
+@keyframes winOpen{from{opacity:0;transform:scale(0.95) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes winClose{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(0.95) translateY(4px)}}
+.window:focus-within{box-shadow:0 8px 32px rgba(0,0,0,0.6),0 32px 80px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.15);}
 .window.maximized{
 left:0!important;top:0!important;width:100vw!important;
-height:calc(100vh - var(--tb-height))!important;border-radius:0;
+height:calc(100vh - var(--tb-height))!important;border-radius:0;border:none;
 }
 .window.maximized .resizeHandle{display:none;}
 .titlebar{
-height:38px;background:#1f1f1f;display:flex;justify-content:space-between;
+height:32px;background:rgba(32,32,32,0.95);
+backdrop-filter:blur(20px) saturate(1.5);
+display:flex;justify-content:space-between;
 align-items:center;padding:0 0 0 12px;cursor:grab;flex-shrink:0;
-user-select:none;
+user-select:none;border-bottom:1px solid rgba(255,255,255,0.06);
 }
 .titlebar:active{cursor:grabbing;}
+.title-icon{font-size:14px;margin-right:6px;flex-shrink:0;pointer-events:none;}
 .title-text{font-size:12px;opacity:.85;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.controls{display:flex;align-items:stretch;height:38px;margin-left:auto;flex-shrink:0;}
+.controls{display:flex;align-items:stretch;height:32px;margin-left:auto;flex-shrink:0;}
 .ctrl-btn{
-  width:46px;height:38px;display:flex;align-items:center;justify-content:center;
+  width:46px;height:32px;display:flex;align-items:center;justify-content:center;
   cursor:pointer;border:none;background:transparent;color:rgba(255,255,255,0.75);
-  transition:background .1s,color .1s;flex-shrink:0;
+  transition:background .1s,color .1s;flex-shrink:0;position:relative;
 }
 .ctrl-btn:hover{background:rgba(255,255,255,0.1);color:#fff;}
 .ctrl-btn.ctrl-close:hover{background:#c42b1c;color:#fff;}
 .ctrl-btn.ctrl-popout:hover{background:rgba(255,255,255,0.1);color:#fff;}
 .ctrl-btn svg{pointer-events:none;}
+/* Snap layout flyout removed — snapping is done by dragging to edges */
 iframe{flex:1;border:none;background:#000}
 /* 8-direction resize handles */
 .resizeHandle{position:absolute;z-index:9998;}
@@ -299,22 +311,32 @@ iframe{flex:1;border:none;background:#000}
 
 /* CONTEXT MENU */
 #menu{
-position:absolute;display:none;background:#111;border:1px solid #333;
-border-radius:8px;min-width:180px;z-index:999999;overflow:hidden;
-box-shadow:0 8px 32px rgba(0,0,0,0.6);
+position:absolute;display:none;
+background:rgba(30,30,30,0.96);backdrop-filter:blur(40px) saturate(1.8);
+border:1px solid rgba(255,255,255,0.12);
+border-radius:10px;min-width:220px;z-index:999999;overflow:hidden;
+box-shadow:0 8px 32px rgba(0,0,0,0.6),0 2px 8px rgba(0,0,0,0.4);
+padding:4px;
 }
-#menu div{padding:9px 14px;cursor:pointer;font-size:13px;}
-#menu div:hover{background:#222}
-#menu hr{border:none;border-top:1px solid rgba(255,255,255,0.08);margin:3px 0;}
+#menu .menu-item{
+padding:8px 12px;cursor:pointer;font-size:12.5px;border-radius:6px;margin:1px;
+display:flex;align-items:center;gap:10px;transition:background .1s;
+}
+#menu .menu-item:hover{background:rgba(255,255,255,0.1);}
+#menu .menu-item .menu-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0;}
+#menu hr{border:none;border-top:1px solid rgba(255,255,255,0.08);margin:4px 8px;}
 
 /* TASKBAR RIGHT-CLICK MENU */
 #tbMenu{
-position:absolute;display:none;background:#111;border:1px solid #333;
-border-radius:8px;min-width:140px;z-index:9999999;overflow:hidden;
-box-shadow:0 8px 32px rgba(0,0,0,0.6);
+position:absolute;display:none;
+background:rgba(30,30,30,0.96);backdrop-filter:blur(40px) saturate(1.8);
+border:1px solid rgba(255,255,255,0.12);
+border-radius:10px;min-width:160px;z-index:9999999;overflow:hidden;
+box-shadow:0 8px 32px rgba(0,0,0,0.6);padding:4px;
 }
-#tbMenu div{padding:8px 14px;cursor:pointer;font-size:12px;}
-#tbMenu div:hover{background:#222}
+#tbMenu .menu-item{padding:8px 12px;cursor:pointer;font-size:12px;border-radius:6px;margin:1px;display:flex;align-items:center;gap:10px;}
+#tbMenu .menu-item:hover{background:rgba(255,255,255,0.1);}
+#tbMenu .menu-item .menu-icon{font-size:14px;width:18px;text-align:center;}
 
 /* CMD */
 .cmdBody{
@@ -542,7 +564,7 @@ white-space:nowrap;
 #fsHint.show { opacity: 1; }
 </style>
 </head>
-<body style="background:#1a1a1a">
+<body style="background:linear-gradient(135deg,#0a1628 0%,#1a237e 30%,#1565c0 60%,#0d47a1 80%,#051428 100%)">
 
 <!-- Click-to-fullscreen hint -->
 <div id="fsHint">⛶ Click anywhere to enter fullscreen<span>Press Esc then click again to exit</span></div>
@@ -615,19 +637,19 @@ white-space:nowrap;
 
 <!-- DESKTOP CONTEXT MENU -->
 <div id="menu">
-<div onclick="toggleStart()">&#x1FA9F; Start</div>
-<div onclick="openCamera()">&#x1F4F7; Camera</div>
-<div onclick="openTaskManager()">&#x1F4CA; Task Manager</div>
-<div onclick="openNotepad()">&#x1F4DD; Notepad</div>
-<div onclick="openCMD()">&#x2328; Command Prompt</div>
-<div onclick="openSettings()">&#x2699; Settings</div>
+<div class="menu-item" onclick="toggleStart()"><span class="menu-icon">🪟</span> Start</div>
+<div class="menu-item" onclick="openCamera()"><span class="menu-icon">📷</span> Camera</div>
+<div class="menu-item" onclick="openTaskManager()"><span class="menu-icon">📊</span> Task Manager</div>
+<div class="menu-item" onclick="openNotepad()"><span class="menu-icon">📝</span> Notepad</div>
+<div class="menu-item" onclick="openCMD()"><span class="menu-icon">⌨</span> Command Prompt</div>
+<div class="menu-item" onclick="openSettings()"><span class="menu-icon">⚙️</span> Settings</div>
 <hr>
-<div onclick="showDesktop()">&#x1F5A5; Show Desktop</div>
+<div class="menu-item" onclick="showDesktop()"><span class="menu-icon">🖥️</span> Show Desktop</div>
 </div>
 
 <!-- TASKBAR BUTTON CONTEXT MENU -->
 <div id="tbMenu">
-<div id="tbMenuClose">&#x2716; Close window</div>
+<div class="menu-item" id="tbMenuClose"><span class="menu-icon">✖</span> Close window</div>
 </div>
 
 <script>
@@ -892,7 +914,12 @@ const taskIcons=document.getElementById('taskIcons');
 function toggleStart(){
 start.classList.toggle('active');
 if(start.classList.contains('active')) setTimeout(()=>startSearchInput.focus(),100);
-else { startSearchInput.value=''; document.querySelectorAll('#pinnedGrid .app').forEach(a=>a.classList.remove('hidden')); noResults.style.display='none'; pinnedLabel.style.display='block'; }
+else {
+  startSearchInput.value=''; document.querySelectorAll('#pinnedGrid .app').forEach(a=>a.classList.remove('hidden')); noResults.style.display='none'; pinnedLabel.style.display='block';
+  // If taskbar is in peek mode and cursor isn't over it, hide it again
+  const tb=document.getElementById('taskbar');
+  if(tb.classList.contains('fs-hidden')&&!tb.matches(':hover')) tb.classList.remove('tb-peek');
+}
 }
 function bring(w){w.style.zIndex=++z;}
 
@@ -922,7 +949,7 @@ if(_tbMenuTarget) closeW(_tbMenuTarget);
 document.getElementById('tbMenu').style.display='none';
 };
 
-function createWindow(title,w=900,h=600){
+function createWindow(title,w=900,h=600,icon='🪟'){
 const win=document.createElement('div');
 win.className='window';
 // Center the window in the desktop area
@@ -932,6 +959,7 @@ const top=Math.max(20,Math.round((vh-h)/2));
 win.style.cssText=`left:${left}px;top:${top}px;display:flex;z-index:${++z};width:${w}px;height:${h}px;`;
 win.innerHTML=`
 <div class='titlebar'>
+<span class='title-icon'>${icon}</span>
 <span class='title-text'>${title}</span>
 <div class='controls'>
 <button class='ctrl-btn ctrl-min' title="Minimize">
@@ -955,9 +983,12 @@ win.innerHTML=`
 <div class='resizeHandle sw'></div>
 `;
 document.body.appendChild(win);
+// Opening animation
+win.classList.add('win-opening');
+setTimeout(()=>win.classList.remove('win-opening'),220);
 // Wire titlebar buttons via addEventListener (no onclick attrs)
 win.querySelector('.ctrl-min').addEventListener('click',()=>minWin(win));
-win.querySelector('.ctrl-max').addEventListener('click',()=>toggleMaximize(win.querySelector('.ctrl-max')));
+win.querySelector('.ctrl-max').addEventListener('click',e=>{toggleMaximize(win.querySelector('.ctrl-max'));});
 win.querySelector('.ctrl-close').addEventListener('click',()=>closeW(win));
 drag(win);
 resize(win);
@@ -1000,12 +1031,41 @@ document.body.classList.add('tb-hidden');
 bring(win);
 }
 
+function closest_win(el){return el.closest('.window');}
+
+function snapWin(win,pos){
+if(!win)return;
+const tb=document.getElementById('taskbar');
+const tbH=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tb-height'))||60;
+const W=window.innerWidth, H=window.innerHeight-tbH;
+// Remove maximized state first
+if(win.classList.contains('maximized')){
+  win.classList.remove('maximized');
+  win.querySelector('.ctrl-max').innerHTML=`<svg width="10" height="10" viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1"/></svg>`;
+  tb.classList.remove('fs-hidden'); document.body.classList.remove('tb-hidden');
+}
+const positions={
+  left:{left:0,top:0,width:W/2,height:H},
+  right:{left:W/2,top:0,width:W/2,height:H},
+  tl:{left:0,top:0,width:W/2,height:H/2},
+  tr:{left:W/2,top:0,width:W/2,height:H/2},
+  bl:{left:0,top:H/2,width:W/2,height:H/2},
+  br:{left:W/2,top:H/2,width:W/2,height:H/2},
+};
+const p=positions[pos];if(!p)return;
+win.style.left=p.left+'px';win.style.top=p.top+'px';
+win.style.width=p.width+'px';win.style.height=p.height+'px';
+bring(win);
+}
+
 function finish(win,icon,p){
 win.task=createTask(win,icon);
 if(p) p.win=win;
 }
 
 function closeW(win){
+win.classList.add('win-closing');
+setTimeout(()=>{
 windows=windows.filter(x=>x!==win);
 const removedProc=processes.find(p=>p.win===win);
 if(removedProc){
@@ -1019,6 +1079,7 @@ win.remove();
 // Restore taskbar if no maximized windows remain
 const anyMaxed=windows.some(w=>w.classList.contains('maximized'));
 if(!anyMaxed){document.getElementById('taskbar').classList.remove('fs-hidden');document.body.classList.remove('tb-hidden');}
+},150);
 }
 function closeWBtn(e){ closeW(e.closest('.window')); }
 
@@ -1162,7 +1223,7 @@ showToast('Opening Poly Track','info','🏎️',2000);
 let camProcId=null;
 function openCamera(){
 if(camProcId!==null){const p=processes.find(x=>x.id===camProcId);if(p&&p.win){p.win.style.display='flex';bring(p.win);if(p.win.task)p.win.task.classList.add('open');}start.classList.remove('active');return;}
-const win=createWindow('📷 Camera',880,600);
+const win=createWindow('Camera',880,600,'📷');
 const p=allocProc({name:'Camera',mem:72,cpu:3});
 processes.push(p);p.win=win;camProcId=p.id;
 
@@ -1461,7 +1522,7 @@ camInit();
 
 // ===================== NOTEPAD =====================
 function openNotepad(initialText){
-const win=createWindow('Notepad',720,520);
+const win=createWindow('Notepad',720,520,'📝');
 const p=allocProc({name:'Notepad',mem:+(12+Math.random()*5).toFixed(0),cpu:+(Math.random()*0.5).toFixed(1)});
 processes.push(p);p.win=win;
 
@@ -1620,7 +1681,7 @@ tbCustomSection.innerHTML='<div class="settings-label">Taskbar Style</div>';
 const tbHeightRow=document.createElement('div');tbHeightRow.className='settings-row';tbHeightRow.style.cssText='gap:8px;flex-wrap:wrap;align-items:center;';
 const tbHeightLabel=document.createElement('span');tbHeightLabel.style.cssText='font-size:11px;opacity:.5;min-width:44px;';tbHeightLabel.textContent='Height';
 const currentTbH=getComputedStyle(document.documentElement).getPropertyValue('--tb-height').trim()||'60px';
-const tbHeightPresets=[{label:'Slim',val:'40px'},{label:'Normal',val:'60px'},{label:'Large',val:'80px'},{label:'XL',val:'100px'}];
+const tbHeightPresets=[{label:'Slim',val:'40px'},{label:'Normal',val:'60px'}];
 tbHeightRow.appendChild(tbHeightLabel);
 tbHeightPresets.forEach(pr=>{
   const b=document.createElement('button');
@@ -2183,32 +2244,98 @@ processes.splice(i,1);
 
 // ===================== DRAG + SNAP + DBLCLICK MAXIMIZE =====================
 function drag(w){
-let dx=0,dy=0,d=false,snapShowing=false;
+let dx=0,dy=0,d=false;
+let snapZone=null; // 'top' | 'left' | 'right' | null
+let unmaximizePending=false;
+let pendingMouseX=0,pendingMouseY=0;
 const titlebar=w.querySelector('.titlebar');
 const overlay=document.getElementById('snapOverlay');
 
+function getSnapZone(x,y){
+  const EDGE=12; // px from edge to trigger
+  if(y<=EDGE) return 'top';
+  if(x<=EDGE) return 'left';
+  if(x>=window.innerWidth-EDGE) return 'right';
+  return null;
+}
+
+function tbH(){
+  return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tb-height'))||60;
+}
+
+function showOverlay(zone){
+  const W=window.innerWidth, H=window.innerHeight-tbH();
+  const pad=4;
+  let l,t,ow,oh;
+  if(zone==='top')    { l=pad; t=pad; ow=W-pad*2; oh=H-pad*2; }
+  else if(zone==='left')  { l=pad; t=pad; ow=W/2-pad*1.5; oh=H-pad*2; }
+  else if(zone==='right') { l=W/2+pad*0.5; t=pad; ow=W/2-pad*1.5; oh=H-pad*2; }
+  overlay.style.left=l+'px'; overlay.style.top=t+'px';
+  overlay.style.width=ow+'px'; overlay.style.height=oh+'px';
+  overlay.classList.add('show');
+}
+
+function hideOverlay(){
+  overlay.classList.remove('show');
+}
+
 titlebar.addEventListener('dblclick',e=>{
-if(e.target.closest('.controls')) return;
-_maximizeToggle(w);
+  if(e.target.closest('.controls')) return;
+  _maximizeToggle(w);
 });
 
 w.addEventListener('mousedown',e=>{
-if(w.classList.contains('maximized')) return;
-if(e.target.tagName==='IFRAME'||e.target.closest('.controls')) return;
-if(!e.target.closest('.titlebar')) return;
-d=true;dx=e.clientX-w.offsetLeft;dy=e.clientY-w.offsetTop;bring(w);
+  if(e.target.tagName==='IFRAME'||e.target.closest('.controls')) return;
+  if(!e.target.closest('.titlebar')) return;
+  bring(w);
+  if(w.classList.contains('maximized')){
+    unmaximizePending=true;
+    pendingMouseX=e.clientX;
+    pendingMouseY=e.clientY;
+    return;
+  }
+  d=true; dx=e.clientX-w.offsetLeft; dy=e.clientY-w.offsetTop;
 });
+
 document.addEventListener('mousemove',e=>{
-if(!d) return;
-w.style.left=(e.clientX-dx)+'px';
-w.style.top=(e.clientY-dy)+'px';
-if(e.clientY<8){if(!snapShowing){overlay.classList.add('show');snapShowing=true;}}
-else{if(snapShowing){overlay.classList.remove('show');snapShowing=false;}}
+  if(unmaximizePending){
+    const movedX=Math.abs(e.clientX-pendingMouseX);
+    const movedY=Math.abs(e.clientY-pendingMouseY);
+    if(movedX>4||movedY>4){
+      unmaximizePending=false;
+      const preRestoreWidth=w.offsetWidth;
+      const titlebarRect=titlebar.getBoundingClientRect();
+      const clickRatio=Math.max(0,Math.min(1,(pendingMouseX-titlebarRect.left)/preRestoreWidth));
+      _maximizeToggle(w);
+      const restoredWidth=w.offsetWidth;
+      const newLeft=e.clientX-(restoredWidth*clickRatio);
+      const newTop=e.clientY-20;
+      w.style.left=Math.max(0,newLeft)+'px';
+      w.style.top=Math.max(0,newTop)+'px';
+      dx=e.clientX-w.offsetLeft;
+      dy=e.clientY-w.offsetTop;
+      d=true;
+    }
+    return;
+  }
+  if(!d) return;
+  w.style.left=(e.clientX-dx)+'px';
+  w.style.top=(e.clientY-dy)+'px';
+  const zone=getSnapZone(e.clientX,e.clientY);
+  if(zone!==snapZone){
+    snapZone=zone;
+    if(zone) showOverlay(zone); else hideOverlay();
+  }
 });
+
 document.addEventListener('mouseup',e=>{
-if(!d) return;
-d=false;
-if(snapShowing){overlay.classList.remove('show');snapShowing=false;_maximizeToggle(w);}
+  unmaximizePending=false;
+  if(!d) return;
+  d=false;
+  hideOverlay();
+  if(snapZone==='top'){ snapZone=null; _maximizeToggle(w); }
+  else if(snapZone==='left'||snapZone==='right'){ const z=snapZone; snapZone=null; snapWin(w,z); }
+  else snapZone=null;
 });
 }
 
@@ -2337,10 +2464,33 @@ document.addEventListener('click', e=>{
 }, true);
 
 // ===================== BOOT =====================
-document.body.style.background = '#1a1a1a';
+document.body.style.background = 'linear-gradient(135deg,#0a1628 0%,#1a237e 30%,#1565c0 60%,#0d47a1 80%,#051428 100%)';
 loadSettings();
 setTimeout(()=>{ showToast('Desktop ready','success','\u{1F5A5}\uFE0F',2500); }, 600);
 _updateFsBtn();
+
+// ── Taskbar autohide peek ──
+(function(){
+  const tb = document.getElementById('taskbar');
+
+  document.addEventListener('mousemove', e => {
+    if(!tb.classList.contains('fs-hidden')) return;
+    if(document.getElementById('start').classList.contains('active')) return;
+    const tbH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tb-height')) || 60;
+    const PEEK_ZONE = 4;
+    if(e.clientY >= window.innerHeight - PEEK_ZONE) {
+      tb.classList.add('tb-peek');
+    } else if(e.clientY < window.innerHeight - tbH) {
+      tb.classList.remove('tb-peek');
+    }
+  });
+
+  tb.addEventListener('mouseleave', () => {
+    if(!tb.classList.contains('fs-hidden')) return;
+    if(document.getElementById('start').classList.contains('active')) return;
+    tb.classList.remove('tb-peek');
+  });
+})();
 
 (function(){
   const hint = document.getElementById('fsHint');
