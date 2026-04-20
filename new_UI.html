@@ -13,7 +13,7 @@
 --glass2:rgba(255,255,255,0.18);
 --accent:#00ff7f;
 }
-*{box-sizing:border-box;user-select:none}
+*{box-sizing:border-box;user-select:none;-webkit-user-select:none;}
 body{
 margin:0;
 font-family:"Segoe UI",sans-serif;
@@ -31,6 +31,7 @@ color:white;
 #taskbar{
 position:fixed;bottom:0;left:0;width:100%;height:var(–tb-height);
 background:rgba(255,255,255,var(–task-opacity));
+-webkit-backdrop-filter:blur(20px);
 backdrop-filter:blur(20px);
 display:flex;align-items:center;justify-content:center;z-index:9999;
 transition:background .3s, transform .35s cubic-bezier(.4,0,.2,1), opacity .3s, width .35s, left .35s, border-radius .35s;
@@ -218,7 +219,7 @@ box-shadow:0 0 6px var(–accent,#00d4ff);
 position:absolute;bottom:80px;left:50%;
 transform:translateX(-50%) translateY(10px);
 width:560px;height:640px;
-background:rgba(18,18,18,0.55);backdrop-filter:blur(40px);
+background:rgba(18,18,18,0.55);-webkit-backdrop-filter:blur(40px);backdrop-filter:blur(40px);
 border:1px solid rgba(255,255,255,0.08);border-radius:20px;
 padding:16px;display:flex;flex-direction:column;gap:12px;
 opacity:0;pointer-events:none;transition:.25s ease;z-index:99999;
@@ -268,7 +269,7 @@ height:calc(100vh - var(–tb-height))!important;border-radius:0;
 .titlebar{
 height:38px;background:#1f1f1f;display:flex;justify-content:space-between;
 align-items:center;padding:0 0 0 12px;cursor:grab;flex-shrink:0;
-user-select:none;
+user-select:none;-webkit-user-select:none;touch-action:none;
 }
 .titlebar:active{cursor:grabbing;}
 .title-text{font-size:12px;opacity:.85;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -748,21 +749,21 @@ kbHintTimer=setTimeout(()=>el.classList.remove('show'),1600);
 // ===================== KEYBOARD SHORTCUTS =====================
 document.addEventListener('keydown',e=>{
 // Escape — close start menu
-if(e.key==='Escape'){ start.classList.remove('active'); return; }
-// Meta / Win key
+if(e.key==='Escape'&&!e.ctrlKey&&!e.shiftKey){ start.classList.remove('active'); return; }
+// Meta / Win / ChromeOS Search key
 if(e.key==='Meta'||e.key==='OS'){ e.preventDefault(); toggleStart(); return; }
 // Ctrl+Esc — toggle start
-if(e.key==='Escape'&&e.ctrlKey){ toggleStart(); return; }
-// Ctrl+Shift+Esc — task manager
-if(e.key==='Escape'&&e.ctrlKey&&e.shiftKey){ openTaskManager(); return; }
-if(e.code==='Escape'&&e.ctrlKey&&e.shiftKey){ openTaskManager(); return; }
-// Ctrl+Shift+Esc alternative
-if(e.ctrlKey&&e.shiftKey&&e.key==='Escape'){ openTaskManager(); flashHint('Task Manager'); return; }
-// Win+D — show desktop (Meta handled above, use Ctrl+D as alias)
-if(e.ctrlKey&&e.key==='d'){ e.preventDefault(); showDesktop(); flashHint('Win+D — Show Desktop'); return; }
-// Ctrl+N — new notepad
-if(e.ctrlKey&&e.key==='n'&&!e.shiftKey){ e.preventDefault(); openNotepad(); flashHint('Ctrl+N — Notepad'); return; }
-});
+if(e.key==='Escape'&&e.ctrlKey&&!e.shiftKey){ e.preventDefault(); toggleStart(); return; }
+// Ctrl+Shift+Esc — task manager (deduplicated)
+if(e.ctrlKey&&e.shiftKey&&e.key==='Escape'){ e.preventDefault(); openTaskManager(); flashHint('Task Manager'); return; }
+// Ctrl+D — show desktop (preventDefault stops Chrome bookmarking it)
+if(e.ctrlKey&&!e.shiftKey&&!e.altKey&&e.key==='d'){ e.preventDefault(); showDesktop(); flashHint('Ctrl+D — Show Desktop'); return; }
+// Ctrl+N — new notepad (preventDefault stops Chrome opening new window)
+if(e.ctrlKey&&!e.shiftKey&&!e.altKey&&e.key==='n'){ e.preventDefault(); openNotepad(); flashHint('Ctrl+N — Notepad'); return; }
+// Alt+D / Alt+N — aliases that never conflict with any browser shortcut
+if(e.altKey&&e.key==='d'){ e.preventDefault(); showDesktop(); flashHint('Alt+D — Show Desktop'); return; }
+if(e.altKey&&e.key==='n'){ e.preventDefault(); openNotepad(); flashHint('Alt+N — Notepad'); return; }
+},true); // useCapture=true so we intercept before Chrome's browser-level handlers
 
 // ===================== SHOW DESKTOP =====================
 let _desktopHidden=false;
@@ -2089,7 +2090,7 @@ else processes.splice(i,1);
 
 // ===================== DRAG + SNAP + DBLCLICK MAXIMIZE =====================
 function drag(w){
-let dx=0,dy=0,d=false,snapShowing=false;
+let dx=0,dy=0,d=false,snapShowing=false,activePointerId=null;
 const titlebar=w.querySelector(’.titlebar’);
 const overlay=document.getElementById(‘snapOverlay’);
 
@@ -2098,24 +2099,30 @@ if(e.target.closest(’.controls’)) return;
 _maximizeToggle(w);
 });
 
-w.addEventListener(‘mousedown’,e=>{
+titlebar.addEventListener(‘pointerdown’,e=>{
 if(w.classList.contains(‘maximized’)) return;
-if(e.target.tagName===‘IFRAME’||e.target.closest(’.controls’)) return;
-if(!e.target.closest(’.titlebar’)) return;
-d=true;dx=e.clientX-w.offsetLeft;dy=e.clientY-w.offsetTop;bring(w);
+if(e.target.closest(’.controls’)) return;
+d=true;
+activePointerId=e.pointerId;
+titlebar.setPointerCapture(e.pointerId);
+dx=e.clientX-w.offsetLeft;dy=e.clientY-w.offsetTop;
+bring(w);
 });
-document.addEventListener(‘mousemove’,e=>{
-if(!d) return;
+titlebar.addEventListener(‘pointermove’,e=>{
+if(!d||e.pointerId!==activePointerId) return;
 w.style.left=(e.clientX-dx)+‘px’;
 w.style.top=(e.clientY-dy)+‘px’;
-// Snap overlay if dragged to top
 if(e.clientY<8){if(!snapShowing){overlay.classList.add(‘show’);snapShowing=true;}}
 else{if(snapShowing){overlay.classList.remove(‘show’);snapShowing=false;}}
 });
-document.addEventListener(‘mouseup’,e=>{
-if(!d) return;
-d=false;
+titlebar.addEventListener(‘pointerup’,e=>{
+if(!d||e.pointerId!==activePointerId) return;
+d=false;activePointerId=null;
 if(snapShowing){overlay.classList.remove(‘show’);snapShowing=false;_maximizeToggle(w);}
+});
+titlebar.addEventListener(‘pointercancel’,e=>{
+d=false;activePointerId=null;
+if(snapShowing){overlay.classList.remove(‘show’);snapShowing=false;}
 });
 }
 
@@ -2123,9 +2130,10 @@ if(snapShowing){overlay.classList.remove(‘show’);snapShowing=false;_maximize
 function resize(w){
 const MIN_W=320, MIN_H=200;
 w.querySelectorAll(’.resizeHandle’).forEach(r=>{
-r.addEventListener(‘mousedown’,e=>{
+r.addEventListener(‘pointerdown’,e=>{
 if(w.classList.contains(‘maximized’)) return;
 e.stopPropagation(); e.preventDefault();
+r.setPointerCapture(e.pointerId);
 const dir=Array.from(r.classList).find(c=>c!==‘resizeHandle’);
 const startX=e.clientX, startY=e.clientY;
 const startL=w.offsetLeft, startT=w.offsetTop;
@@ -2140,9 +2148,9 @@ if(dir.includes(‘n’)){nh=Math.max(MIN_H,startH-dy);nt=startT+startH-nh;}
 w.style.left=nl+‘px’;w.style.top=nt+‘px’;
 w.style.width=nw+‘px’;w.style.height=nh+‘px’;
 }
-function onUp(){document.removeEventListener(‘mousemove’,onMove);document.removeEventListener(‘mouseup’,onUp);}
-document.addEventListener(‘mousemove’,onMove);
-document.addEventListener(‘mouseup’,onUp);
+function onUp(){r.removeEventListener(‘pointermove’,onMove);r.removeEventListener(‘pointerup’,onUp);}
+r.addEventListener(‘pointermove’,onMove);
+r.addEventListener(‘pointerup’,onUp);
 });
 });
 }
