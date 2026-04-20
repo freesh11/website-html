@@ -4,222 +4,600 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>UI Launcher</title>
-
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-/* (same styles as before, unchanged for stability) */
+:root {
+  --bg: #0a0a0b;
+  --surface: #111114;
+  --surface2: #18181c;
+  --border: rgba(255,255,255,0.07);
+  --accent: #00ff88;
+  --accent2: #00d4ff;
+  --warn: #ff5555;
+  --text: #e8e8ea;
+  --muted: #6b6b78;
+  --radius: 14px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
-  margin: 0;
-  height: 100vh;
+  min-height: 100vh;
+  background: var(--bg);
+  font-family: 'Syne', sans-serif;
+  color: var(--text);
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  background: linear-gradient(135deg, #1a1a1a, #2c3e50);
-  font-family: Arial, sans-serif;
-  color: white;
+  justify-content: center;
+  padding: 32px 20px;
+  overflow-x: hidden;
 }
 
-.wrapper { display:flex; gap:20px; align-items:flex-start; }
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
 
+body::after {
+  content: '';
+  position: fixed;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(0,255,136,0.045) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 230px 1fr 230px;
+  gap: 14px;
+  width: 100%;
+  max-width: 880px;
+  align-items: start;
+}
+
+/* ── PANELS ── */
 .panel {
-  width:260px;
-  background:rgba(0,0,0,0.35);
-  border-radius:15px;
-  padding:20px;
-  box-shadow:0 10px 30px rgba(0,0,0,0.4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.panel h2 { margin:0 0 10px; font-size:18px; letter-spacing:2px; }
-.news h2 { color:#00ff88; }
-.warn h2 { color:#ff4d4d; }
+.panel-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  font-family: 'DM Mono', monospace;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+.panel-label.green { color: var(--accent); }
+.panel-label.red   { color: var(--warn); }
+.panel-label.blue  { color: var(--accent2); }
 
-.panel p {
-  font-size:13px;
-  margin:10px 0;
-  color:#ddd;
+.panel-item {
+  font-size: 12px;
+  line-height: 1.55;
+  padding: 8px 10px;
+  background: var(--surface2);
+  border-radius: 8px;
+  border-left: 2px solid transparent;
+}
+.panel-item.w { border-left-color: var(--warn);   color: #bb8888; }
+.panel-item.n { border-left-color: var(--accent);  color: #88bb99; }
+
+.req-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  padding: 8px 12px;
+  background: rgba(0,255,136,0.07);
+  border: 1px solid rgba(0,255,136,0.18);
+  border-radius: 8px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background .15s, border-color .15s;
+}
+.req-link:hover { background: rgba(0,255,136,0.13); border-color: rgba(0,255,136,0.35); }
+
+/* ── CENTER ── */
+.center {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: stretch;
 }
 
-.box {
-  background:#111;
-  padding:40px;
-  border-radius:15px;
-  text-align:center;
-  box-shadow:0 10px 30px rgba(0,0,0,0.5);
-  width:340px;
+.hero { text-align: center; padding: 6px 0 2px; }
+.hero-title {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #fff 40%, #555);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.1;
+  margin-bottom: 5px;
+}
+.hero-sub {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-family: 'DM Mono', monospace;
 }
 
-h1 { margin-bottom:20px; }
-
-.btn {
-  display:block;
-  margin:12px 0;
-  padding:12px;
-  background:#00ff88;
-  color:black;
-  border-radius:8px;
-  font-weight:bold;
-  cursor:pointer;
+/* ── LAUNCH BUTTONS ── */
+.launch-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
-.btn:hover { background:#00cc6a; }
+.launch-btn {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color .2s, transform .15s;
+  text-align: left;
+  padding: 0;
+}
+.launch-btn:hover { border-color: rgba(255,255,255,0.15); transform: translateY(-2px); }
+.launch-btn:active { transform: none; }
 
-.btn-link {
-  display:inline-block;
-  margin-top:10px;
-  padding:10px 18px;
-  background:#00ff88;
-  color:black;
-  border-radius:8px;
-  font-weight:bold;
-  text-decoration:none;
+.launch-inner { padding: 16px 18px 14px; }
+.launch-tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-family: 'DM Mono', monospace;
+  margin-bottom: 4px;
+}
+.launch-tag.new { color: var(--accent); }
+.launch-tag.old { color: var(--muted); }
+.launch-name { font-size: 17px; font-weight: 700; color: var(--text); }
+
+.launch-arrow {
+  position: absolute;
+  bottom: 13px; right: 15px;
+  font-size: 17px;
+  opacity: 0.2;
+  transition: opacity .2s, transform .2s;
+}
+.launch-btn:hover .launch-arrow { opacity: 0.65; transform: translate(2px,-2px); }
+
+.launch-btn.new::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0,255,136,0.05) 0%, transparent 65%);
+  pointer-events: none;
+}
+.launch-btn.old::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0,212,255,0.04) 0%, transparent 65%);
+  pointer-events: none;
 }
 
-.ui-row { display:flex; gap:20px; }
-
-.ui-box {
-  width:160px;
-  background:rgba(0,0,0,0.35);
-  border-radius:15px;
-  padding:15px;
-  text-align:center;
-  cursor:pointer;
+/* ── PREVIEWS ── */
+.previews {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
-.ui-img { width:100%; border-radius:10px; }
-
-.ui-text {
-  color:white;
-  text-shadow:0 0 8px rgba(255,255,255,0.6);
+.preview {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color .2s, transform .15s;
+}
+.preview:hover { border-color: rgba(255,255,255,0.13); transform: translateY(-2px); }
+.preview img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
+.preview-lbl {
+  padding: 7px 11px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.5px;
 }
 
-.expand-text {
-  text-align:center;
-  font-size:12px;
-  color:#bbb;
+/* ── ACTIONS ROW ── */
+.actions {
+  display: flex;
+  gap: 8px;
 }
 
-.overlay {
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:rgba(0,0,0,0.6);
-  backdrop-filter:blur(10px);
-  display:none;
-  justify-content:center;
-  align-items:center;
+.act-btn {
+  flex: 1;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--muted);
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.act-btn:hover { background: var(--surface2); color: var(--text); border-color: rgba(255,255,255,0.12); }
+.act-btn.log:hover { border-color: rgba(0,212,255,0.3); color: var(--accent2); }
+
+/* ── IMAGE OVERLAY ── */
+.img-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  backdrop-filter: blur(18px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  cursor: zoom-out;
+}
+.img-overlay.open { display: flex; }
+.img-overlay img {
+  max-width: 90vw;
+  max-height: 88vh;
+  border-radius: 10px;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+  pointer-events: none;
 }
 
-.overlay img {
-  max-width:90%;
-  max-height:90%;
+/* ── CHANGELOG MODAL ── */
+.modal-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.82);
+  backdrop-filter: blur(18px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 24px;
+}
+.modal-bg.open { display: flex; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  width: 620px;
+  max-width: 100%;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.7);
+  animation: modalIn .2s ease;
+}
+@keyframes modalIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--surface2);
+}
+.modal-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  font-family: 'DM Mono', monospace;
+  color: var(--accent2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.modal-x {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+  border: none;
+  color: var(--muted);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, color .15s;
+  line-height: 1;
+}
+.modal-x:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+
+.modal-body {
+  overflow-y: auto;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.08) transparent;
 }
 
-.close {
-  position:absolute;
-  top:20px;
-  right:30px;
-  font-size:30px;
-  cursor:pointer;
+.cl {
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--surface2);
+  border-left: 2px solid;
+}
+.cl-title {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  font-family: 'DM Mono', monospace;
+  margin-bottom: 9px;
+}
+.cl ul { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.cl ul li {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  padding-left: 14px;
+  position: relative;
+}
+.cl ul li::before { content: '—'; position: absolute; left: 0; opacity: 0.25; font-family: 'DM Mono', monospace; font-size: 10px; }
+.cl ul li a { color: var(--accent); text-decoration: none; }
+.cl ul li a:hover { text-decoration: underline; }
+code {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  background: rgba(255,255,255,0.07);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: #c0c0cc;
+}
+
+@media (max-width: 700px) {
+  .layout { grid-template-columns: 1fr; }
+  .launch-grid, .previews { grid-template-columns: 1fr 1fr; }
 }
 </style>
 </head>
-
 <body>
 
-<div class="wrapper">
+<div class="layout">
 
-  <div class="panel warn">
-    <h2>WARNINGS</h2>
-    <p>worst time sim has been removed temporarily due to space constraints on the new ui</p>
-    <p>i am aware only the gray and black backgrounds work on the new ui</p>
-    <p>native keyboard locking in games is not avalible in the new ui</p>
+  <!-- LEFT -->
+  <div class="panel">
+    <div class="panel-label red">Warnings</div>
+    <div class="panel-item w">Worst Time Sim removed temporarily due to space constraints.</div>
+    <div class="panel-item w">Only gray &amp; black backgrounds work on the new UI.</div>
+    <div class="panel-item w">Native keyboard locking unavailable in the new UI.</div>
+
+    <div class="panel-label blue" style="margin-top:8px;">Requests</div>
+    <div class="panel-item" style="color:var(--muted);">Submit feature requests or bug reports.</div>
+    <a class="req-link" href="https://forms.gle/o5YPunfDxoyvmUD3A" target="_blank">Open Form ↗</a>
   </div>
 
-  <div style="display:flex; flex-direction:column; gap:20px;">
+  <!-- CENTER -->
+  <div class="center">
 
-    <div class="panel">
-      <h2>REQUESTS</h2>
-      <p>requests can be submitted here</p>
-      <a class="btn-link" href="https://forms.gle/o5YPunfDxoyvmUD3A" target="_blank">Open</a>
+    <div class="hero">
+      <div class="hero-title">UI Launcher</div>
+      <div class="hero-sub">Select a version to launch</div>
     </div>
 
-    <div class="box">
-      <h1>Choose an Option</h1>
-
-      <div class="btn" onclick="openSite('new')">New UI</div>
-      <div class="btn" onclick="openSite('old')">Old UI</div>
-    </div>
-
-    <div class="ui-row">
-      <div onclick="expand('https://freesh11.github.io/website-html/Screenshot_1.png')">
-        <div class="ui-box">
-          <img class="ui-img" src="https://freesh11.github.io/website-html/Screenshot_1.png">
-          <div class="ui-text">New UI</div>
+    <div class="launch-grid">
+      <div class="launch-btn new" onclick="openSite('new')">
+        <div class="launch-inner">
+          <div class="launch-tag new">Latest</div>
+          <div class="launch-name">New UI</div>
         </div>
+        <div class="launch-arrow">↗</div>
       </div>
-
-      <div onclick="expand('https://freesh11.github.io/website-html/Screenshot_2.png')">
-        <div class="ui-box">
-          <img class="ui-img" src="https://freesh11.github.io/website-html/Screenshot_2.png">
-          <div class="ui-text">Old UI</div>
+      <div class="launch-btn old" onclick="openSite('old')">
+        <div class="launch-inner">
+          <div class="launch-tag old">Legacy</div>
+          <div class="launch-name">Old UI</div>
         </div>
+        <div class="launch-arrow">↗</div>
       </div>
     </div>
 
-    <div class="expand-text">*click to expand*</div>
+    <div class="previews">
+      <div class="preview" onclick="expandImg('https://freesh11.github.io/website-html/Screenshot_1.png')">
+        <img src="https://freesh11.github.io/website-html/Screenshot_1.png" alt="New UI">
+        <div class="preview-lbl">New UI — click to expand</div>
+      </div>
+      <div class="preview" onclick="expandImg('https://freesh11.github.io/website-html/Screenshot_2.png')">
+        <img src="https://freesh11.github.io/website-html/Screenshot_2.png" alt="Old UI">
+        <div class="preview-lbl">Old UI — click to expand</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="act-btn log" onclick="openChangelog()">📋 Update Log</button>
+    </div>
 
   </div>
 
-  <div class="panel news">
-    <h2>NEWS</h2>
-    <p>old ui now has keyboard and cursor locking in games...</p>
-    <p>old ui has been reverted back 2 versions...</p>
-    <p>right now the new ui is well, new...</p>
-    <p>opening into a new tab to load the game now does work in the new ui</p>
+  <!-- RIGHT -->
+  <div class="panel">
+    <div class="panel-label green">News</div>
+    <div class="panel-item n">Old UI now has keyboard &amp; cursor locking in games.</div>
+    <div class="panel-item n">Old UI reverted back 2 versions.</div>
+    <div class="panel-item n">New UI is, well, new.</div>
+    <div class="panel-item n">Opening games in a new tab now works in the new UI.</div>
   </div>
 
 </div>
 
-<div class="overlay" id="overlay">
-  <div class="close" onclick="closeOverlay()">×</div>
-  <img id="overlayImg">
+<!-- IMAGE OVERLAY -->
+<div class="img-overlay" id="imgOverlay" onclick="closeImg()">
+  <img id="overlayImg" src="" alt="">
+</div>
+
+<!-- CHANGELOG MODAL -->
+<div class="modal-bg" id="clModal" onclick="bgClick(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">📋 Update Log</div>
+      <button class="modal-x" onclick="closeChangelog()">×</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="cl" style="border-color:var(--warn);">
+        <div class="cl-title" style="color:var(--warn);">⚠ Warnings</div>
+        <ul>
+          <li>Worst Time Sim removed temporarily due to space constraints on the new UI.</li>
+          <li>Only gray and black backgrounds currently work on the new UI.</li>
+          <li>Native keyboard locking in games is not available in the new UI.</li>
+        </ul>
+      </div>
+
+      <div class="cl" style="border-color:var(--accent);">
+        <div class="cl-title" style="color:var(--accent);">📰 News</div>
+        <ul>
+          <li>Old UI now has keyboard and cursor locking in games.</li>
+          <li>Old UI has been reverted back 2 versions.</li>
+          <li>New UI is, well, new.</li>
+          <li>Opening games in a new tab now works in the new UI.</li>
+          <li>Submit requests: <a href="https://forms.gle/o5YPunfDxoyvmUD3A" target="_blank">Open Form ↗</a></li>
+        </ul>
+      </div>
+
+      <div class="cl" style="border-color:var(--accent2);">
+        <div class="cl-title" style="color:var(--accent2);">⌨ CMD Fixes</div>
+        <ul>
+          <li>Fixed <code>exit</code> — was calling a broken selector, now uses <code>closeW(win)</code>.</li>
+          <li>Full rewrite — replaced <code>innerHTML +=</code> with proper <code>appendChild</code>.</li>
+          <li>Fixed <code>title</code>, <code>cd</code>, and <code>color</code> commands.</li>
+          <li>Single-instance: reopening CMD focuses the existing window.</li>
+        </ul>
+      </div>
+
+      <div class="cl" style="border-color:var(--accent2);">
+        <div class="cl-title" style="color:var(--accent2);">🎮 Games</div>
+        <ul>
+          <li>Cookie Clicker: replaced dead URL with the real site.</li>
+          <li>Poly Track: loads via blob URL (sss.html) — bypasses iframe restrictions.</li>
+          <li>Poly Track resizes correctly when the window is moved or maximized.</li>
+          <li>Maximize now maximizes within the UI instead of opening a blank tab.</li>
+          <li>Pop-out button (↗) added to every game titlebar.</li>
+          <li>Blocked iframes show a clean "Open in new tab" fallback.</li>
+        </ul>
+      </div>
+
+      <div class="cl" style="border-color:var(--accent2);">
+        <div class="cl-title" style="color:var(--accent2);">🖥 Fullscreen &amp; Taskbar</div>
+        <ul>
+          <li>Taskbar hides automatically when any window is maximized.</li>
+          <li>Maximized windows fill full 100vh — no gap at the bottom.</li>
+          <li>Taskbar restores when the window is unmaximized or closed.</li>
+          <li>Dock mode: taskbar shrinks to content, centered with rounded corners.</li>
+          <li>App icons and tray each get their own frosted pill in dock mode.</li>
+          <li>Height presets: Slim / Normal / Large / XL — all icons scale proportionally.</li>
+          <li>All taskbar settings persist via localStorage.</li>
+        </ul>
+      </div>
+
+      <div class="cl" style="border-color:var(--warn);">
+        <div class="cl-title" style="color:var(--warn);">🗑 Removed</div>
+        <ul>
+          <li>Auto-hide On/Off toggle removed — taskbar hides on fullscreen automatically.</li>
+          <li>All fake Windows processes removed (System, Explorer.exe, Dwm.exe, etc.).</li>
+          <li>Ghost Settings/CMD entries visible when those apps were closed are gone.</li>
+        </ul>
+      </div>
+
+      <div class="cl" style="border-color:var(--accent2);">
+        <div class="cl-title" style="color:var(--accent2);">📊 Task Manager</div>
+        <ul>
+          <li>UI row is permanent — shows real JS heap memory, no End button.</li>
+          <li>Every open app shows tracked memory with an End button.</li>
+          <li>Games labeled "game"; system apps labeled "system".</li>
+          <li>Process count is accurate — no fake +42 anymore.</li>
+          <li>Memory values are stable — random jitter removed.</li>
+          <li>Ending a process now correctly restores the taskbar if needed.</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
 </div>
 
 <script>
+// Always cache-bust so the browser never serves a stale version
+function bust(url) {
+  return url + (url.includes('?') ? '&' : '?') + '_v=' + Date.now();
+}
+
 function openSite(type) {
-  const url = type === 'new'
-    ? "https://freesh11.github.io/website-html/new_UI"
-    : "https://freesh11.github.io/website-html/old_ui";
+  const base = type === 'new'
+    ? 'https://freesh11.github.io/website-html/new_UI'
+    : 'https://freesh11.github.io/website-html/old_ui';
 
-  const win = window.open("about:blank", "_blank");
+  const tab = window.open('about:blank', '_blank');
+  if (!tab) { alert('Pop-up blocked — please allow pop-ups for this site.'); return; }
 
-  win.document.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>.</title>
-      <style>
-        body { margin:0; overflow:hidden; }
-        iframe { width:100vw; height:100vh; border:none; }
-      </style>
-    </head>
-    <body>
-      <iframe src="${url}"></iframe>
-    </body>
-    </html>
-  `);
-
-  win.document.close();
+  tab.document.write(
+    '<!DOCTYPE html><html><head><title>\u200B</title><style>' +
+    '*{margin:0;padding:0;box-sizing:border-box}' +
+    'html,body{width:100%;height:100%;overflow:hidden;background:#000}' +
+    'iframe{width:100%;height:100%;border:none;display:block}' +
+    '</style></head><body><iframe src="' + bust(base) + '" allowfullscreen></iframe></body></html>'
+  );
+  tab.document.close();
 }
 
-function expand(img) {
-  document.getElementById("overlayImg").src = img;
-  document.getElementById("overlay").style.display = "flex";
+function expandImg(src) {
+  document.getElementById('overlayImg').src = bust(src);
+  document.getElementById('imgOverlay').classList.add('open');
 }
+function closeImg() { document.getElementById('imgOverlay').classList.remove('open'); }
 
-function closeOverlay() {
-  document.getElementById("overlay").style.display = "none";
-}
+function openChangelog() { document.getElementById('clModal').classList.add('open'); }
+function closeChangelog() { document.getElementById('clModal').classList.remove('open'); }
+function bgClick(e) { if (e.target === document.getElementById('clModal')) closeChangelog(); }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeImg(); closeChangelog(); }
+});
 </script>
-
 </body>
 </html>
