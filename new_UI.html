@@ -54,7 +54,6 @@ border-radius:20px 20px 0 0;
 bottom:0;
 padding:0 8px;
 gap:6px;
-background:rgba(20,20,20,0.75);
 border:1px solid rgba(255,255,255,0.1);
 border-bottom:none;
 justify-content:center;
@@ -538,7 +537,6 @@ white-space:nowrap;
 <div class="app" data-name="Minecraft" onclick="openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvRWFnbGVyY3JhZnRYXzEuOF9XQVNNLUdDX09mZmxpbmVfRG93bmxvYWQuaHRtbA=='),'MC')">&#x26CF; Minecraft</div>
 <div class="app" data-name="FNAE" onclick="openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvZm5hZS5odG1s'),'FNAE')">&#x1F3AE; FNAE</div>
 <div class="app" data-name="NZP" onclick="openGame(atob('aHR0cHM6Ly9uenAuZ2F5Lw=='),'NZP')">&#x1F3AE; NZP</div>
-<div class="app" data-name="Cookie Clicker" onclick="openGameExternal('https://orteil.dashnet.org/cookieclicker/','Cookie Clicker','🍪')">&#x1F36A; Cookie Clicker</div>
 <div class="app" data-name="Poly Track" onclick="openPolyTrack()">&#x1F3CE; Poly Track</div>
 <div class="app" data-name="Camera" onclick="openCamera()">&#x1F4F7; Camera</div>
 <div class="app" data-name="Task Manager" onclick="openTaskManager()">&#x1F4CA; Task Manager</div>
@@ -679,10 +677,7 @@ saveSettings();
 function setTaskbarOpacity(val){
 document.documentElement.style.setProperty('--task-opacity',val);
 const tb=document.getElementById('taskbar');
-// Only override inline background in full-width mode; dock mode uses its own CSS background
-if(!tb.classList.contains('dock-mode')){
-  tb.style.background='rgba(255,255,255,'+val+')';
-}
+tb.style.background='rgba(255,255,255,'+val+')';
 saveSettings();
 }
 function setTaskbarHeight(val){
@@ -698,6 +693,7 @@ const tb=document.getElementById('taskbar');
 tb.dataset.tbMode=mode;
 // Remove any existing dock separator
 tb.querySelectorAll('.dock-sep').forEach(s=>s.remove());
+const opacity=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--task-opacity').trim()||'0.08');
 if(mode==='dock'){
 tb.classList.add('dock-mode');
 // In dock mode we need a separator pill between icons and tray
@@ -705,6 +701,8 @@ const sep=document.createElement('div');
 sep.className='dock-sep';
 const taskRight=document.getElementById('taskRight');
 tb.insertBefore(sep,taskRight);
+// Apply current opacity to dock background immediately
+tb.style.background='rgba(255,255,255,'+opacity+')';
 } else {
 tb.classList.remove('dock-mode');
 // Restore full-width styles that dock may have overridden
@@ -714,10 +712,8 @@ tb.style.transform='';
 tb.style.borderRadius='';
 tb.style.padding='';
 tb.style.gap='';
-tb.style.background='';
 tb.style.border='';
 // Re-apply the opacity background
-const opacity=getComputedStyle(document.documentElement).getPropertyValue('--task-opacity').trim()||'0.08';
 tb.style.background='rgba(255,255,255,'+opacity+')';
 }
 saveSettings();
@@ -938,6 +934,12 @@ function minWin(e){
 const win=(e instanceof HTMLElement&&e.classList.contains('window'))?e:e.closest('.window');
 win.style.display='none';
 if(win.task) win.task.classList.remove('open');
+// Restore taskbar if no maximized windows remain visible
+const anyMaxedVisible=windows.some(w=>w.classList.contains('maximized')&&w.style.display!=='none');
+if(!anyMaxedVisible){
+  document.getElementById('taskbar').classList.remove('fs-hidden');
+  document.body.classList.remove('tb-hidden');
+}
 }
 
 // ===================== APPS =====================
@@ -1063,29 +1065,6 @@ showToast('Opening Poly Track','info','🏎️',2000);
 }
 
 // ===================== OPEN GAME EXTERNAL (iframe-blocked games) =====================
-function openGameExternal(url, name, icon){
-const label=name||'Game';
-const emoji=icon||'🎮';
-const win=createWindow(label, 520, 340);
-win.dataset.gameUrl=url;
-// Override the max button to open in new tab
-const fs=win.querySelector('.ctrl-max');
-if(fs){fs.innerHTML='<svg width="10" height="10" viewBox="0 0 10 10"><polyline points="6,1 9,1 9,4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><line x1="9" y1="1" x2="5" y2="5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><rect x=".5" y="4.5" width="5" height="5" fill="none" stroke="currentColor" stroke-width="1"/></svg>';fs.title='Open in new tab';}
-const p=allocProc({name:label,mem:0,cpu:0});
-processes.push(p);
-const placeholder=document.createElement('div');
-placeholder.style.cssText='flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#0d0d0d;color:rgba(255,255,255,0.7);font-family:"Segoe UI",sans-serif;text-align:center;padding:24px;';
-placeholder.innerHTML=`<div style="font-size:56px;">${emoji}</div><div style="font-size:16px;font-weight:600;color:#fff;">${label}</div><div style="font-size:12px;opacity:0.55;max-width:320px;line-height:1.6;">This game runs best in its own tab.<br>Click the button below to launch it.</div><button id="extOpenBtn_${p.id}" style="margin-top:8px;padding:11px 32px;border-radius:24px;border:none;background:var(--accent,#00ff7f);color:#000;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Open ${label} ↗</button>`;
-placeholder.querySelector('button').addEventListener('click',()=>{
-  const t=window.open('about:blank','_blank');
-  if(t){t.document.open();t.document.write('<!DOCTYPE html><html><head><title>'+label+'</title><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#000}iframe{width:100%;height:100%;border:none;display:block}</style></head><body><iframe src="'+url.replace(/"/g,'&quot;')+'" allowfullscreen></iframe></body></html>');t.document.close();}
-  else alert('Pop-up blocked — please allow pop-ups for this site.');
-});
-win.appendChild(placeholder);
-finish(win,emoji,p);
-start.classList.remove('active');
-showToast('Opening '+label,'info',emoji,2000);
-}
 
 // ===================== CAMERA =====================
 let camProcId=null;
@@ -2091,10 +2070,24 @@ _maximizeToggle(w);
 });
 
 w.addEventListener('mousedown',e=>{
-if(w.classList.contains('maximized')) return;
 if(e.target.tagName==='IFRAME'||e.target.closest('.controls')) return;
 if(!e.target.closest('.titlebar')) return;
-d=true;dx=e.clientX-w.offsetLeft;dy=e.clientY-w.offsetTop;bring(w);
+if(w.classList.contains('maximized')){
+  // Remember where the cursor was as a fraction of the maximized width
+  const fracX=e.clientX/w.offsetWidth;
+  _maximizeToggle(w);
+  // Position the restored window so the titlebar is under the cursor,
+  // keeping the same horizontal fraction
+  const newLeft=Math.round(e.clientX-w.offsetWidth*fracX);
+  const newTop=Math.max(0,e.clientY-19);
+  w.style.left=newLeft+'px';
+  w.style.top=newTop+'px';
+  dx=e.clientX-newLeft;
+  dy=e.clientY-newTop;
+} else {
+  dx=e.clientX-w.offsetLeft;dy=e.clientY-w.offsetTop;
+}
+d=true;bring(w);
 });
 document.addEventListener('mousemove',e=>{
 if(!d) return;
