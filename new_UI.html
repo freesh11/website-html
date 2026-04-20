@@ -12,7 +12,7 @@
 --glass2:rgba(255,255,255,0.18);
 --accent:#00ff7f;
 }
-*{box-sizing:border-box;user-select:none;-webkit-user-select:none;}
+*{box-sizing:border-box;user-select:none}
 body{
 margin:0;
 font-family:"Segoe UI",sans-serif;
@@ -30,7 +30,6 @@ color:white;
 #taskbar{
 position:fixed;bottom:0;left:0;width:100%;height:var(--tb-height);
 background:rgba(255,255,255,var(--task-opacity));
--webkit-backdrop-filter:blur(20px);
 backdrop-filter:blur(20px);
 display:flex;align-items:center;justify-content:center;z-index:9999;
 transition:background .3s, transform .35s cubic-bezier(.4,0,.2,1), opacity .3s, width .35s, left .35s, border-radius .35s;
@@ -133,7 +132,10 @@ cursor:pointer;transition:.15s;flex-shrink:0;
 #taskbar.fs-hidden{transform:translateY(100%)!important;opacity:0!important;pointer-events:none!important;}
 #taskbar.dock-mode.fs-hidden{transform:translateX(-50%) translateY(100%)!important;}
 
-/* Maximized windows always stop at the taskbar — no full-viewport override needed */
+/* When taskbar is hidden, maximized windows fill the full viewport */
+body.tb-hidden .window.maximized{
+height:100vh!important;
+}
 
 /* SNAP OVERLAY */
 #snapOverlay{
@@ -218,7 +220,7 @@ box-shadow:0 0 6px var(--accent,#00d4ff);
 position:absolute;bottom:80px;left:50%;
 transform:translateX(-50%) translateY(10px);
 width:560px;height:640px;
-background:rgba(18,18,18,0.55);-webkit-backdrop-filter:blur(40px);backdrop-filter:blur(40px);
+background:rgba(18,18,18,0.55);backdrop-filter:blur(40px);
 border:1px solid rgba(255,255,255,0.08);border-radius:20px;
 padding:16px;display:flex;flex-direction:column;gap:12px;
 opacity:0;pointer-events:none;transition:.25s ease;z-index:99999;
@@ -268,7 +270,7 @@ height:calc(100vh - var(--tb-height))!important;border-radius:0;
 .titlebar{
 height:38px;background:#1f1f1f;display:flex;justify-content:space-between;
 align-items:center;padding:0 0 0 12px;cursor:grab;flex-shrink:0;
-user-select:none;-webkit-user-select:none;touch-action:none;
+user-select:none;
 }
 .titlebar:active{cursor:grabbing;}
 .title-text{font-size:12px;opacity:.85;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -547,6 +549,7 @@ white-space:nowrap;
 <div id="noResults" style="display:none;opacity:.4;font-size:13px;text-align:center;padding:20px 0;">No results found</div>
 <div class="startBottom">
 <div class="userBox">&#x1F464; User</div>
+<div class="userBox" onclick="openChangelog();start.classList.remove('active');" title="Update Log" style="cursor:pointer;">&#x1F4CB; Update Log</div>
 <div class="powerBox" title="Power" onclick="showToast('Goodbye!','warn','&#x23FB;',500);setTimeout(()=>document.body.style.opacity='0',600)">&#x23FB;</div>
 </div>
 </div>
@@ -743,21 +746,21 @@ kbHintTimer=setTimeout(()=>el.classList.remove('show'),1600);
 // ===================== KEYBOARD SHORTCUTS =====================
 document.addEventListener('keydown',e=>{
 // Escape — close start menu
-if(e.key==='Escape'&&!e.ctrlKey&&!e.shiftKey){ start.classList.remove('active'); return; }
-// Meta / Win / ChromeOS Search key
+if(e.key==='Escape'){ start.classList.remove('active'); return; }
+// Meta / Win key
 if(e.key==='Meta'||e.key==='OS'){ e.preventDefault(); toggleStart(); return; }
 // Ctrl+Esc — toggle start
-if(e.key==='Escape'&&e.ctrlKey&&!e.shiftKey){ e.preventDefault(); toggleStart(); return; }
-// Ctrl+Shift+Esc — task manager (deduplicated)
-if(e.ctrlKey&&e.shiftKey&&e.key==='Escape'){ e.preventDefault(); openTaskManager(); flashHint('Task Manager'); return; }
-// Ctrl+D — show desktop (preventDefault stops Chrome bookmarking it)
-if(e.ctrlKey&&!e.shiftKey&&!e.altKey&&e.key==='d'){ e.preventDefault(); showDesktop(); flashHint('Ctrl+D — Show Desktop'); return; }
-// Ctrl+N — new notepad (preventDefault stops Chrome opening new window)
-if(e.ctrlKey&&!e.shiftKey&&!e.altKey&&e.key==='n'){ e.preventDefault(); openNotepad(); flashHint('Ctrl+N — Notepad'); return; }
-// Alt+D / Alt+N — aliases that never conflict with any browser shortcut
-if(e.altKey&&e.key==='d'){ e.preventDefault(); showDesktop(); flashHint('Alt+D — Show Desktop'); return; }
-if(e.altKey&&e.key==='n'){ e.preventDefault(); openNotepad(); flashHint('Alt+N — Notepad'); return; }
-},true); // useCapture=true so we intercept before Chrome's browser-level handlers
+if(e.key==='Escape'&&e.ctrlKey){ toggleStart(); return; }
+// Ctrl+Shift+Esc — task manager
+if(e.key==='Escape'&&e.ctrlKey&&e.shiftKey){ openTaskManager(); return; }
+if(e.code==='Escape'&&e.ctrlKey&&e.shiftKey){ openTaskManager(); return; }
+// Ctrl+Shift+Esc alternative
+if(e.ctrlKey&&e.shiftKey&&e.key==='Escape'){ openTaskManager(); flashHint('Task Manager'); return; }
+// Win+D — show desktop (Meta handled above, use Ctrl+D as alias)
+if(e.ctrlKey&&e.key==='d'){ e.preventDefault(); showDesktop(); flashHint('Win+D — Show Desktop'); return; }
+// Ctrl+N — new notepad
+if(e.ctrlKey&&e.key==='n'&&!e.shiftKey){ e.preventDefault(); openNotepad(); flashHint('Ctrl+N — Notepad'); return; }
+});
 
 // ===================== SHOW DESKTOP =====================
 let _desktopHidden=false;
@@ -898,13 +901,14 @@ win.style.width=win._maxBackup.width;win.style.height=win._maxBackup.height;
 const btn=win.querySelector('.ctrl-max'); if(btn) btn.innerHTML=MAX_SVG;
 // Show taskbar again when any window restores
 const anyMaxed=windows.some(w=>w.classList.contains('maximized'));
-if(!anyMaxed){tb.classList.remove('fs-hidden');}
+if(!anyMaxed){tb.classList.remove('fs-hidden');document.body.classList.remove('tb-hidden');}
 } else {
 win._maxBackup={left:win.style.left,top:win.style.top,width:win.style.width,height:win.style.height};
 win.classList.add('maximized');
 const btn=win.querySelector('.ctrl-max'); if(btn) btn.innerHTML=RESTORE_SVG;
 // Hide taskbar when a window maximizes (autohide on fullscreen)
 tb.classList.add('fs-hidden');
+document.body.classList.add('tb-hidden');
 }
 bring(win);
 }
@@ -927,7 +931,7 @@ if(win._tmCleanup) win._tmCleanup();
 win.remove();
 // Restore taskbar if no maximized windows remain
 const anyMaxed=windows.some(w=>w.classList.contains('maximized'));
-if(!anyMaxed){document.getElementById('taskbar').classList.remove('fs-hidden');}
+if(!anyMaxed){document.getElementById('taskbar').classList.remove('fs-hidden');document.body.classList.remove('tb-hidden');}
 }
 function closeWBtn(e){ closeW(e.closest('.window')); }
 
@@ -935,12 +939,6 @@ function minWin(e){
 const win=(e instanceof HTMLElement&&e.classList.contains('window'))?e:e.closest('.window');
 win.style.display='none';
 if(win.task) win.task.classList.remove('open');
-// If this window was maximized, check whether any other maximized windows remain visible.
-// If none do, restore the taskbar (remove auto-hide).
-const anyVisibleMaxed=windows.some(w=>w!==win&&w.classList.contains('maximized')&&w.style.display!=='none');
-if(!anyVisibleMaxed){
-  document.getElementById('taskbar').classList.remove('fs-hidden');
-}
 }
 
 // ===================== APPS =====================
@@ -2089,7 +2087,7 @@ else processes.splice(i,1);
 
 // ===================== DRAG + SNAP + DBLCLICK MAXIMIZE =====================
 function drag(w){
-let dx=0,dy=0,d=false,snapShowing=false,activePointerId=null;
+let dx=0,dy=0,d=false,snapShowing=false;
 const titlebar=w.querySelector('.titlebar');
 const overlay=document.getElementById('snapOverlay');
 
@@ -2098,30 +2096,24 @@ if(e.target.closest('.controls')) return;
 _maximizeToggle(w);
 });
 
-titlebar.addEventListener('pointerdown',e=>{
+w.addEventListener('mousedown',e=>{
 if(w.classList.contains('maximized')) return;
-if(e.target.closest('.controls')) return;
-d=true;
-activePointerId=e.pointerId;
-titlebar.setPointerCapture(e.pointerId);
-dx=e.clientX-w.offsetLeft;dy=e.clientY-w.offsetTop;
-bring(w);
+if(e.target.tagName==='IFRAME'||e.target.closest('.controls')) return;
+if(!e.target.closest('.titlebar')) return;
+d=true;dx=e.clientX-w.offsetLeft;dy=e.clientY-w.offsetTop;bring(w);
 });
-titlebar.addEventListener('pointermove',e=>{
-if(!d||e.pointerId!==activePointerId) return;
+document.addEventListener('mousemove',e=>{
+if(!d) return;
 w.style.left=(e.clientX-dx)+'px';
 w.style.top=(e.clientY-dy)+'px';
+// Snap overlay if dragged to top
 if(e.clientY<8){if(!snapShowing){overlay.classList.add('show');snapShowing=true;}}
 else{if(snapShowing){overlay.classList.remove('show');snapShowing=false;}}
 });
-titlebar.addEventListener('pointerup',e=>{
-if(!d||e.pointerId!==activePointerId) return;
-d=false;activePointerId=null;
+document.addEventListener('mouseup',e=>{
+if(!d) return;
+d=false;
 if(snapShowing){overlay.classList.remove('show');snapShowing=false;_maximizeToggle(w);}
-});
-titlebar.addEventListener('pointercancel',e=>{
-d=false;activePointerId=null;
-if(snapShowing){overlay.classList.remove('show');snapShowing=false;}
 });
 }
 
@@ -2129,10 +2121,9 @@ if(snapShowing){overlay.classList.remove('show');snapShowing=false;}
 function resize(w){
 const MIN_W=320, MIN_H=200;
 w.querySelectorAll('.resizeHandle').forEach(r=>{
-  r.addEventListener('pointerdown',e=>{
+  r.addEventListener('mousedown',e=>{
     if(w.classList.contains('maximized')) return;
     e.stopPropagation(); e.preventDefault();
-    r.setPointerCapture(e.pointerId);
     const dir=Array.from(r.classList).find(c=>c!=='resizeHandle');
     const startX=e.clientX, startY=e.clientY;
     const startL=w.offsetLeft, startT=w.offsetTop;
@@ -2147,9 +2138,9 @@ w.querySelectorAll('.resizeHandle').forEach(r=>{
       w.style.left=nl+'px';w.style.top=nt+'px';
       w.style.width=nw+'px';w.style.height=nh+'px';
     }
-    function onUp(){r.removeEventListener('pointermove',onMove);r.removeEventListener('pointerup',onUp);}
-    r.addEventListener('pointermove',onMove);
-    r.addEventListener('pointerup',onUp);
+    function onUp(){document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);}
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
   });
 });
 }
@@ -2169,6 +2160,125 @@ document.getElementById('menu').style.display='none';
 document.getElementById('tbMenu').style.display='none';
 if(!e.target.closest('#start')&&!e.target.closest('.taskBtn')) start.classList.remove('active');
 });
+
+// ===================== CHANGELOG =====================
+function openChangelog(){
+const win=createWindow('📋 Update Log',720,600);
+const p=allocProc({name:'Update Log',mem:8,cpu:0});
+processes.push(p);p.win=win;
+
+const root=document.createElement('div');
+root.style.cssText='flex:1;overflow-y:auto;background:#0d0d0d;color:#e2e8f0;font-family:"Segoe UI",sans-serif;font-size:13px;line-height:1.7;padding:28px 32px;display:flex;flex-direction:column;gap:24px;';
+
+const WARN_COLOR='#ff6b6b';
+const NEWS_COLOR='#00ff88';
+const DEV_COLOR='#00d4ff';
+const SEC_COLOR='rgba(255,255,255,0.06)';
+
+function section(icon,title,color,items){
+  const div=document.createElement('div');
+  div.style.cssText=`background:${SEC_COLOR};border-radius:12px;padding:16px 20px;border-left:3px solid ${color};`;
+  const h=document.createElement('div');
+  h.style.cssText=`font-size:14px;font-weight:700;letter-spacing:1px;color:${color};margin-bottom:10px;`;
+  h.textContent=icon+' '+title;
+  div.appendChild(h);
+  items.forEach(txt=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;gap:8px;padding:3px 0;opacity:.85;';
+    row.innerHTML=`<span style="opacity:.4;flex-shrink:0;">•</span><span>${txt}</span>`;
+    div.appendChild(row);
+  });
+  return div;
+}
+
+root.appendChild(section('⚠️','WARNINGS',WARN_COLOR,[
+  'Worst Time Sim has been removed temporarily due to space constraints on the new UI.',
+  'Only the gray and black backgrounds currently work correctly on the new UI.',
+  'Native keyboard locking in games is not available in the new UI.',
+]));
+
+root.appendChild(section('📰','NEWS',NEWS_COLOR,[
+  'Old UI now has keyboard and cursor locking in games.',
+  'Old UI has been reverted back 2 versions.',
+  'The new UI is well, new.',
+  'Opening into a new tab to load a game now works in the new UI.',
+]));
+
+root.appendChild(section('📬','REQUESTS',NEWS_COLOR,[
+  'Requests can be submitted via the form: <a href="https://forms.gle/o5YPunfDxoyvmUD3A" target="_blank" style="color:#00ff88;">Open Form ↗</a>',
+]));
+
+root.appendChild(section('⌨️','CMD Fixes',DEV_COLOR,[
+  'Fixed <code style="background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;">exit</code> command — was using a broken selector, now calls <code style="background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;">closeW(win)</code> directly.',
+  'Full CMD rewrite — replaced <code style="background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;">innerHTML +=</code> (destroys DOM on every command) with proper <code style="background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;">appendChild</code>.',
+  'Fixed <code style="background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;">title</code> command using wrong selector.',
+  'Fixed <code style="background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;">cd</code> — now echoes silently instead of printing a blank block.',
+  'Fixed <code style="background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;">color</code> — now updates CMD prompt and input text color immediately.',
+  'Added single-instance enforcement — reopening CMD brings the existing window to front.',
+  'Output and input wrapped in a single flex container so layout cannot be disrupted.',
+]));
+
+root.appendChild(section('🍪','Cookie Clicker',DEV_COLOR,[
+  'Replaced dead URL (plasma4.github.io/cookieclicker/) with the real site.',
+  'Added <code style="background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;">openGameExternal</code> for iframe-blocked games — shows a clean placeholder with a launch button.',
+]));
+
+root.appendChild(section('🏎️','Poly Track',DEV_COLOR,[
+  'Added to the Start Menu.',
+  'Loads via a blob URL built from sss.html — bypasses iframe restrictions (blob URLs are same-origin).',
+  'Canvas is forced to position:fixed filling 100% width and height inside the blob.',
+  'ResizeObserver watches the game window and fires resize events into the iframe so the renderer always fills the frame.',
+]));
+
+root.appendChild(section('🎮','Game Windows',DEV_COLOR,[
+  'Maximize button now maximizes within the UI instead of popping out to a blank tab.',
+  'Added a pop-out button (↗) to every game window titlebar — opens in a new about:blank tab.',
+  'Added iframe load failure fallback — blocked games show a friendly "Open in new tab" prompt.',
+]));
+
+root.appendChild(section('🖥️','Fullscreen & Taskbar Hide',DEV_COLOR,[
+  'Taskbar slides fully off screen when any window is maximized.',
+  'Taskbar slides back when the window is restored or closed.',
+  'body.tb-hidden added on maximize so windows use 100vh — eliminates the gap at the bottom.',
+  'Both restore and close paths correctly clean up tb-hidden.',
+]));
+
+root.appendChild(section('⬛','Taskbar — Dock Mode',DEV_COLOR,[
+  'Complete CSS rewrite for dock mode — shrinks to content width, centered with rounded top corners.',
+  'taskIcons and taskRight each get their own frosted pill background.',
+  'Thin separator divides the two pills.',
+  'Pure flexbox layout — no more position:absolute conflicts.',
+  'Show-desktop strip hidden in dock mode.',
+]));
+
+root.appendChild(section('📐','Taskbar — Height & Scaling',DEV_COLOR,[
+  '--tb-height and --tb-icon CSS variables added.',
+  'Presets: Slim (40px) / Normal (60px) / Large (80px) / XL (100px).',
+  'Icon size derived as height − 20px, clamped to 28–60px.',
+  'All buttons, tray icons, and clock scale uniformly in both modes.',
+  'Settings persist via localStorage and restore on load.',
+]));
+
+root.appendChild(section('🗑️','Removed',WARN_COLOR,[
+  'Auto-hide On/Off toggle removed from Settings — redundant since taskbar already hides on fullscreen.',
+  'All fake Windows processes removed (System, Explorer.exe, Dwm.exe, Antimalware Service, svchost.exe, RuntimeBroker.exe).',
+  'Ghost Settings/CMD entries that appeared even when those apps were closed are gone.',
+]));
+
+root.appendChild(section('📊','Task Manager — Process List',DEV_COLOR,[
+  'UI is now the permanent first row showing real JS heap memory, labeled system, no End button.',
+  'Every real open app shows its tracked memory with an End button.',
+  'Games tagged with a game label; system apps show system.',
+  'CPU column shows — since the browser does not expose per-process CPU.',
+  'Process count reflects real open processes + 1 (UI) instead of the fake +42.',
+  'Random memory/CPU jitter on processes removed — values stay stable.',
+  'endById now routes through closeW so taskbar auto-restore works when ending a maximized game.',
+]));
+
+win.appendChild(root);
+finish(win,'📋',p);
+start.classList.remove('active');
+}
 
 // ===================== BOOT =====================
 loadSettings();
