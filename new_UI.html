@@ -1391,7 +1391,13 @@ function camOpenLightbox(idx){
 }
 function camCloseLightbox(){cLightbox.classList.remove('open');camLightboxIdx=-1;}
 function camDownloadPhoto(idx){
-  const ph=camPhotos[idx];const a=document.createElement('a');a.href=ph.dataUrl;a.download=ph.name;a.click();
+  const ph=camPhotos[idx];
+  const a=document.createElement('a');
+  a.href=ph.dataUrl;
+  a.download=ph.name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
   camToast('Downloading '+ph.name);
 }
 function camDeletePhoto(idx){
@@ -1457,9 +1463,9 @@ function camCapture(){
   cCanvas.width=cw;cCanvas.height=ch;
   if(camMirrored){cCtx.save();cCtx.translate(cw,0);cCtx.scale(-1,1);cCtx.drawImage(cVideo,sx,sy,sw,sh,0,0,cw,ch);cCtx.restore();}
   else cCtx.drawImage(cVideo,sx,sy,sw,sh,0,0,cw,ch);
-  const dataUrl=cCanvas.toDataURL('image/jpeg',camQuality==='max'?1.0:0.92);
+  const dataUrl=cCanvas.toDataURL('image/png');
   const now=new Date();
-  const name=`photo_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}.jpg`;
+  const name=`photo_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}.png`;
   camPhotos.unshift({dataUrl,name,timestamp:now});
   camUpdateGallery();camAddThumb(camPhotos[0],0);camUpdateBadge();
   camToast('📸 Photo saved!');
@@ -1480,7 +1486,10 @@ q('mirror').addEventListener('click',function(){
 q('gallery').addEventListener('click',()=>{camUpdateGallery();cGalleryPanel.classList.add('open');});
 q('gallery-close').addEventListener('click',()=>cGalleryPanel.classList.remove('open'));
 q('dl-all').addEventListener('click',()=>{
-  camPhotos.forEach((ph,i)=>setTimeout(()=>{const a=document.createElement('a');a.href=ph.dataUrl;a.download=ph.name;a.click();},i*200));
+  camPhotos.forEach((ph,i)=>setTimeout(()=>{
+    const a=document.createElement('a');a.href=ph.dataUrl;a.download=ph.name;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+  },i*200));
   camToast('Downloading all…');
 });
 
