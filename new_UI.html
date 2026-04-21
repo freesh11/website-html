@@ -92,6 +92,9 @@ background:rgba(255,255,255,0.05);font-size:18px;
 position:relative;transition:background .15s;
 flex-shrink:0;
 }
+.taskBtn--start svg rect{transition:fill .15s;}
+.taskBtn--start:hover svg rect{fill:rgba(255,255,255,0.75);}
+.taskBtn--start:active svg rect{fill:rgba(255,255,255,0.5);}
 .taskBtn:hover{background:var(--glass2,rgba(255,255,255,0.18));}
 .taskBtn:not(.taskBtn--start)::after{
 content:'';position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
@@ -223,10 +226,10 @@ box-shadow:0 0 6px var(--accent,#00d4ff);
 #start{
 position:absolute;bottom:80px;left:50%;
 transform:translateX(-50%) translateY(10px);
-width:560px;height:640px;
-background:rgba(18,18,18,0.55);backdrop-filter:blur(40px);
-border:1px solid rgba(255,255,255,0.08);border-radius:20px;
-padding:16px;display:flex;flex-direction:column;gap:12px;
+width:480px;height:480px;
+background:rgba(18,18,18,0.65);backdrop-filter:blur(40px);
+border:1px solid rgba(255,255,255,0.1);border-radius:16px;
+padding:14px;display:flex;flex-direction:column;gap:10px;
 opacity:0;pointer-events:none;transition:.25s ease;z-index:99999;
 }
 #start.active{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);}
@@ -586,25 +589,52 @@ white-space:nowrap;
 <!-- START -->
 <div id="start">
 <input class="startSearch" id="startSearchInput" placeholder="🔍 Search apps..." autocomplete="off" />
-<div class="startSectionTitle" id="pinnedLabel">Pinned</div>
-<div id="pinnedGrid">
-<div class="app" data-name="FNAF 1" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8xLw=='),'FNAF 1')">&#x1F3AE; FNAF 1</div>
-<div class="app" data-name="FNAF 2" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8yLw=='),'FNAF 2')">&#x1F3AE; FNAF 2</div>
-<div class="app" data-name="FNAF 3" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8zLw=='),'FNAF 3')">&#x1F3AE; FNAF 3</div>
-<div class="app" data-name="FNAF 4" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi80Lw=='),'FNAF 4')">&#x1F3AE; FNAF 4</div>
-<div class="app" data-name="Deadshot" onclick="openGame(atob('aHR0cHM6Ly9kZWFkc2hvdC5pby8='),'Deadshot')">&#x1F3AF; Deadshot</div>
-<div class="app" data-name="Smash Karts" onclick="openGame(atob('aHR0cHM6Ly9zbWFzaGthcnRzLmlvLw=='),'Smash Karts')">&#x1F3CE; Smash Karts</div>
-<div class="app" data-name="Minecraft" onclick="openMinecraft()">&#x26CF; Minecraft</div>
-<div class="app" data-name="FNAE" onclick="openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvZm5hZS5odG1s'),'FNAE')">&#x1F3AE; FNAE</div>
-<div class="app" data-name="NZP" onclick="openGame(atob('aHR0cHM6Ly9uenAuZ2F5Lw=='),'NZP')">&#x1F3AE; NZP</div>
-<div class="app" data-name="Poly Track" onclick="openPolyTrack()">&#x1F3CE; Poly Track</div>
-<div class="app" data-name="Camera" onclick="openCamera()">&#x1F4F7; Camera</div>
-<div class="app" data-name="Task Manager" onclick="openTaskManager()">&#x1F4CA; Task Manager</div>
-<div class="app" data-name="Notepad" onclick="openNotepad()">&#x1F4DD; Notepad</div>
-<div class="app" data-name="CMD Command Prompt" onclick="openCMD()">&#x2328; CMD</div>
-<div class="app" data-name="Settings" onclick="openSettings()">&#x2699; Settings</div>
+
+<!-- Pinned view -->
+<div id="startPinnedView" style="display:flex;flex-direction:column;gap:10px;flex:1;min-height:0;">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <div class="startSectionTitle">Pinned</div>
+    <div onclick="startShowAll()" style="font-size:11px;opacity:.55;cursor:pointer;padding:3px 8px;border-radius:6px;transition:.15s;" onmouseenter="this.style.opacity='1';this.style.background='rgba(255,255,255,0.08)'" onmouseleave="this.style.opacity='.55';this.style.background='transparent'">All apps ›</div>
+  </div>
+  <div id="pinnedGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+    <div class="app" data-name="Camera" onclick="openCamera()">&#x1F4F7; Camera</div>
+    <div class="app" data-name="Minecraft" onclick="openMinecraft()">&#x26CF; Minecraft</div>
+    <div class="app" data-name="Smash Karts" onclick="openGame(atob('aHR0cHM6Ly9zbWFzaGthcnRzLmlvLw=='),'Smash Karts')">&#x1F3CE; Smash Karts</div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
+    <div class="startSectionTitle">Recently played</div>
+  </div>
+  <div id="recentGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+    <div style="grid-column:1/-1;font-size:11px;opacity:.35;text-align:center;padding:12px 0;">No recent apps yet</div>
+  </div>
+  <div id="noResults" style="display:none;opacity:.4;font-size:13px;text-align:center;padding:12px 0;">No results found</div>
 </div>
-<div id="noResults" style="display:none;opacity:.4;font-size:13px;text-align:center;padding:20px 0;">No results found</div>
+
+<!-- All apps view -->
+<div id="startAllView" style="display:none;flex-direction:column;gap:8px;flex:1;min-height:0;">
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div onclick="startShowPinned()" style="font-size:11px;opacity:.55;cursor:pointer;padding:3px 8px;border-radius:6px;transition:.15s;" onmouseenter="this.style.opacity='1';this.style.background='rgba(255,255,255,0.08)'" onmouseleave="this.style.opacity='.55';this.style.background='transparent'">‹ Back</div>
+    <div class="startSectionTitle">All apps</div>
+  </div>
+  <div id="allAppsGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;overflow-y:auto;flex:1;min-height:0;padding-right:2px;">
+    <div class="app" data-name="Camera" onclick="openCamera()">&#x1F4F7; Camera</div>
+    <div class="app" data-name="Minecraft" onclick="openMinecraft()">&#x26CF; Minecraft</div>
+    <div class="app" data-name="Smash Karts" onclick="openGame(atob('aHR0cHM6Ly9zbWFzaGthcnRzLmlvLw=='),'Smash Karts')">&#x1F3CE; Smash Karts</div>
+    <div class="app" data-name="FNAF 1" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8xLw=='),'FNAF 1')">&#x1F3AE; FNAF 1</div>
+    <div class="app" data-name="FNAF 2" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8yLw=='),'FNAF 2')">&#x1F3AE; FNAF 2</div>
+    <div class="app" data-name="FNAF 3" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8zLw=='),'FNAF 3')">&#x1F3AE; FNAF 3</div>
+    <div class="app" data-name="FNAF 4" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi80Lw=='),'FNAF 4')">&#x1F3AE; FNAF 4</div>
+    <div class="app" data-name="Deadshot" onclick="openGame(atob('aHR0cHM6Ly9kZWFkc2hvdC5pby8='),'Deadshot')">&#x1F3AF; Deadshot</div>
+    <div class="app" data-name="FNAE" onclick="openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvZm5hZS5odG1s'),'FNAE')">&#x1F3AE; FNAE</div>
+    <div class="app" data-name="NZP" onclick="openGame(atob('aHR0cHM6Ly9uenAuZ2F5Lw=='),'NZP')">&#x1F3AE; NZP</div>
+    <div class="app" data-name="Poly Track" onclick="openPolyTrack()">&#x1F3CE; Poly Track</div>
+    <div class="app" data-name="Task Manager" onclick="openTaskManager()">&#x1F4CA; Task Manager</div>
+    <div class="app" data-name="Notepad" onclick="openNotepad()">&#x1F4DD; Notepad</div>
+    <div class="app" data-name="CMD Command Prompt" onclick="openCMD()">&#x2328; CMD</div>
+    <div class="app" data-name="Settings" onclick="openSettings()">&#x2699; Settings</div>
+  </div>
+</div>
+
 <div class="startBottom">
 <div class="userBox">&#x1F464; User</div>
 <div class="powerBox" title="Power" onclick="showToast('Goodbye!','warn','&#x23FB;',500);setTimeout(()=>document.body.style.opacity='0',600)">&#x23FB;</div>
@@ -614,7 +644,7 @@ white-space:nowrap;
 <!-- TASKBAR -->
 <div id="taskbar">
 <div id="taskIcons">
-<div class="taskBtn taskBtn--start" onclick="toggleStart()" title="Start (Win)">&#x1FA9F;</div>
+<div class="taskBtn taskBtn--start" onclick="toggleStart()" title="Start (Win)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="7.5" height="7.5" rx="1.2" fill="white"/><rect x="9.5" y="1" width="7.5" height="7.5" rx="1.2" fill="white"/><rect x="1" y="9.5" width="7.5" height="7.5" rx="1.2" fill="white"/><rect x="9.5" y="9.5" width="7.5" height="7.5" rx="1.2" fill="white"/></svg></div>
 </div>
 <div id="taskRight">
 <div class="tray-icon" title="Network 🌐">🌐</div>
@@ -648,7 +678,7 @@ white-space:nowrap;
 
 <!-- DESKTOP CONTEXT MENU -->
 <div id="menu">
-<div class="menu-item" onclick="toggleStart()"><span class="menu-icon">🪟</span> Start</div>
+<div class="menu-item" onclick="document.getElementById('menu').style.display='none';toggleStart();"><span class="menu-icon"><svg width="14" height="14" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="7.5" height="7.5" rx="1.2" fill="white"/><rect x="9.5" y="1" width="7.5" height="7.5" rx="1.2" fill="white"/><rect x="1" y="9.5" width="7.5" height="7.5" rx="1.2" fill="white"/><rect x="9.5" y="9.5" width="7.5" height="7.5" rx="1.2" fill="white"/></svg></span> Start</div>
 <div class="menu-item" onclick="openCamera()"><span class="menu-icon">📷</span> Camera</div>
 <div class="menu-item" onclick="openTaskManager()"><span class="menu-icon">📊</span> Task Manager</div>
 <div class="menu-item" onclick="openNotepad()"><span class="menu-icon">📝</span> Notepad</div>
@@ -894,21 +924,28 @@ const pinnedLabel=document.getElementById('pinnedLabel');
 const noResults=document.getElementById('noResults');
 startSearchInput.addEventListener('input',()=>{
 const q=startSearchInput.value.trim().toLowerCase();
-const apps=document.querySelectorAll('#pinnedGrid .app');
-let visible=0;
-apps.forEach(a=>{
-const name=(a.dataset.name||a.textContent||'').toLowerCase();
-const show=!q||name.includes(q);
-a.classList.toggle('hidden',!show);
-if(show) visible++;
-});
-noResults.style.display=(visible===0&&q)?'block':'none';
-pinnedLabel.style.display=q?'none':'block';
+if(q){
+  // Show all-apps view for searching
+  startShowAll();
+  const apps=document.querySelectorAll('#allAppsGrid .app');
+  let visible=0;
+  apps.forEach(a=>{
+    const name=(a.dataset.name||a.textContent||'').toLowerCase();
+    const show=name.includes(q);
+    a.classList.toggle('hidden',!show);
+    if(show) visible++;
+  });
+  if(noResults) noResults.style.display=visible===0?'block':'none';
+} else {
+  startShowPinned();
+  document.querySelectorAll('.app').forEach(a=>a.classList.remove('hidden'));
+  if(noResults) noResults.style.display='none';
+}
 });
 startSearchInput.addEventListener('keydown',e=>{
 if(e.key==='Enter'){
-const first=document.querySelector('#pinnedGrid .app:not(.hidden)');
-if(first){first.click();start.classList.remove('active');startSearchInput.value='';document.querySelectorAll('#pinnedGrid .app').forEach(a=>a.classList.remove('hidden'));noResults.style.display='none';}
+const first=document.querySelector('#allAppsGrid .app:not(.hidden)')||document.querySelector('#pinnedGrid .app:not(.hidden)');
+if(first){first.click();start.classList.remove('active');startSearchInput.value='';document.querySelectorAll('.app').forEach(a=>a.classList.remove('hidden'));if(noResults)noResults.style.display='none';}
 }
 });
 
@@ -916,12 +953,44 @@ if(first){first.click();start.classList.remove('active');startSearchInput.value=
 const start=document.getElementById('start');
 const taskIcons=document.getElementById('taskIcons');
 
+// ===================== RECENTLY PLAYED =====================
+let recentApps = [];
+function trackRecent(name, icon, onclick){
+  // Remove if already exists, then add to front
+  recentApps = recentApps.filter(a=>a.name!==name);
+  recentApps.unshift({name, icon, onclick});
+  if(recentApps.length>6) recentApps=recentApps.slice(0,6);
+  renderRecent();
+}
+function renderRecent(){
+  const grid=document.getElementById('recentGrid');
+  if(!grid)return;
+  if(recentApps.length===0){
+    grid.innerHTML='<div style="grid-column:1/-1;font-size:11px;opacity:.35;text-align:center;padding:12px 0;">No recent apps yet</div>';
+    return;
+  }
+  grid.innerHTML=recentApps.map(a=>`<div class="app" onclick="${a.onclick}">${a.icon} ${a.name}</div>`).join('');
+}
+
+function startShowAll(){
+  document.getElementById('startPinnedView').style.display='none';
+  const v=document.getElementById('startAllView');
+  v.style.display='flex';
+}
+function startShowPinned(){
+  document.getElementById('startAllView').style.display='none';
+  document.getElementById('startPinnedView').style.display='flex';
+}
+
 function toggleStart(){
 start.classList.toggle('active');
-if(start.classList.contains('active')) setTimeout(()=>startSearchInput.focus(),100);
-else {
-  startSearchInput.value=''; document.querySelectorAll('#pinnedGrid .app').forEach(a=>a.classList.remove('hidden')); noResults.style.display='none'; pinnedLabel.style.display='block';
-  // If taskbar is in peek mode and cursor isn't over it, hide it again
+if(start.classList.contains('active')){
+  startShowPinned();
+  setTimeout(()=>startSearchInput.focus(),100);
+} else {
+  startSearchInput.value='';
+  document.querySelectorAll('.app').forEach(a=>a.classList.remove('hidden'));
+  const nr=document.getElementById('noResults');if(nr)nr.style.display='none';
   const tb=document.getElementById('taskbar');
   if(tb.classList.contains('fs-hidden')&&!tb.matches(':hover')) tb.classList.remove('tb-peek');
 }
@@ -1139,6 +1208,7 @@ splash.innerHTML=`
 win.appendChild(splash);
 finish(win,'⛏️',p);
 start.classList.remove('active');
+trackRecent('Minecraft','⛏️',"openMinecraft()");
 }
 
 function openGame(url,name){
@@ -1169,6 +1239,7 @@ ifr.addEventListener('load',()=>{try{const doc=ifr.contentDocument||ifr.contentW
 win.appendChild(ifr);win.appendChild(fallbackDiv);
 finish(win,'🎮',p);
 start.classList.remove('active');
+trackRecent(label,'🎮',`openGame('${url}','${label.replace(/'/g,"\\'")}')`);
 showToast('Opening '+label,'info','🎮',2000);
 }
 
@@ -1232,6 +1303,7 @@ ifr.addEventListener('load',()=>{
 win.appendChild(ifr);
 finish(win,'🏎️',p);
 start.classList.remove('active');
+trackRecent('Poly Track','🏎️','openPolyTrack()');
 showToast('Opening Poly Track','info','🏎️',2000);
 }
 
@@ -1553,6 +1625,7 @@ _obs.observe(document.body,{childList:true});
 
 finish(win,'📷',p);
 start.classList.remove('active');
+trackRecent('Camera','📷','openCamera()');
 showToast('Opening Camera','info','📷',1500);
 
 // --- kick off camera ---
@@ -1643,6 +1716,7 @@ if(e.ctrlKey&&e.key==='a'){e.preventDefault();area.select();}
 win.appendChild(toolbar);win.appendChild(area);win.appendChild(sb);
 finish(win,'📝',p);
 start.classList.remove('active');
+trackRecent('Notepad','📝','openNotepad()');
 setTimeout(()=>area.focus(),50);
 }
 
@@ -2023,6 +2097,7 @@ wrapper.appendChild(inputRow);
 win.appendChild(wrapper);
 finish(win,'⌨️',p);
 start.classList.remove('active');
+trackRecent('Command Prompt','⌨️','openCMD()');
 setTimeout(()=>input.focus(),80);
 }
 
@@ -2419,7 +2494,7 @@ m.style.left=mx+'px';m.style.top=my+'px';
 document.addEventListener('click',e=>{
 document.getElementById('menu').style.display='none';
 document.getElementById('tbMenu').style.display='none';
-if(!e.target.closest('#start')&&!e.target.closest('.taskBtn')) start.classList.remove('active');
+if(!e.target.closest('#start')&&!e.target.closest('.taskBtn')&&!e.target.closest('#menu')) start.classList.remove('active');
 });
 
 // ===================== FULLSCREEN =====================
