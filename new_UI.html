@@ -4,82 +4,367 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#202020">
+<!-- Segoe UI Variable: available on Windows 11; system fallback on other platforms -->
+<style>
+@supports (font-variation-settings: normal) {
+  :root { --font: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif; }
+}
+</style>
 <title>&#x200B;</title>
 <style>
+/* ═══════════════════════════════════════════════════
+   WINDOWS 11 FLUENT 2 DESIGN TOKENS — DARK THEME
+   Sources: WinUI 3 / microsoft-ui-xaml, Fluent 2 site
+   ═══════════════════════════════════════════════════ */
 :root{
---task-opacity:0.08;
---task:rgba(255,255,255,var(--task-opacity));
---glass:rgba(255,255,255,0.12);
---glass2:rgba(255,255,255,0.18);
---accent:#00ff7f;
+  /* ── Legacy compat ── */
+  --task-opacity:0.08;
+  --task:rgba(255,255,255,var(--task-opacity));
+  --glass:rgba(255,255,255,0.12);
+  --glass2:rgba(255,255,255,0.18);
+  --accent:#0078D4;
+
+  /* ── Fluent 2 accent palette (Windows blue default) ── */
+  --accent-light3:#A6D8FF;
+  --accent-light2:#76B9ED;
+  --accent-light1:#429CE3;
+  --accent-base:var(--accent);
+  --accent-dark1:#005A9E;
+  --accent-dark2:#004275;
+  --accent-dark3:#002642;
+  /* Interactive accent fill states */
+  --accent-fill:var(--accent-light2);       /* AccentFillColorDefault dark */
+  --accent-fill-hover:rgba(118,185,237,0.9);
+  --accent-fill-pressed:rgba(118,185,237,0.8);
+  --accent-text:#60CDFF;                    /* TextFillColorAccent dark */
+
+  /* ── Corner radius ── */
+  --radius-control:4px;    /* ControlCornerRadius — buttons, inputs, list rows */
+  --radius-overlay:8px;    /* OverlayCornerRadius — windows, flyouts, menus */
+  --radius-small:2px;      /* progress bars, sliders */
+  --radius-large:12px;     /* start menu, cards */
+
+  /* ── Typography ── */
+  --font:"Segoe UI Variable","Segoe UI",system-ui,-apple-system,sans-serif;
+  --font-mono:"Cascadia Code","Cascadia Mono","Consolas",monospace;
+  /* Type ramp */
+  --text-caption:12px;     /* line-height: 16px */
+  --text-body:14px;        /* line-height: 20px */
+  --text-body-strong:14px; /* weight 600 */
+  --text-subtitle:20px;    /* weight 600, line-height 28px */
+  --text-title:28px;       /* weight 600, line-height 36px */
+
+  /* ── Dark theme: Background fills ── */
+  --bg-base:#202020;       /* SolidBackgroundFillColorBase */
+  --bg-secondary:#1C1C1C;  /* SolidBackgroundFillColorSecondary */
+  --bg-tertiary:#282828;   /* SolidBackgroundFillColorTertiary */
+  --bg-layer:rgba(58,58,58,0.3); /* LayerFillColorDefault */
+  --bg-card:rgba(255,255,255,0.051);   /* CardBackgroundFillColorDefault */
+  --bg-card2:rgba(255,255,255,0.031);  /* CardBackgroundFillColorSecondary */
+  --bg-smoke:rgba(0,0,0,0.30);         /* SmokeFillColorDefault — dialog backdrop */
+
+  /* ── Dark theme: Control fills ── */
+  --ctrl-bg:rgba(255,255,255,0.059);         /* ControlFillColorDefault */
+  --ctrl-bg-hover:rgba(255,255,255,0.082);   /* ControlFillColorSecondary */
+  --ctrl-bg-pressed:rgba(255,255,255,0.031); /* ControlFillColorTertiary */
+  --ctrl-bg-disabled:rgba(255,255,255,0.043);
+  --ctrl-bg-input:rgba(30,30,30,0.70);       /* ControlFillColorInputActive */
+  --subtle-hover:rgba(255,255,255,0.061);    /* SubtleFillColorSecondary */
+  --subtle-pressed:rgba(255,255,255,0.039);  /* SubtleFillColorTertiary */
+
+  /* ── Dark theme: Strokes / borders ── */
+  --stroke:rgba(255,255,255,0.070);          /* ControlStrokeColorDefault */
+  --stroke-secondary:rgba(255,255,255,0.094);/* ControlStrokeColorSecondary (bottom edge) */
+  --stroke-strong:rgba(255,255,255,0.545);   /* ControlStrongStrokeColorDefault */
+  --stroke-card:rgba(0,0,0,0.10);            /* CardStrokeColorDefault */
+  --stroke-surface:rgba(255,255,255,0.08);   /* SurfaceStrokeColorDefault */
+  --stroke-divider:rgba(255,255,255,0.082);  /* DividerStrokeColorDefault */
+  --stroke-flyout:rgba(0,0,0,0.20);          /* SurfaceStrokeColorFlyout */
+  --focus-outer:#FFFFFF;                     /* FocusStrokeColorOuter */
+  --focus-inner:rgba(0,0,0,0.70);            /* FocusStrokeColorInner */
+
+  /* ── Dark theme: Text fills ── */
+  --text-primary:#FFFFFF;                    /* TextFillColorPrimary */
+  --text-secondary:rgba(255,255,255,0.772);  /* TextFillColorSecondary */
+  --text-tertiary:rgba(255,255,255,0.545);   /* TextFillColorTertiary */
+  --text-disabled:rgba(255,255,255,0.363);   /* TextFillColorDisabled */
+
+  /* ── Elevation shadows (Fluent 2 shadow ramp) ── */
+  --shadow-4: 0 2px 4px rgba(0,0,0,0.13),  0 0 1px rgba(0,0,0,0.12);
+  --shadow-8: 0 4px 8px rgba(0,0,0,0.14),  0 0 2px rgba(0,0,0,0.12);
+  --shadow-16:0 8px 16px rgba(0,0,0,0.14), 0 0 2px rgba(0,0,0,0.12);
+  --shadow-28:0 14px 28px rgba(0,0,0,0.24),0 0 8px rgba(0,0,0,0.18);
+  --shadow-64:0 32px 64px rgba(0,0,0,0.24),0 2px 21px rgba(0,0,0,0.22);
+
+  /* ── Motion system ── */
+  --dur-faster:83ms;
+  --dur-fast:167ms;
+  --dur-normal:250ms;
+  --dur-slow:333ms;
+  --ease-decelerate:cubic-bezier(0,0,0,1);
+  --ease-accelerate:cubic-bezier(1,0,1,1);
+  --ease-standard:cubic-bezier(0.55,0.55,0,1);
+
+  /* ── Window chrome ── */
+  --tb-height:48px;         /* Win11 default taskbar: 48px */
+  --tb-icon:40px;
+  --titlebar-height:32px;
+  --caption-btn-w:46px;
 }
-*{box-sizing:border-box;user-select:none}
+
+/* Segoe UI Variable — available on Win11, fallback gracefully */
+@font-face {
+  font-family: "Segoe UI Variable";
+  src: local("Segoe UI Variable Text"),
+       local("Segoe UI Variable"),
+       local("Segoe UI");
+}
+
+/* ── Acrylic noise texture (SVG base64, ~2% opacity layered over acrylic surfaces) ── */
+.acrylic-noise::after {
+  content:'';
+  position:absolute;inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  opacity:0.025;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:150px 150px;
+  z-index:0;
+}
+
+/* ── Desktop icon — absolutely positioned, draggable ── */
+.desktop-icon {
+  position:absolute;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  width:80px;padding:6px 4px 8px;
+  border-radius:var(--radius-control);
+  cursor:default;
+  text-align:center;
+  /* smooth snap-back after drop */
+  transition:box-shadow var(--dur-faster) linear,
+             background var(--dur-faster) linear,
+             outline var(--dur-faster) linear;
+  z-index:1;
+  touch-action:none;
+}
+.desktop-icon:hover { background:rgba(255,255,255,0.08); }
+/* selected state — Win11 blue highlight */
+.desktop-icon.di-selected {
+  background:rgba(96,205,255,0.18);
+  outline:1px solid rgba(96,205,255,0.5);
+}
+/* while being dragged */
+.desktop-icon.di-dragging {
+  opacity:0.5;
+  z-index:8000;
+  cursor:grabbing !important;
+  transition:none;
+}
+/* ghost clone that follows the cursor */
+.di-ghost {
+  position:fixed;
+  pointer-events:none;
+  z-index:8001;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  width:80px;padding:6px 4px 8px;
+  text-align:center;
+  opacity:0.85;
+  filter:drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+  cursor:grabbing;
+}
+.di-ghost .di-icon  { font-size:32px;line-height:1; }
+.di-ghost .di-label {
+  font-size:11px;font-family:var(--font);
+  color:var(--text-primary);
+  text-shadow:0 1px 4px rgba(0,0,0,0.9);
+  line-height:1.3;word-break:break-word;max-width:72px;
+}
+/* drop-target cell highlight */
+.di-drop-target {
+  position:absolute;
+  border-radius:var(--radius-control);
+  background:rgba(96,205,255,0.12);
+  outline:1px dashed rgba(96,205,255,0.4);
+  pointer-events:none;
+  z-index:0;
+  transition:left var(--dur-faster) linear, top var(--dur-faster) linear;
+}
+/* rubber-band selection rectangle */
+#diSelRect {
+  position:fixed;
+  border:1px solid rgba(96,205,255,0.7);
+  background:rgba(96,205,255,0.08);
+  border-radius:2px;
+  pointer-events:none;
+  z-index:7999;
+  display:none;
+}
+.desktop-icon .di-icon  { font-size:32px; line-height:1; pointer-events:none; }
+.desktop-icon .di-label {
+  font-size:11px;font-family:var(--font);
+  color:var(--text-primary);
+  text-shadow:0 1px 3px rgba(0,0,0,0.8);
+  line-height:1.3;word-break:break-word;
+  max-width:72px;
+  pointer-events:none;
+}
+
+/* ── Snap layout popup (shown on maximize button hover) ── */
+#snapLayoutPop {
+  position:absolute;
+  display:none;
+  flex-direction:column;gap:6px;
+  background:rgba(44,44,44,0.96);
+  backdrop-filter:blur(60px) saturate(125%);
+  -webkit-backdrop-filter:blur(60px) saturate(125%);
+  border:1px solid var(--stroke-flyout);
+  border-radius:var(--radius-overlay);
+  padding:12px;
+  box-shadow:var(--shadow-28);
+  z-index:999998;
+  animation:menuOpen var(--dur-fast) var(--ease-decelerate) both;
+}
+#snapLayoutPop .snap-label {
+  font-size:var(--text-caption);color:var(--text-tertiary);
+  font-family:var(--font);margin-bottom:2px;
+}
+#snapLayoutPop .snap-grid {
+  display:grid;grid-template-columns:repeat(2,1fr);gap:5px;
+}
+.snap-zone-btn {
+  height:36px;border-radius:var(--radius-control);
+  border:1px solid var(--stroke);
+  background:var(--ctrl-bg);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  gap:3px;padding:0 6px;
+  transition:background var(--dur-faster) linear,border-color var(--dur-faster) linear;
+  font-size:9px;color:var(--text-tertiary);font-family:var(--font);
+}
+.snap-zone-btn:hover {
+  background:var(--ctrl-bg-hover);
+  border-color:var(--accent-fill);
+  color:var(--text-primary);
+}
+.snap-zone-btn svg { flex-shrink:0; }
+
+/* ══════════════════════════════════════════════════════
+   DRAG SAFETY — prevents text/image selection from
+   interfering with window dragging at all times, and
+   blocks iframes from eating mouse events mid-drag.
+   ══════════════════════════════════════════════════════ */
+
+/* 1. No selection, no native image-drag on anything */
+*{
+  box-sizing:border-box;
+  user-select:none;
+  -webkit-user-select:none;
+  -moz-user-select:none;
+  -webkit-user-drag:none;
+  -webkit-touch-callout:none;
+}
+
+/* 2. Re-allow text input in actual editable elements */
+input, textarea, [contenteditable="true"]{
+  user-select:text;
+  -webkit-user-select:text;
+  cursor:text;
+}
+
+/* 3. Block all media from being dragged as ghosts */
+img, svg, canvas, video, picture, figure, emoji{
+  -webkit-user-drag:none;
+  user-drag:none;
+  -webkit-user-select:none;
+  draggable:false;
+}
+
+/* 4. DRAG STATE: .win-dragging is added to <body> while any
+   titlebar is held. This is the critical fix — iframes consume
+   mouse events and silently break mousemove/mouseup otherwise. */
+body.win-dragging *{
+  user-select:none !important;
+  -webkit-user-select:none !important;
+  cursor:grabbing !important;
+}
+body.win-dragging iframe{
+  pointer-events:none !important;
+}
+
 body{
-margin:0;
-font-family:"Segoe UI",sans-serif;
-background:linear-gradient(135deg,#0a1628 0%,#1a237e 30%,#1565c0 60%,#0d47a1 80%,#051428 100%);
-overflow:hidden;
-color:white;
-width:100vw;height:100vh;
+  margin:0;
+  font-family:var(--font);
+  background:linear-gradient(135deg,#0a1628 0%,#1a237e 30%,#1565c0 60%,#0d47a1 80%,#051428 100%);
+  overflow:hidden;
+  color:var(--text-primary);
+  width:100vw;height:100vh;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
 }
 #desktop{position:absolute;inset:0;padding:20px}
 
 /* TASKBAR */
 :root{
---tb-height:60px;
+--tb-height:48px;
 --tb-icon:40px;
 }
 #taskbar{
 position:absolute;bottom:0;left:0;width:100%;height:var(--tb-height);
-background:rgba(255,255,255,var(--task-opacity));
-backdrop-filter:blur(20px);
+/* Acrylic: blur + saturate + semi-transparent tint — Win11 taskbar recipe */
+background:rgba(32,32,32,calc(0.72 + var(--task-opacity)));
+backdrop-filter:blur(60px) saturate(125%);
+-webkit-backdrop-filter:blur(60px) saturate(125%);
+border-top:1px solid var(--stroke-surface);
 display:flex;align-items:center;justify-content:center;z-index:9999;
-transition:background .3s, transform .35s cubic-bezier(.4,0,.2,1), opacity .3s, width .35s, left .35s, border-radius .35s;
+transition:background var(--dur-fast) var(--ease-standard),
+           transform var(--dur-normal) var(--ease-decelerate),
+           opacity var(--dur-fast) var(--ease-standard),
+           width var(--dur-normal) var(--ease-standard),
+           left var(--dur-normal) var(--ease-standard),
+           border-radius var(--dur-normal) var(--ease-standard);
 box-sizing:border-box;
 }
 
 /* ── FULL-WIDTH MODE layout ── */
 #taskbar:not(.dock-mode) #taskIcons{
-display:flex;gap:8px;align-items:center;
+display:flex;gap:4px;align-items:center;
 }
 #taskbar:not(.dock-mode) #taskRight{
 position:absolute;right:0;top:0;bottom:0;
 display:flex;align-items:center;padding-right:4px;gap:2px;
 }
 
-/* ── DOCK MODE layout ── */
+/* ── DOCK MODE layout — Win11 centered pill ── */
 #taskbar.dock-mode{
 width:auto!important;
 left:50%!important;
 transform:translateX(-50%);
-border-radius:20px 20px 0 0;
+border-radius:var(--radius-overlay) var(--radius-overlay) 0 0;
 bottom:0;
 padding:0 8px;
 gap:6px;
-border:1px solid rgba(255,255,255,0.1);
+border:1px solid var(--stroke-surface);
 border-bottom:none;
 justify-content:center;
 align-items:center;
 }
-/* In dock mode the icons section becomes a pill */
 #taskbar.dock-mode #taskIcons{
 display:flex;gap:4px;align-items:center;
-background:rgba(255,255,255,0.06);
-border-radius:14px;
+background:var(--ctrl-bg);
+border-radius:var(--radius-control);
 padding:4px 6px;
 }
-/* In dock mode the right tray becomes its own pill */
 #taskbar.dock-mode #taskRight{
 position:static;
 display:flex;align-items:center;gap:2px;
-background:rgba(255,255,255,0.06);
-border-radius:14px;
+background:var(--ctrl-bg);
+border-radius:var(--radius-control);
 padding:4px 8px;
 }
 /* Separator between dock pills */
 #taskbar.dock-mode .dock-sep{
-width:1px;height:32px;
-background:rgba(255,255,255,0.1);
+width:1px;height:28px;
+background:var(--stroke-divider);
 flex-shrink:0;
 }
 
@@ -87,55 +372,87 @@ flex-shrink:0;
 .taskBtn{
 width:var(--tb-icon);height:var(--tb-icon);
 display:flex;align-items:center;justify-content:center;
-border-radius:10px;cursor:pointer;
-background:rgba(255,255,255,0.05);font-size:18px;
-position:relative;transition:background .15s;
+border-radius:var(--radius-control);cursor:pointer;
+background:transparent;font-size:18px;
+position:relative;
+transition:background var(--dur-faster) linear;
 flex-shrink:0;
 }
-.taskBtn--start svg rect{transition:fill .15s;}
-.taskBtn--start:hover svg rect{fill:rgba(255,255,255,0.75);}
-.taskBtn--start:active svg rect{fill:rgba(255,255,255,0.5);}
-.taskBtn:hover{background:var(--glass2,rgba(255,255,255,0.18));}
+.taskBtn--start svg rect{transition:fill var(--dur-faster) linear;}
+.taskBtn--start:hover{background:var(--subtle-hover);}
+.taskBtn--start:active{background:var(--subtle-pressed);}
+.taskBtn--start:hover svg rect{fill:rgba(255,255,255,0.85);}
+.taskBtn--start:active svg rect{fill:rgba(255,255,255,0.60);}
+.taskBtn:hover{background:var(--subtle-hover);}
+.taskBtn:active{background:var(--subtle-pressed);}
+/* Win11 running-app indicator: small dot below icon */
 .taskBtn:not(.taskBtn--start)::after{
-content:'';position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
-width:6px;height:3px;border-radius:2px;
-background:rgba(255,255,255,0.35);
-transition:width .25s cubic-bezier(.34,1.56,.64,1), background .25s, box-shadow .25s;
+content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);
+width:4px;height:4px;border-radius:50%;
+background:var(--text-tertiary);
+transition:width var(--dur-fast) var(--ease-decelerate),
+           height var(--dur-fast) var(--ease-decelerate),
+           border-radius var(--dur-fast) var(--ease-decelerate),
+           background var(--dur-faster) linear;
 }
+/* Active (focused) window: accent pill indicator, 16px wide × 3px tall */
 .taskBtn.open::after{
-width:18px;background:var(--accent,#00d4ff);
-box-shadow:0 0 7px var(--accent,#00d4ff);
+width:16px;height:3px;border-radius:var(--radius-small);
+background:var(--accent-fill);
 }
 
 /* ── TRAY ICONS (shared) ── */
 .tray-icon{
 width:32px;height:var(--tb-icon);
 display:flex;align-items:center;justify-content:center;
-border-radius:8px;cursor:pointer;font-size:14px;transition:.15s;
+border-radius:var(--radius-control);cursor:pointer;font-size:14px;
+transition:background var(--dur-faster) linear;
 flex-shrink:0;
 }
-.tray-icon:hover{background:var(--glass,rgba(255,255,255,0.12));}
+.tray-icon:hover{background:var(--subtle-hover);}
+.tray-icon:active{background:var(--subtle-pressed);}
 #taskClock{
 display:flex;flex-direction:column;align-items:center;justify-content:center;
-padding:0 8px;cursor:default;border-radius:8px;transition:.15s;
-line-height:1.3;height:var(--tb-icon);flex-shrink:0;
+padding:0 8px;cursor:default;border-radius:var(--radius-control);
+transition:background var(--dur-faster) linear;
+line-height:1.25;height:var(--tb-icon);flex-shrink:0;
 }
-#taskClock:hover{background:var(--glass,rgba(255,255,255,0.12));}
-#clockTime{font-size:13px;font-weight:500;}
-#clockDate{font-size:10px;opacity:.6;}
+#taskClock:hover{background:var(--subtle-hover);}
+#clockTime{font-size:12px;font-weight:400;color:var(--text-primary);}
+#clockDate{font-size:11px;color:var(--text-secondary);}
 #showDesktop{
-width:6px;height:var(--tb-icon);
-border-left:1px solid rgba(255,255,255,0.12);
-cursor:pointer;transition:.15s;flex-shrink:0;
+width:6px;height:var(--tb-height);
+border-left:1px solid var(--stroke-divider);
+cursor:pointer;transition:background var(--dur-faster) linear;flex-shrink:0;
 }
-#showDesktop:hover{background:rgba(255,255,255,0.18);}
+#showDesktop:hover{background:rgba(255,255,255,0.10);}
 /* Hide show-desktop strip in dock mode */
 #taskbar.dock-mode #showDesktop{display:none;}
 
-/* ── FULLSCREEN HIDE ── */
+/* ── Win11 scrollbar styling ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.18);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.30); }
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.18) transparent; }
+
+/* ── Win11 focus ring ── */
+:focus-visible {
+  outline: 2px solid var(--focus-outer);
+  outline-offset: 2px;
+}
+
+/* ── Win11 selection ── */
+::selection {
+  background: rgba(96,205,255,0.35);
+  color: var(--text-primary);
+}
 #taskbar.fs-hidden{transform:translateY(100%)!important;opacity:0!important;pointer-events:none!important;}
 #taskbar.dock-mode.fs-hidden{transform:translateX(-50%) translateY(100%)!important;}
-/* Peek: cursor near bottom reveals taskbar even while fs-hidden */
+/* Peek: cursor near bottom reveals taskbar */
 #taskbar.fs-hidden.tb-peek{transform:translateY(0)!important;opacity:1!important;pointer-events:auto!important;}
 #taskbar.dock-mode.fs-hidden.tb-peek{transform:translateX(-50%) translateY(0)!important;}
 
@@ -147,157 +464,306 @@ height:100vh!important;
 /* SNAP OVERLAY */
 #snapOverlay{
 position:fixed;
-background:rgba(0,120,212,0.12);border:2px solid rgba(0,120,212,0.4);
-border-radius:8px;pointer-events:none;opacity:0;
-transition:opacity .12s, left .1s, top .1s, width .1s, height .1s;z-index:9997;
+background:rgba(0,120,212,0.14);
+border:2px solid rgba(0,120,212,0.55);
+border-radius:var(--radius-overlay);
+pointer-events:none;opacity:0;
+transition:opacity var(--dur-fast) var(--ease-decelerate),
+           left var(--dur-fast) var(--ease-standard),
+           top var(--dur-fast) var(--ease-standard),
+           width var(--dur-fast) var(--ease-standard),
+           height var(--dur-fast) var(--ease-standard);
+z-index:9997;
 }
 #snapOverlay.show{opacity:1;}
 
-/* TOAST */
+/* TOAST — Win11 notification card style */
 #toastContainer{
-position:absolute;bottom:70px;right:16px;
+position:absolute;bottom:calc(var(--tb-height) + 12px);right:16px;
 display:flex;flex-direction:column;gap:8px;
 z-index:999999;pointer-events:none;
 }
 .toast{
-background:rgba(22,22,22,0.94);backdrop-filter:blur(20px);
-border:1px solid rgba(255,255,255,0.1);border-radius:10px;
-padding:10px 14px;font-size:12px;color:#fff;
-max-width:290px;box-shadow:0 8px 28px rgba(0,0,0,0.5);
-display:flex;align-items:center;gap:9px;
-animation:toastIn .22s ease forwards;
+background:rgba(44,44,44,0.96);
+backdrop-filter:blur(60px) saturate(125%);
+-webkit-backdrop-filter:blur(60px) saturate(125%);
+border:1px solid var(--stroke-surface);
+border-radius:var(--radius-overlay);
+padding:12px 14px;font-size:var(--text-caption);
+color:var(--text-primary);
+width:364px;
+box-shadow:var(--shadow-28);
+display:flex;align-items:flex-start;gap:10px;
+animation:toastIn var(--dur-fast) var(--ease-decelerate) forwards;
 }
-.toast.out{animation:toastOut .22s ease forwards;}
-.toast-icon{font-size:16px;flex-shrink:0;}
-.toast-body{display:flex;flex-direction:column;gap:1px;}
-.toast-title{font-weight:600;font-size:12px;}
-.toast-msg{font-size:11px;opacity:.7;}
-.toast.success{border-left:3px solid #22c55e;}
-.toast.info{border-left:3px solid var(--accent,#00d4ff);}
-.toast.warn{border-left:3px solid #f59e0b;}
-.toast.error{border-left:3px solid #ef4444;}
-@keyframes toastIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}
-@keyframes toastOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(16px)}}
+.toast.out{animation:toastOut var(--dur-fast) var(--ease-accelerate) forwards;}
+.toast-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.toast-body{display:flex;flex-direction:column;gap:2px;flex:1;}
+.toast-title{font-weight:600;font-size:var(--text-body-strong);color:var(--text-primary);}
+.toast-msg{font-size:var(--text-caption);color:var(--text-secondary);}
+/* Win11 semantic severity bar — left edge */
+.toast.success{border-left:3px solid #6CCB5F;}
+.toast.info   {border-left:3px solid var(--accent-fill);}
+.toast.warn   {border-left:3px solid #FCE100;}
+.toast.error  {border-left:3px solid #FF99A4;}
+@keyframes toastIn {from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)}}
+@keyframes toastOut{from{opacity:1;transform:translateY(0)}    to{opacity:0;transform:translateY(12px)}}
 
-/* SETTINGS PANEL */
+/* SETTINGS PANEL — Win11 style */
 .settings-root{
-flex:1;overflow-y:auto;padding:28px 32px;
-background:#111;display:flex;flex-direction:column;gap:24px;
+flex:1;overflow-y:auto;padding:24px 28px;
+background:var(--bg-base);
+display:flex;flex-direction:column;gap:20px;
+font-family:var(--font);
 }
-.settings-section{display:flex;flex-direction:column;gap:12px;}
-.settings-label{font-size:11px;letter-spacing:1px;opacity:.45;text-transform:uppercase;}
-.settings-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.settings-section{display:flex;flex-direction:column;gap:10px;}
+.settings-label{
+font-size:var(--text-caption);
+font-weight:600;
+color:var(--text-tertiary);
+letter-spacing:0.5px;
+text-transform:uppercase;
+}
+.settings-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+/* Background preset swatches */
 .bg-preset{
-width:64px;height:40px;border-radius:8px;cursor:pointer;border:2px solid transparent;
-transition:.15s;flex-shrink:0;
+width:64px;height:40px;border-radius:var(--radius-control);
+cursor:pointer;
+border:2px solid transparent;
+outline:1px solid var(--stroke);
+transition:border-color var(--dur-faster) linear,
+           outline-color var(--dur-faster) linear;
+flex-shrink:0;
 }
-.bg-preset.selected,.bg-preset:hover{border-color:var(--accent,#00d4ff);}
+.bg-preset.selected,.bg-preset:hover{
+border-color:var(--accent-fill);
+outline-color:transparent;
+}
+/* Accent color swatches */
 .accent-swatch{
-width:32px;height:32px;border-radius:50%;cursor:pointer;border:2px solid transparent;
-transition:.15s;flex-shrink:0;
+width:28px;height:28px;border-radius:50%;cursor:pointer;
+border:2px solid transparent;
+outline:1px solid var(--stroke);
+transition:transform var(--dur-faster) linear,
+           border-color var(--dur-faster) linear;
+flex-shrink:0;
 }
-.accent-swatch.selected,.accent-swatch:hover{border-color:#fff;transform:scale(1.15);}
-.settings-divider{border:none;border-top:1px solid rgba(255,255,255,0.07);margin:0;}
+.accent-swatch.selected,.accent-swatch:hover{
+border-color:var(--focus-outer);
+transform:scale(1.15);
+outline-color:transparent;
+}
+.settings-divider{border:none;border-top:1px solid var(--stroke-divider);margin:0;}
 .custom-bg-row{display:flex;gap:8px;align-items:center;}
+/* Win11 TextBox style input */
 .custom-bg-input{
-flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
-border-radius:8px;padding:8px 12px;color:#fff;font-size:12px;outline:none;
+flex:1;
+background:var(--ctrl-bg);
+border:1px solid var(--stroke);
+border-bottom:1px solid var(--stroke-secondary);
+border-radius:var(--radius-control);
+padding:6px 10px;
+color:var(--text-primary);
+font-size:var(--text-body);
+font-family:var(--font);
+outline:none;
+transition:background var(--dur-faster) linear,
+           border-color var(--dur-faster) linear;
 }
-.custom-bg-input:focus{border-color:var(--accent,#00d4ff);}
+.custom-bg-input:focus{
+background:var(--ctrl-bg-input);
+border-color:var(--stroke);
+border-bottom:2px solid var(--accent-fill);
+}
+/* Win11 AccentButton style */
 .settings-apply-btn{
-padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-size:12px;
-background:var(--accent,#00d4ff);color:#000;font-weight:600;transition:.15s;
+padding:6px 14px;
+border-radius:var(--radius-control);
+border:1px solid var(--stroke);
+border-bottom:1px solid var(--stroke-secondary);
+cursor:pointer;
+font-size:var(--text-body);
+font-family:var(--font);
+background:var(--accent-fill);
+color:#000;
+font-weight:600;
+transition:background var(--dur-faster) linear,
+           opacity var(--dur-faster) linear;
 }
-.settings-apply-btn:hover{opacity:.85;}
+.settings-apply-btn:hover{background:var(--accent-fill-hover);}
+.settings-apply-btn:active{background:var(--accent-fill-pressed);}
+/* Win11 slider */
 .opacity-slider{
 -webkit-appearance:none;appearance:none;
-width:100%;height:4px;border-radius:2px;
-background:rgba(255,255,255,0.15);outline:none;cursor:pointer;
+width:100%;height:4px;border-radius:var(--radius-small);
+background:var(--ctrl-bg-hover);outline:none;cursor:pointer;
 }
 .opacity-slider::-webkit-slider-thumb{
 -webkit-appearance:none;appearance:none;
-width:16px;height:16px;border-radius:50%;
-background:var(--accent,#00d4ff);cursor:pointer;
-box-shadow:0 0 6px var(--accent,#00d4ff);
+width:20px;height:20px;border-radius:50%;
+background:var(--accent-fill);
+cursor:pointer;
+border:4px solid var(--bg-base);
+box-shadow:0 0 0 1px var(--accent-fill);
 }
-.opacity-label{font-size:12px;opacity:.7;min-width:36px;text-align:right;}
+.opacity-label{font-size:var(--text-body);color:var(--text-secondary);min-width:36px;text-align:right;}
 
-/* START MENU */
+/* START MENU — Win11: acrylic, centered, 8px radius, 640×680px */
 #start{
-position:absolute;bottom:80px;left:50%;
-transform:translateX(-50%) translateY(10px);
-width:480px;height:480px;
-background:rgba(18,18,18,0.65);backdrop-filter:blur(40px);
-border:1px solid rgba(255,255,255,0.1);border-radius:16px;
-padding:14px;display:flex;flex-direction:column;gap:10px;
-opacity:0;pointer-events:none;transition:.25s ease;z-index:99999;
+position:absolute;bottom:calc(var(--tb-height) + 8px);left:50%;
+transform:translateX(-50%) translateY(16px);
+width:640px;max-height:680px;
+/* Acrylic recipe */
+background:rgba(32,32,32,0.85);
+backdrop-filter:blur(60px) saturate(125%);
+-webkit-backdrop-filter:blur(60px) saturate(125%);
+border:1px solid var(--stroke-surface);
+border-radius:var(--radius-overlay);
+padding:16px 22px 14px;
+display:flex;flex-direction:column;gap:12px;
+opacity:0;pointer-events:none;
+transition:opacity var(--dur-fast) var(--ease-decelerate),
+           transform var(--dur-fast) var(--ease-decelerate);
+z-index:99999;
+box-shadow:var(--shadow-64);
 }
 #start.active{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);}
+/* Search bar — Win11 style: pill, 36px tall, accent bottom border on focus */
 .startSearch{
-width:100%;padding:11px 12px;border-radius:12px;border:none;outline:none;
-background:rgba(255,255,255,0.06);color:white;font-size:13px;
+width:100%;height:36px;padding:0 14px;
+border-radius:18px;
+border:1px solid var(--stroke);
+outline:none;
+background:var(--ctrl-bg);
+color:var(--text-primary);
+font-family:var(--font);
+font-size:var(--text-body);
+transition:border-color var(--dur-faster) linear,
+           background var(--dur-faster) linear;
 }
-.startSearch::placeholder{color:rgba(255,255,255,0.35);}
-.startSectionTitle{font-size:11px;opacity:0.5;letter-spacing:1px;margin-top:4px;}
-#pinnedGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;flex:1;}
+.startSearch:focus{
+background:var(--ctrl-bg-input);
+border-color:var(--accent-fill);
+border-bottom-width:2px;
+}
+.startSearch::placeholder{color:var(--text-tertiary);}
+.startSectionTitle{
+font-size:var(--text-caption);
+font-weight:600;
+color:var(--text-secondary);
+letter-spacing:0.5px;
+text-transform:uppercase;
+margin-top:2px;
+}
+#pinnedGrid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;flex:1;}
+/* Win11 pinned app tile: 64×64px area, 4px radius, subtle hover */
 .app{
-background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.06);
-border-radius:14px;padding:10px;font-size:12px;cursor:pointer;
-transition:.15s ease;display:flex;align-items:center;gap:8px;
+background:transparent;
+border:1px solid transparent;
+border-radius:var(--radius-control);
+padding:8px 4px 6px;
+font-size:11px;
+color:var(--text-secondary);
+cursor:pointer;
+transition:background var(--dur-faster) linear,
+           color var(--dur-faster) linear;
+display:flex;flex-direction:column;align-items:center;gap:5px;
+min-height:68px;justify-content:center;
+text-align:center;line-height:1.3;
 }
-.app:hover{background:rgba(255,255,255,0.12);transform:translateY(-2px);}
+.app:hover{
+background:var(--subtle-hover);
+color:var(--text-primary);
+}
+.app:active{background:var(--subtle-pressed);}
 .app.hidden{display:none;}
 #noResults{
-display:none;opacity:.45;font-size:13px;text-align:center;
+display:none;color:var(--text-tertiary);font-size:var(--text-body);text-align:center;
 padding:20px 0;grid-column:1/-1;
 }
+/* Win11 start bottom bar */
 .startBottom{
 display:flex;justify-content:space-between;align-items:center;
-padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);
+padding-top:10px;
+border-top:1px solid var(--stroke-divider);
 }
 .userBox,.powerBox{
-padding:7px 10px;border-radius:10px;background:rgba(255,255,255,0.06);font-size:12px;
-cursor:pointer;transition:.15s;
+padding:6px 12px;border-radius:var(--radius-control);
+background:transparent;
+font-size:var(--text-body);
+color:var(--text-secondary);
+cursor:pointer;
+transition:background var(--dur-faster) linear, color var(--dur-faster) linear;
+display:flex;align-items:center;gap:8px;
 }
-.userBox:hover,.powerBox:hover{background:var(--glass2);}
+.userBox:hover,.powerBox:hover{
+background:var(--subtle-hover);
+color:var(--text-primary);
+}
 
-/* WINDOW SYSTEM */
+/* WINDOW SYSTEM — Win11: 8px overlay radius, shadow-64, 1px stroke */
 .window{
-position:absolute;width:900px;height:600px;background:#202020;
-border-radius:8px;overflow:hidden;display:none;flex-direction:column;
-box-shadow:0 8px 32px rgba(0,0,0,0.5),0 32px 64px rgba(0,0,0,0.4),0 0 0 1px rgba(255,255,255,0.08);
-transition:box-shadow .15s,opacity .18s ease,transform .18s cubic-bezier(.34,1.56,.64,1);
-border:1px solid rgba(255,255,255,0.1);
+position:absolute;width:900px;height:600px;
+background:var(--bg-base);
+border-radius:var(--radius-overlay);
+overflow:hidden;display:none;flex-direction:column;
+box-shadow:var(--shadow-64);
+border:1px solid var(--stroke-surface);
+transition:box-shadow var(--dur-faster) linear,
+           opacity var(--dur-fast) var(--ease-decelerate),
+           transform var(--dur-fast) var(--ease-decelerate);
 }
-.window.win-opening{animation:winOpen .2s cubic-bezier(.34,1.4,.64,1) both;}
-.window.win-closing{animation:winClose .15s ease forwards;}
-@keyframes winOpen{from{opacity:0;transform:scale(0.95) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
-@keyframes winClose{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(0.95) translateY(4px)}}
-.window:focus-within{box-shadow:0 8px 32px rgba(0,0,0,0.6),0 32px 80px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.15);}
+/* Win11 window open: scale from 98% + fade, 250ms decelerate */
+.window.win-opening{animation:winOpen var(--dur-normal) var(--ease-decelerate) both;}
+.window.win-closing{animation:winClose var(--dur-fast) var(--ease-accelerate) forwards;}
+@keyframes winOpen {from{opacity:0;transform:scale(0.97) translateY(6px)} to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes winClose{from{opacity:1;transform:scale(1)}                    to{opacity:0;transform:scale(0.97) translateY(4px)}}
+/* Focused window: brighter top stroke */
+.window:focus-within{
+  box-shadow:var(--shadow-64),0 0 0 1px rgba(255,255,255,0.14);
+}
 .window.maximized{
 left:0!important;top:0!important;width:100vw!important;
 height:calc(100vh - var(--tb-height))!important;border-radius:0;border:none;
 }
 .window.maximized .resizeHandle{display:none;}
+
+/* TITLE BAR — 32px tall per Win11 spec */
 .titlebar{
-height:32px;background:rgba(32,32,32,0.95);
-backdrop-filter:blur(20px) saturate(1.5);
+height:var(--titlebar-height);
+background:rgba(32,32,32,0.98);
+backdrop-filter:blur(20px) saturate(1.4);
+-webkit-backdrop-filter:blur(20px) saturate(1.4);
 display:flex;justify-content:space-between;
-align-items:center;padding:0 0 0 12px;cursor:grab;flex-shrink:0;
-user-select:none;border-bottom:1px solid rgba(255,255,255,0.06);
+align-items:center;padding:0 0 0 14px;cursor:grab;flex-shrink:0;
+user-select:none;
+border-bottom:1px solid var(--stroke);
 }
 .titlebar:active{cursor:grabbing;}
 .title-icon{font-size:14px;margin-right:6px;flex-shrink:0;pointer-events:none;}
-.title-text{font-size:12px;opacity:.85;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.controls{display:flex;align-items:stretch;height:32px;margin-left:auto;flex-shrink:0;}
-.ctrl-btn{
-  width:46px;height:32px;display:flex;align-items:center;justify-content:center;
-  cursor:pointer;border:none;background:transparent;color:rgba(255,255,255,0.75);
-  transition:background .1s,color .1s;flex-shrink:0;position:relative;
+.title-text{
+font-size:12px;
+font-weight:400;
+color:var(--text-secondary);
+pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.ctrl-btn:hover{background:rgba(255,255,255,0.1);color:#fff;}
-.ctrl-btn.ctrl-close:hover{background:#c42b1c;color:#fff;}
-.ctrl-btn.ctrl-popout:hover{background:rgba(255,255,255,0.1);color:#fff;}
+.controls{display:flex;align-items:stretch;height:var(--titlebar-height);margin-left:auto;flex-shrink:0;}
+
+/* Caption buttons: 46×32px per Win11 spec */
+.ctrl-btn{
+  width:var(--caption-btn-w);height:var(--titlebar-height);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;border:none;background:transparent;
+  color:var(--text-secondary);
+  transition:background var(--dur-faster) linear, color var(--dur-faster) linear;
+  flex-shrink:0;position:relative;
+}
+.ctrl-btn:hover{background:var(--subtle-hover);color:var(--text-primary);}
+.ctrl-btn:active{background:var(--subtle-pressed);}
+/* Win11 close button: #C42B1C on hover — exact documented value */
+.ctrl-btn.ctrl-close:hover{background:#C42B1C;color:#fff;}
+.ctrl-btn.ctrl-close:active{background:rgba(196,43,28,0.70);color:#fff;}
+.ctrl-btn.ctrl-popout:hover{background:var(--subtle-hover);color:var(--text-primary);}
 .ctrl-btn svg{pointer-events:none;}
 /* Snap layout flyout removed — snapping is done by dragging to edges */
 iframe{flex:1;border:none;background:#000}
@@ -321,144 +787,248 @@ iframe{flex:1;border:none;background:#000}
 .resizeHandle.e{top:12px;bottom:12px;width:4px;right:0;cursor:e-resize;}
 .resizeHandle.w{top:12px;bottom:12px;width:4px;left:0;cursor:w-resize;}
 
-/* CONTEXT MENU */
+/* CONTEXT MENU — Win11 style: acrylic, 8px radius, 32px rows, icon column */
 #menu{
 position:absolute;display:none;
-background:rgba(30,30,30,0.96);backdrop-filter:blur(40px) saturate(1.8);
-border:1px solid rgba(255,255,255,0.12);
-border-radius:10px;min-width:220px;z-index:999999;overflow:hidden;
-box-shadow:0 8px 32px rgba(0,0,0,0.6),0 2px 8px rgba(0,0,0,0.4);
+background:rgba(44,44,44,0.92);
+backdrop-filter:blur(60px) saturate(125%);
+-webkit-backdrop-filter:blur(60px) saturate(125%);
+border:1px solid var(--stroke-flyout);
+border-radius:var(--radius-overlay);
+min-width:200px;z-index:999999;overflow:hidden;
+box-shadow:var(--shadow-28);
 padding:4px;
+/* Win11 entrance: scale from 92% + fade, 167ms decelerate */
+transform-origin:top left;
+animation:menuOpen var(--dur-fast) var(--ease-decelerate) both;
 }
+@keyframes menuOpen{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}
 #menu .menu-item{
-padding:8px 12px;cursor:pointer;font-size:12.5px;border-radius:6px;margin:1px;
-display:flex;align-items:center;gap:10px;transition:background .1s;
+padding:0 11px;height:32px;cursor:pointer;
+font-size:var(--text-body);
+font-family:var(--font);
+color:var(--text-primary);
+border-radius:var(--radius-control);margin:1px;
+display:flex;align-items:center;gap:12px;
+transition:background var(--dur-faster) linear;
 }
-#menu .menu-item:hover{background:rgba(255,255,255,0.1);}
-#menu .menu-item .menu-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0;}
-#menu hr{border:none;border-top:1px solid rgba(255,255,255,0.08);margin:4px 8px;}
+#menu .menu-item:hover{background:var(--subtle-hover);}
+#menu .menu-item:active{background:var(--subtle-pressed);}
+#menu .menu-item .menu-icon{font-size:14px;width:16px;text-align:center;flex-shrink:0;color:var(--text-secondary);}
+#menu hr{border:none;border-top:1px solid var(--stroke-divider);margin:3px 8px;}
 
 /* TASKBAR RIGHT-CLICK MENU */
 #tbMenu{
 position:absolute;display:none;
-background:rgba(30,30,30,0.96);backdrop-filter:blur(40px) saturate(1.8);
-border:1px solid rgba(255,255,255,0.12);
-border-radius:10px;min-width:160px;z-index:9999999;overflow:hidden;
-box-shadow:0 8px 32px rgba(0,0,0,0.6);padding:4px;
+background:rgba(44,44,44,0.92);
+backdrop-filter:blur(60px) saturate(125%);
+-webkit-backdrop-filter:blur(60px) saturate(125%);
+border:1px solid var(--stroke-flyout);
+border-radius:var(--radius-overlay);
+min-width:160px;z-index:9999999;overflow:hidden;
+box-shadow:var(--shadow-28);padding:4px;
 }
-#tbMenu .menu-item{padding:8px 12px;cursor:pointer;font-size:12px;border-radius:6px;margin:1px;display:flex;align-items:center;gap:10px;}
-#tbMenu .menu-item:hover{background:rgba(255,255,255,0.1);}
-#tbMenu .menu-item .menu-icon{font-size:14px;width:18px;text-align:center;}
+#tbMenu .menu-item{
+padding:0 11px;height:32px;cursor:pointer;
+font-size:var(--text-body);
+font-family:var(--font);
+color:var(--text-primary);
+border-radius:var(--radius-control);margin:1px;
+display:flex;align-items:center;gap:12px;
+transition:background var(--dur-faster) linear;
+}
+#tbMenu .menu-item:hover{background:var(--subtle-hover);}
+#tbMenu .menu-item:active{background:var(--subtle-pressed);}
+#tbMenu .menu-item .menu-icon{font-size:14px;width:16px;text-align:center;color:var(--text-secondary);}
 
-/* CMD */
+/* CMD — Win11 Windows Terminal dark style */
 .cmdBody{
-flex:1;background:#000;color:var(--accent);
-font-family:monospace;padding:10px;overflow:auto;
+flex:1;background:#0C0C0C;color:#CCCCCC;
+font-family:var(--font-mono);padding:10px;overflow:auto;
+font-size:14px;line-height:1.5;
 }
 .cmdInput{
-width:100%;background:black;color:var(--accent);border:none;outline:none;
-font-family:monospace;padding:5px;flex-shrink:0;
-border-top:1px solid rgba(255,255,255,0.06);
+width:100%;background:#0C0C0C;color:#CCCCCC;border:none;outline:none;
+font-family:var(--font-mono);font-size:14px;padding:5px;flex-shrink:0;
+border-top:1px solid var(--stroke-divider);
+caret-color:#CCCCCC;
 }
 
-/* NOTEPAD */
+/* NOTEPAD — Win11 style toolbar */
 .notepad-toolbar{
-display:flex;gap:4px;padding:5px 8px;background:#1a1a1a;
-border-bottom:1px solid rgba(255,255,255,0.07);flex-shrink:0;
+display:flex;gap:4px;padding:4px 8px;
+background:var(--bg-secondary);
+border-bottom:1px solid var(--stroke-divider);
+flex-shrink:0;
 align-items:center;flex-wrap:wrap;
 }
+/* Win11 standard button: ControlFillColorDefault + two-color border (bottom darker) */
 .np-btn{
-padding:3px 10px;border-radius:5px;border:none;cursor:pointer;font-size:11px;
-background:rgba(255,255,255,0.07);color:#fff;transition:.15s;
+padding:3px 10px;height:28px;
+border-radius:var(--radius-control);
+border:1px solid var(--stroke);
+border-bottom-color:var(--stroke-secondary);
+cursor:pointer;
+font-size:var(--text-caption);
+font-family:var(--font);
+background:var(--ctrl-bg);
+color:var(--text-primary);
+transition:background var(--dur-faster) linear;
 }
-.np-btn:hover{background:rgba(255,255,255,0.15);}
-.np-sep{width:1px;height:18px;background:rgba(255,255,255,0.1);margin:0 2px;}
+.np-btn:hover{background:var(--ctrl-bg-hover);}
+.np-btn:active{background:var(--ctrl-bg-pressed);border-bottom-color:var(--stroke);}
+.np-sep{width:1px;height:18px;background:var(--stroke-divider);margin:0 2px;}
 .np-select{
-background:rgba(255,255,255,0.07);color:#fff;border:none;border-radius:5px;
-font-size:11px;padding:3px 6px;outline:none;cursor:pointer;
+background:var(--ctrl-bg);
+color:var(--text-primary);
+border:1px solid var(--stroke);
+border-bottom-color:var(--stroke-secondary);
+border-radius:var(--radius-control);
+font-size:var(--text-caption);
+font-family:var(--font);
+padding:3px 6px;
+outline:none;
+cursor:pointer;
+height:28px;
 }
+.np-select:focus{border-bottom:2px solid var(--accent-fill);}
 .notepad-area{
-flex:1;background:#0d0d0d;color:#e2e8f0;border:none;outline:none;
-padding:16px;font-family:monospace;font-size:13px;resize:none;line-height:1.6;
+flex:1;
+background:var(--bg-base);
+color:var(--text-primary);
+border:none;outline:none;
+padding:16px;
+font-family:var(--font-mono);
+font-size:var(--text-body);
+resize:none;line-height:1.6;
+caret-color:var(--accent-fill);
 }
 .notepad-statusbar{
-height:22px;background:#141414;border-top:1px solid rgba(255,255,255,0.07);
-display:flex;align-items:center;padding:0 10px;font-size:10px;opacity:.5;
+height:24px;
+background:var(--bg-secondary);
+border-top:1px solid var(--stroke-divider);
+display:flex;align-items:center;padding:0 12px;
+font-size:var(--text-caption);
+color:var(--text-tertiary);
 flex-shrink:0;gap:16px;
 }
 
 /* ===== TASK MANAGER ===== */
 .tm-root{
 flex:1;overflow:hidden;display:flex;flex-direction:column;
-background:#0d0d0d;font-family:"Segoe UI",sans-serif;
+background:var(--bg-base);font-family:var(--font);
 }
 .tm-tabs{
-display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,0.08);
-background:#141414;flex-shrink:0;
+display:flex;gap:0;
+border-bottom:1px solid var(--stroke-divider);
+background:var(--bg-secondary);flex-shrink:0;
 }
 .tm-tab{
-padding:10px 20px;font-size:12px;cursor:pointer;color:rgba(255,255,255,0.5);
-border-bottom:2px solid transparent;transition:.15s;
+padding:8px 20px;
+font-size:var(--text-body);
+color:var(--text-tertiary);
+cursor:pointer;
+border-bottom:2px solid transparent;
+transition:color var(--dur-faster) linear,
+           border-color var(--dur-faster) linear;
 }
-.tm-tab.active{color:#fff;border-bottom-color:#00d4ff;}
-.tm-tab:hover:not(.active){color:rgba(255,255,255,0.8);}
+.tm-tab.active{color:var(--text-primary);border-bottom-color:var(--accent-fill);}
+.tm-tab:hover:not(.active){color:var(--text-secondary);}
 .tm-panel{display:none;flex:1;overflow:hidden;}
 .tm-panel.active{display:flex;flex-direction:column;}
 
 /* Performance panel */
 .perf-layout{display:flex;flex:1;overflow:hidden;}
 .perf-sidebar{
-width:200px;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.06);
+width:200px;flex-shrink:0;
+border-right:1px solid var(--stroke-divider);
 overflow-y:auto;padding:8px 0;
+background:var(--bg-secondary);
 }
 .perf-sidebar-item{
-padding:10px 14px;cursor:pointer;transition:.12s;
+padding:10px 14px;cursor:pointer;
+transition:background var(--dur-faster) linear;
 border-left:3px solid transparent;
 }
 .perf-sidebar-item.active{
-background:rgba(0,212,255,0.08);border-left-color:#00d4ff;
+background:rgba(96,205,255,0.07);
+border-left-color:var(--accent-fill);
 }
-.perf-sidebar-item:hover:not(.active){background:rgba(255,255,255,0.04);}
-.perf-sidebar-label{font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:2px;}
-.perf-sidebar-value{font-size:13px;font-weight:500;}
+.perf-sidebar-item:hover:not(.active){background:var(--subtle-hover);}
+.perf-sidebar-label{
+font-size:var(--text-caption);
+color:var(--text-tertiary);
+margin-bottom:2px;
+}
+.perf-sidebar-value{font-size:var(--text-body);font-weight:600;}
 .perf-sidebar-mini{
-height:36px;border-radius:4px;overflow:hidden;margin-top:6px;
-background:rgba(255,255,255,0.04);position:relative;
+height:36px;border-radius:var(--radius-control);overflow:hidden;margin-top:6px;
+background:var(--ctrl-bg);position:relative;
 }
 .perf-content{flex:1;padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;}
 .perf-header{display:flex;justify-content:space-between;align-items:baseline;}
-.perf-title{font-size:16px;font-weight:500;}
-.perf-subtitle{font-size:12px;color:rgba(255,255,255,0.4);}
-.perf-stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
-.perf-stat{background:rgba(255,255,255,0.04);border-radius:8px;padding:12px;}
-.perf-stat-label{font-size:10px;color:rgba(255,255,255,0.4);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;}
-.perf-stat-val{font-size:18px;font-weight:500;}
-.chart-wrap{background:rgba(255,255,255,0.03);border-radius:8px;padding:14px;position:relative;}
-.chart-label{font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:8px;display:flex;justify-content:space-between;}
+.perf-title{font-size:var(--text-subtitle);font-weight:600;}
+.perf-subtitle{font-size:var(--text-caption);color:var(--text-tertiary);}
+.perf-stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+/* Win11 card style: CardBackgroundFillColorDefault + 1px card stroke */
+.perf-stat{
+background:var(--bg-card);
+border:1px solid var(--stroke-card);
+border-radius:var(--radius-control);padding:12px;
+}
+.perf-stat-label{
+font-size:var(--text-caption);
+color:var(--text-tertiary);
+letter-spacing:.3px;text-transform:uppercase;margin-bottom:4px;
+}
+.perf-stat-val{font-size:18px;font-weight:600;}
+.chart-wrap{
+background:var(--bg-card);
+border:1px solid var(--stroke-card);
+border-radius:var(--radius-control);padding:14px;position:relative;
+}
+.chart-label{
+font-size:var(--text-caption);
+color:var(--text-tertiary);
+margin-bottom:8px;display:flex;justify-content:space-between;
+}
 canvas.sparkline{width:100%!important;display:block;}
 
 /* Processes panel */
-.proc-table{width:100%;border-collapse:collapse;font-size:12px;}
+.proc-table{width:100%;border-collapse:collapse;font-size:var(--text-caption);}
 .proc-table th{
-background:#141414;padding:8px 12px;text-align:left;
-font-size:11px;color:rgba(255,255,255,0.4);font-weight:400;
-border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:0;z-index:2;
-letter-spacing:.5px;text-transform:uppercase;cursor:pointer;
+background:var(--bg-secondary);
+padding:6px 12px;text-align:left;
+font-size:var(--text-caption);
+color:var(--text-tertiary);
+font-weight:600;
+border-bottom:1px solid var(--stroke-divider);
+position:sticky;top:0;z-index:2;
+letter-spacing:.3px;text-transform:uppercase;cursor:pointer;
 }
-.proc-table th:hover{color:rgba(255,255,255,0.7);}
-.proc-table td{padding:7px 12px;border-bottom:1px solid rgba(255,255,255,0.04);}
-.proc-table tr:hover td{background:rgba(255,255,255,0.04);}
+.proc-table th:hover{color:var(--text-secondary);}
+.proc-table td{padding:6px 12px;border-bottom:1px solid rgba(255,255,255,0.04);}
+/* Win11 list row hover: SubtleFillColorSecondary */
+.proc-table tr:hover td{background:var(--subtle-hover);}
 .proc-name{display:flex;align-items:center;gap:8px;}
 .proc-icon{width:16px;height:16px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:11px;}
 .bar-cell{width:100px;}
-.mini-bar{height:4px;border-radius:2px;background:rgba(255,255,255,0.08);overflow:hidden;}
-.mini-bar-fill{height:100%;border-radius:2px;transition:width .4s;}
+.mini-bar{height:3px;border-radius:var(--radius-small);background:var(--ctrl-bg-hover);overflow:hidden;}
+.mini-bar-fill{height:100%;border-radius:var(--radius-small);transition:width .4s;}
 .proc-scroll{flex:1;overflow-y:auto;}
+/* Win11 destructive action button style */
 .end-btn{
-background:rgba(255,60,60,0.15);color:rgba(255,100,100,0.9);
-border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;
+background:rgba(255,153,164,0.12);
+color:#FF99A4;
+border:1px solid rgba(255,153,164,0.2);
+border-radius:var(--radius-control);
+padding:3px 10px;
+font-size:var(--text-caption);
+font-family:var(--font);
+cursor:pointer;
+transition:background var(--dur-faster) linear;
 }
-.end-btn:hover{background:rgba(255,60,60,0.3);}
+.end-btn:hover{background:rgba(255,153,164,0.22);}
 
 /* ===== CAMERA APP ===== */
 .cam-root{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#0d0d14;font-family:'Segoe UI',sans-serif;color:#e8eaf6;}
@@ -543,13 +1113,24 @@ border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;
 .cam-toast-inner.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .cam-count-badge{position:absolute;top:-3px;right:-3px;background:#8ab4f8;color:#1e1e2e;font-size:8px;font-weight:600;min-width:14px;height:14px;border-radius:7px;display:flex;align-items:center;justify-content:center;padding:0 3px;pointer-events:none;}
 
-/* KEYBOARD SHORTCUT HINT */
+/* KEYBOARD SHORTCUT HINT — Win11 tooltip style */
 #kbHint{
-position:absolute;bottom:70px;left:50%;transform:translateX(-50%);
-background:rgba(22,22,22,0.9);border:1px solid rgba(255,255,255,0.1);
-border-radius:10px;padding:8px 16px;font-size:11px;opacity:0;
-pointer-events:none;transition:opacity .2s;z-index:999999;
+position:absolute;bottom:calc(var(--tb-height) + 8px);left:50%;transform:translateX(-50%);
+background:rgba(44,44,44,0.96);
+backdrop-filter:blur(60px) saturate(125%);
+-webkit-backdrop-filter:blur(60px) saturate(125%);
+border:1px solid var(--stroke-flyout);
+border-radius:var(--radius-control);
+padding:6px 12px;
+font-size:var(--text-caption);
+font-family:var(--font);
+color:var(--text-secondary);
+opacity:0;
+pointer-events:none;
+transition:opacity var(--dur-faster) linear;
+z-index:999999;
 white-space:nowrap;
+box-shadow:var(--shadow-8);
 }
 #kbHint.show{opacity:1;}
 
@@ -558,32 +1139,283 @@ white-space:nowrap;
   position: absolute;
   top: 50%;left: 50%;
   transform: translate(-50%,-50%);
-  background: rgba(10,10,10,0.82);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 14px;
+  background:rgba(44,44,44,0.92);
+  backdrop-filter:blur(60px) saturate(125%);
+  -webkit-backdrop-filter:blur(60px) saturate(125%);
+  border: 1px solid var(--stroke-flyout);
+  border-radius: var(--radius-overlay);
   padding: 18px 28px;
-  font-size: 13px;
-  color: rgba(255,255,255,0.85);
+  font-size: var(--text-body);
+  font-family:var(--font);
+  color: var(--text-secondary);
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.35s;
+  transition: opacity var(--dur-normal) var(--ease-decelerate);
   z-index: 99999998;
   text-align: center;
-  backdrop-filter: blur(16px);
+  box-shadow:var(--shadow-28);
   white-space: nowrap;
 }
-#fsHint span { opacity: 0.55; font-size: 11px; display: block; margin-top: 4px; }
-#fsHint.show { opacity: 1; }
+/* ═══════════════════════════════════════
+   SNAP LAYOUT FLYOUT — Win11 maximize hover
+   ═══════════════════════════════════════ */
+#snapLayoutFlyout{
+  position:fixed;
+  background:rgba(44,44,44,0.94);
+  backdrop-filter:blur(60px) saturate(125%);
+  -webkit-backdrop-filter:blur(60px) saturate(125%);
+  border:1px solid var(--stroke-flyout);
+  border-radius:var(--radius-overlay);
+  padding:10px;
+  display:none;
+  gap:6px;
+  flex-wrap:wrap;
+  width:244px;
+  z-index:9999999;
+  box-shadow:var(--shadow-28);
+  animation:menuOpen var(--dur-fast) var(--ease-decelerate) both;
+}
+#snapLayoutFlyout.show{display:flex;}
+.snap-layout-row{display:flex;gap:4px;width:100%;}
+.snap-zone-btn{
+  flex:1;height:40px;
+  border-radius:var(--radius-control);
+  border:1px solid var(--stroke);
+  background:var(--ctrl-bg);
+  cursor:pointer;
+  transition:background var(--dur-faster) linear,
+             border-color var(--dur-faster) linear;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+}
+.snap-zone-btn:hover{
+  background:rgba(96,205,255,0.18);
+  border-color:var(--accent-fill);
+}
+.snap-zone-btn:active{background:rgba(96,205,255,0.28);}
+/* Inner accent fill preview */
+.snap-zone-btn::after{
+  content:'';
+  position:absolute;
+  border-radius:2px;
+  background:var(--accent-fill);
+  opacity:0;
+  transition:opacity var(--dur-faster) linear;
+}
+.snap-zone-btn:hover::after{opacity:1;}
+/* 50/50 split left */
+.szb-l::after{left:3px;top:3px;width:calc(50% - 4px);bottom:3px;}
+/* 50/50 split right */
+.szb-r::after{right:3px;top:3px;width:calc(50% - 4px);bottom:3px;}
+/* top-left quadrant */
+.szb-tl::after{left:3px;top:3px;width:calc(50% - 4px);height:calc(50% - 4px);}
+/* top-right quadrant */
+.szb-tr::after{right:3px;top:3px;width:calc(50% - 4px);height:calc(50% - 4px);}
+/* bottom-left quadrant */
+.szb-bl::after{left:3px;bottom:3px;width:calc(50% - 4px);height:calc(50% - 4px);}
+/* bottom-right quadrant */
+.szb-br::after{right:3px;bottom:3px;width:calc(50% - 4px);height:calc(50% - 4px);}
+/* full */
+.szb-full::after{inset:3px;}
+
+/* ═══════════════════════════════════════
+   QUICK SETTINGS PANEL — Win11 Action Center
+   ═══════════════════════════════════════ */
+#quickSettings{
+  position:fixed;
+  bottom:calc(var(--tb-height) + 8px);
+  right:8px;
+  width:360px;
+  background:rgba(44,44,44,0.94);
+  backdrop-filter:blur(60px) saturate(125%);
+  -webkit-backdrop-filter:blur(60px) saturate(125%);
+  border:1px solid var(--stroke-flyout);
+  border-radius:var(--radius-overlay);
+  padding:16px;
+  display:none;
+  flex-direction:column;
+  gap:12px;
+  z-index:9999998;
+  box-shadow:var(--shadow-28);
+  animation:menuOpen var(--dur-fast) var(--ease-decelerate) both;
+}
+#quickSettings.show{display:flex;}
+.qs-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.qs-title{font-size:var(--text-body);font-weight:600;color:var(--text-primary);}
+.qs-close{
+  width:28px;height:28px;border-radius:var(--radius-control);
+  background:transparent;border:none;color:var(--text-tertiary);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:14px;
+  transition:background var(--dur-faster) linear,color var(--dur-faster) linear;
+}
+.qs-close:hover{background:var(--subtle-hover);color:var(--text-primary);}
+/* 3-col tile grid */
+.qs-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
+.qs-tile{
+  border-radius:var(--radius-control);
+  border:1px solid var(--stroke);
+  background:var(--ctrl-bg);
+  padding:10px 10px 8px;
+  cursor:pointer;
+  transition:background var(--dur-faster) linear,
+             border-color var(--dur-faster) linear;
+  display:flex;flex-direction:column;gap:4px;
+  min-height:60px;
+}
+.qs-tile:hover{background:var(--ctrl-bg-hover);}
+.qs-tile:active{background:var(--ctrl-bg-pressed);}
+.qs-tile.on{
+  background:rgba(96,205,255,0.15);
+  border-color:var(--accent-fill);
+}
+.qs-tile.on:hover{background:rgba(96,205,255,0.22);}
+.qs-tile-icon{font-size:18px;line-height:1;}
+.qs-tile-label{
+  font-size:11px;
+  color:var(--text-secondary);
+  line-height:1.2;
+}
+.qs-tile.on .qs-tile-label{color:var(--accent-fill);}
+/* Brightness slider */
+.qs-slider-row{display:flex;align-items:center;gap:10px;}
+.qs-slider-icon{font-size:16px;flex-shrink:0;color:var(--text-secondary);}
+.qs-slider{
+  flex:1;-webkit-appearance:none;appearance:none;
+  height:4px;border-radius:var(--radius-small);
+  background:var(--ctrl-bg-hover);outline:none;cursor:pointer;
+}
+.qs-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+  background:var(--text-primary);cursor:pointer;
+  border:3px solid var(--bg-base);
+  box-shadow:0 0 0 1px var(--stroke-strong);
+}
+.qs-divider{border:none;border-top:1px solid var(--stroke-divider);margin:0;}
+
+/* ── APP RIGHT-CLICK CONTEXT MENU ── */
+#appCtxMenu{
+  position:fixed;
+  display:none;
+  flex-direction:column;
+  min-width:220px;
+  max-width:260px;
+  background:rgba(44,44,44,0.96);
+  backdrop-filter:blur(60px) saturate(125%);
+  -webkit-backdrop-filter:blur(60px) saturate(125%);
+  border:1px solid var(--stroke-flyout);
+  border-radius:var(--radius-overlay);
+  padding:4px;
+  z-index:9999999;
+  box-shadow:var(--shadow-28);
+  transform-origin:top left;
+}
+#appCtxMenu.open{
+  display:flex;
+  animation:menuOpen var(--dur-fast) var(--ease-decelerate) both;
+}
+/* App header card at top like Win11 jump list headers */
+.app-ctx-header{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 12px 8px;
+  pointer-events:none;
+}
+.app-ctx-sep{
+  height:1px;
+  background:var(--stroke-divider);
+  margin:3px 8px;
+  flex-shrink:0;
+}
+/* 32px rows, 11px H-pad, 16px icon col — Win11 MenuFlyoutItem spec */
+.app-ctx-item{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  height:32px;
+  padding:0 11px;
+  border-radius:var(--radius-control);
+  margin:1px;
+  cursor:pointer;
+  font-size:var(--text-body);
+  font-family:var(--font);
+  color:var(--text-primary);
+  transition:background var(--dur-faster) linear;
+  flex-shrink:0;
+  white-space:nowrap;
+}
+.app-ctx-item:hover{ background:var(--subtle-hover); }
+.app-ctx-item:active{ background:var(--subtle-pressed); }
+.app-ctx-icon-col{
+  width:16px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  color:var(--text-secondary);
+}
+
 </style>
 </head>
-<body style="background:linear-gradient(135deg,#0a1628 0%,#1a237e 30%,#1565c0 60%,#0d47a1 80%,#051428 100%)">
+<body style="background:linear-gradient(135deg,#041728 0%,#0a2547 25%,#0d3b70 50%,#0a2e5c 75%,#061525 100%)">
 
 <!-- Click-to-fullscreen hint -->
 <div id="fsHint">⛶ Click anywhere to enter fullscreen<span>Press Esc then click again to exit</span></div>
 
-<div id="desktop"></div>
+<div id="desktop">
+  <!-- Desktop icons are absolutely positioned and made draggable by initDesktopIcons() below -->
+  <div class="desktop-icon" data-name="Task Manager" data-di-col="0" data-di-row="0">
+    <span class="di-icon">📊</span>
+    <span class="di-label">Task Manager</span>
+  </div>
+  <div class="desktop-icon" data-name="Notepad" data-di-col="0" data-di-row="1">
+    <span class="di-icon">📝</span>
+    <span class="di-label">Notepad</span>
+  </div>
+  <div class="desktop-icon" data-name="Command Prompt" data-di-col="0" data-di-row="2">
+    <span class="di-icon">⌨️</span>
+    <span class="di-label">Command Prompt</span>
+  </div>
+  <div class="desktop-icon" data-name="Settings" data-di-col="0" data-di-row="3">
+    <span class="di-icon">⚙️</span>
+    <span class="di-label">Settings</span>
+  </div>
+</div>
+
+<!-- Snap overlay -->
 <div id="snapOverlay"></div>
+
+<!-- Snap layout popup (shown on maximize button hover) -->
+<div id="snapLayoutPop">
+  <div class="snap-label">Snap layouts</div>
+  <div class="snap-grid">
+    <div class="snap-zone-btn" data-snap="left">
+      <svg width="28" height="18" viewBox="0 0 28 18" fill="none"><rect x="0.5" y="0.5" width="12" height="17" rx="1.5" fill="rgba(96,205,255,0.3)" stroke="var(--accent-fill)"/><rect x="15" y="0.5" width="12.5" height="17" rx="1.5" fill="var(--ctrl-bg)" stroke="var(--stroke)"/></svg>
+      50/50 left
+    </div>
+    <div class="snap-zone-btn" data-snap="right">
+      <svg width="28" height="18" viewBox="0 0 28 18" fill="none"><rect x="0.5" y="0.5" width="12.5" height="17" rx="1.5" fill="var(--ctrl-bg)" stroke="var(--stroke)"/><rect x="15" y="0.5" width="12" height="17" rx="1.5" fill="rgba(96,205,255,0.3)" stroke="var(--accent-fill)"/></svg>
+      50/50 right
+    </div>
+    <div class="snap-zone-btn" data-snap="tl">
+      <svg width="28" height="18" viewBox="0 0 28 18" fill="none"><rect x="0.5" y="0.5" width="12" height="8" rx="1.5" fill="rgba(96,205,255,0.3)" stroke="var(--accent-fill)"/><rect x="0.5" y="10" width="12" height="7.5" rx="1.5" fill="var(--ctrl-bg)" stroke="var(--stroke)"/><rect x="15" y="0.5" width="12.5" height="17" rx="1.5" fill="var(--ctrl-bg)" stroke="var(--stroke)"/></svg>
+      Top left
+    </div>
+    <div class="snap-zone-btn" data-snap="br">
+      <svg width="28" height="18" viewBox="0 0 28 18" fill="none"><rect x="0.5" y="0.5" width="12.5" height="17" rx="1.5" fill="var(--ctrl-bg)" stroke="var(--stroke)"/><rect x="15" y="0.5" width="12" height="8" rx="1.5" fill="var(--ctrl-bg)" stroke="var(--stroke)"/><rect x="15" y="10" width="12" height="7.5" rx="1.5" fill="rgba(96,205,255,0.3)" stroke="var(--accent-fill)"/></svg>
+      Bot right
+    </div>
+  </div>
+</div>
+
 <div id="toastContainer"></div>
+<!-- Rubber-band desktop selection rectangle -->
+<div id="diSelRect"></div>
 <div id="kbHint"></div>
 
 <!-- START -->
@@ -596,15 +1428,15 @@ white-space:nowrap;
     <div class="startSectionTitle">Pinned</div>
     <div onclick="startShowAll()" style="font-size:11px;opacity:.55;cursor:pointer;padding:3px 8px;border-radius:6px;transition:.15s;" onmouseenter="this.style.opacity='1';this.style.background='rgba(255,255,255,0.08)'" onmouseleave="this.style.opacity='.55';this.style.background='transparent'">All apps ›</div>
   </div>
-  <div id="pinnedGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
-    <div class="app" data-name="Camera" onclick="openCamera()">&#x1F4F7; Camera</div>
-    <div class="app" data-name="Minecraft" onclick="openMinecraft()">&#x26CF; Minecraft</div>
-    <div class="app" data-name="Smash Karts" onclick="openGame(atob('aHR0cHM6Ly9zbWFzaGthcnRzLmlvLw=='),'Smash Karts')">&#x1F3CE; Smash Karts</div>
+  <div id="pinnedGrid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px;">
+    <div class="app" data-name="Camera" onclick="openCamera()"><span style="font-size:22px">📷</span>Camera</div>
+    <div class="app" data-name="Minecraft" onclick="openMinecraft()"><span style="font-size:22px">⛏</span>Minecraft</div>
+    <div class="app" data-name="Smash Karts" onclick="openGame(atob('aHR0cHM6Ly9zbWFzaGthcnRzLmlvLw=='),'Smash Karts')"><span style="font-size:22px">🏎️</span>Smash Karts</div>
   </div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
     <div class="startSectionTitle">Recently played</div>
   </div>
-  <div id="recentGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+  <div id="recentGrid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px;">
     <div style="grid-column:1/-1;font-size:11px;opacity:.35;text-align:center;padding:12px 0;">No recent apps yet</div>
   </div>
   <div id="noResults" style="display:none;opacity:.4;font-size:13px;text-align:center;padding:12px 0;">No results found</div>
@@ -616,73 +1448,96 @@ white-space:nowrap;
     <div onclick="startShowPinned()" style="font-size:11px;opacity:.55;cursor:pointer;padding:3px 8px;border-radius:6px;transition:.15s;" onmouseenter="this.style.opacity='1';this.style.background='rgba(255,255,255,0.08)'" onmouseleave="this.style.opacity='.55';this.style.background='transparent'">‹ Back</div>
     <div class="startSectionTitle">All apps</div>
   </div>
-  <div id="allAppsGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;overflow-y:auto;flex:1;min-height:0;padding-right:2px;">
-    <div class="app" data-name="Camera" onclick="openCamera()">&#x1F4F7; Camera</div>
-    <div class="app" data-name="Minecraft" onclick="openMinecraft()">&#x26CF; Minecraft</div>
-    <div class="app" data-name="Smash Karts" onclick="openGame(atob('aHR0cHM6Ly9zbWFzaGthcnRzLmlvLw=='),'Smash Karts')">&#x1F3CE; Smash Karts</div>
-    <div class="app" data-name="FNAF 1" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8xLw=='),'FNAF 1')">&#x1F3AE; FNAF 1</div>
-    <div class="app" data-name="FNAF 2" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8yLw=='),'FNAF 2')">&#x1F3AE; FNAF 2</div>
-    <div class="app" data-name="FNAF 3" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8zLw=='),'FNAF 3')">&#x1F3AE; FNAF 3</div>
-    <div class="app" data-name="FNAF 4" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi80Lw=='),'FNAF 4')">&#x1F3AE; FNAF 4</div>
-    <div class="app" data-name="Deadshot" onclick="openGame(atob('aHR0cHM6Ly9kZWFkc2hvdC5pby8='),'Deadshot')">&#x1F3AF; Deadshot</div>
-    <div class="app" data-name="FNAE" onclick="openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvZm5hZS5odG1s'),'FNAE')">&#x1F3AE; FNAE</div>
-    <div class="app" data-name="NZP" onclick="openGame(atob('aHR0cHM6Ly9uenAuZ2F5Lw=='),'NZP')">&#x1F3AE; NZP</div>
-    <div class="app" data-name="Poly Track" onclick="openPolyTrack()">&#x1F3CE; Poly Track</div>
-    <div class="app" data-name="Task Manager" onclick="openTaskManager()">&#x1F4CA; Task Manager</div>
-    <div class="app" data-name="Notepad" onclick="openNotepad()">&#x1F4DD; Notepad</div>
-    <div class="app" data-name="CMD Command Prompt" onclick="openCMD()">&#x2328; CMD</div>
-    <div class="app" data-name="Settings" onclick="openSettings()">&#x2699; Settings</div>
+  <div id="allAppsGrid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px;overflow-y:auto;flex:1;min-height:0;padding-right:2px;">
+    <div class="app" data-name="Camera" onclick="openCamera()"><span style="font-size:22px">📷</span>Camera</div>
+    <div class="app" data-name="Minecraft" onclick="openMinecraft()"><span style="font-size:22px">⛏</span>Minecraft</div>
+    <div class="app" data-name="Smash Karts" onclick="openGame(atob('aHR0cHM6Ly9zbWFzaGthcnRzLmlvLw=='),'Smash Karts')"><span style="font-size:22px">🏎️</span>Smash Karts</div>
+    <div class="app" data-name="FNAF 1" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8xLw=='),'FNAF 1')"><span style="font-size:22px">🎮</span>FNAF 1</div>
+    <div class="app" data-name="FNAF 2" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8yLw=='),'FNAF 2')"><span style="font-size:22px">🎮</span>FNAF 2</div>
+    <div class="app" data-name="FNAF 3" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8zLw=='),'FNAF 3')"><span style="font-size:22px">🎮</span>FNAF 3</div>
+    <div class="app" data-name="FNAF 4" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi80Lw=='),'FNAF 4')"><span style="font-size:22px">🎮</span>FNAF 4</div>
+    <div class="app" data-name="Deadshot" onclick="openGame(atob('aHR0cHM6Ly9kZWFkc2hvdC5pby8='),'Deadshot')"><span style="font-size:22px">🎯</span>Deadshot</div>
+    <div class="app" data-name="FNAE" onclick="openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvZm5hZS5odG1s'),'FNAE')"><span style="font-size:22px">🎮</span>FNAE</div>
+    <div class="app" data-name="NZP" onclick="openGame(atob('aHR0cHM6Ly9uenAuZ2F5Lw=='),'NZP')"><span style="font-size:22px">🎮</span>NZP</div>
+    <div class="app" data-name="Poly Track" onclick="openPolyTrack()"><span style="font-size:22px">🏎️</span>Poly Track</div>
+    <div class="app" data-name="Task Manager" onclick="openTaskManager()"><span style="font-size:22px">📊</span>Task Manager</div>
+    <div class="app" data-name="Notepad" onclick="openNotepad()"><span style="font-size:22px">📝</span>Notepad</div>
+    <div class="app" data-name="CMD Command Prompt" onclick="openCMD()"><span style="font-size:22px">⌨️</span>CMD</div>
+    <div class="app" data-name="Settings" onclick="openSettings()"><span style="font-size:22px">⚙️</span>Settings</div>
   </div>
 </div>
 
 <div class="startBottom">
-<div class="userBox">&#x1F464; User</div>
-<div class="powerBox" title="Power" onclick="showToast('Goodbye!','warn','&#x23FB;',500);setTimeout(()=>document.body.style.opacity='0',600)">&#x23FB;</div>
+<div class="userBox">
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="opacity:.7"><circle cx="8" cy="5" r="3.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+  User
+</div>
+<div class="powerBox" title="Power" onclick="showToast('Goodbye!','warn','⏻',500);setTimeout(()=>document.body.style.opacity='0',600)">
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="opacity:.7"><path d="M7 1v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M10.2 3.3A5.5 5.5 0 1 1 3.8 3.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+  Power
+</div>
 </div>
 </div>
 
 <!-- TASKBAR -->
 <div id="taskbar">
 <div id="taskIcons">
-<div class="taskBtn taskBtn--start" onclick="toggleStart()" title="Start (Win)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="7.5" height="7.5" rx="1.2" fill="white"/><rect x="9.5" y="1" width="7.5" height="7.5" rx="1.2" fill="white"/><rect x="1" y="9.5" width="7.5" height="7.5" rx="1.2" fill="white"/><rect x="9.5" y="9.5" width="7.5" height="7.5" rx="1.2" fill="white"/></svg></div>
+<!-- Win11 Start button: 4-square Windows logo -->
+<div class="taskBtn taskBtn--start" onclick="toggleStart()" title="Start (Win)">
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0.5" y="0.5" width="6.5" height="6.5" rx="1" fill="white"/>
+    <rect x="9" y="0.5" width="6.5" height="6.5" rx="1" fill="white"/>
+    <rect x="0.5" y="9" width="6.5" height="6.5" rx="1" fill="white"/>
+    <rect x="9" y="9" width="6.5" height="6.5" rx="1" fill="white"/>
+  </svg>
+</div>
 </div>
 <div id="taskRight">
-<div class="tray-icon" title="Network 🌐">🌐</div>
-<div class="tray-icon" id="volIcon" title="Volume" onclick="cycleVolume()">🔊</div>
+<!-- Tray: network + volume cluster (Win11 style: single clickable group) -->
+<div class="tray-icon" title="Network" style="font-size:13px;">🌐</div>
+<div class="tray-icon" id="volIcon" title="Volume" onclick="cycleVolume()" style="font-size:13px;">🔊</div>
+<!-- Clock block -->
 <div id="taskClock">
-<div id="clockTime">12:00</div>
-<div id="clockDate">Mon 4/17</div>
+<div id="clockTime">12:00 PM</div>
+<div id="clockDate">Mon 4/21</div>
 </div>
+<!-- Fullscreen button — Win11-styled tray button -->
 <div id="fsBtn" onclick="toggleFS()" title="Toggle fullscreen" style="
-  display:flex;align-items:center;gap:5px;
-  height:28px;padding:0 10px;
-  border-radius:8px;
-  background:rgba(255,255,255,0.07);
-  border:1px solid rgba(255,255,255,0.1);
+  display:flex;align-items:center;gap:4px;
+  height:36px;padding:0 8px;
+  border-radius:var(--radius-control);
+  background:var(--ctrl-bg);
+  border:1px solid var(--stroke);
   cursor:pointer;
-  transition:background .15s,border-color .15s,transform .1s;
+  font-family:var(--font);
+  font-size:11px;
+  color:var(--text-secondary);
+  transition:background var(--dur-faster) linear,color var(--dur-faster) linear;
   flex-shrink:0;
   margin:0 2px;
-" onmouseenter="this.style.background='rgba(255,255,255,0.14)';this.style.borderColor='rgba(255,255,255,0.22)'"
-   onmouseleave="this.style.background='rgba(255,255,255,0.07)';this.style.borderColor='rgba(255,255,255,0.1)'"
-   onmousedown="this.style.transform='scale(0.93)'" onmouseup="this.style.transform='scale(1)'">
-  <svg id="fsBtnIcon" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <!-- enter-fs arrows (default) -->
-    <path d="M1 4V1H4M10 1H13V4M13 10V13H10M4 13H1V10" stroke="rgba(255,255,255,0.85)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+" onmouseenter="this.style.background='var(--ctrl-bg-hover)';this.style.color='var(--text-primary)'"
+   onmouseleave="this.style.background='var(--ctrl-bg)';this.style.color='var(--text-secondary)'"
+   onmousedown="this.style.background='var(--ctrl-bg-pressed)'" onmouseup="this.style.background='var(--ctrl-bg-hover)'">
+  <svg id="fsBtnIcon" width="12" height="12" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M1 4V1H4M10 1H13V4M13 10V13H10M4 13H1V10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
-  <span id="fsBtnLabel" style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.75);letter-spacing:0.3px;white-space:nowrap;">Fullscreen</span>
+  <span id="fsBtnLabel" style="white-space:nowrap;">Fullscreen</span>
 </div>
+<!-- Win11 show-desktop strip: narrow vertical bar at far right -->
 <div id="showDesktop" title="Show Desktop (Win+D)" onclick="showDesktop()"></div>
 </div>
 </div>
 
-<!-- DESKTOP CONTEXT MENU -->
+<!-- DESKTOP CONTEXT MENU — Win11 new-style: compact rows, icon column, acrylic -->
 <div id="menu">
-<div class="menu-item" onclick="document.getElementById('menu').style.display='none';toggleStart();"><span class="menu-icon"><svg width="14" height="14" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="7.5" height="7.5" rx="1.2" fill="white"/><rect x="9.5" y="1" width="7.5" height="7.5" rx="1.2" fill="white"/><rect x="1" y="9.5" width="7.5" height="7.5" rx="1.2" fill="white"/><rect x="9.5" y="9.5" width="7.5" height="7.5" rx="1.2" fill="white"/></svg></span> Start</div>
+<div class="menu-item" onclick="document.getElementById('menu').style.display='none';toggleStart();">
+  <span class="menu-icon"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="0.5" y="0.5" width="6.5" height="6.5" rx="1" fill="white"/><rect x="9" y="0.5" width="6.5" height="6.5" rx="1" fill="white"/><rect x="0.5" y="9" width="6.5" height="6.5" rx="1" fill="white"/><rect x="9" y="9" width="6.5" height="6.5" rx="1" fill="white"/></svg></span>
+  Start
+</div>
 <div class="menu-item" onclick="openCamera()"><span class="menu-icon">📷</span> Camera</div>
 <div class="menu-item" onclick="openTaskManager()"><span class="menu-icon">📊</span> Task Manager</div>
 <div class="menu-item" onclick="openNotepad()"><span class="menu-icon">📝</span> Notepad</div>
-<div class="menu-item" onclick="openCMD()"><span class="menu-icon">⌨</span> Command Prompt</div>
+<div class="menu-item" onclick="openCMD()"><span class="menu-icon">⌨️</span> Command Prompt</div>
 <div class="menu-item" onclick="openSettings()"><span class="menu-icon">⚙️</span> Settings</div>
 <hr>
 <div class="menu-item" onclick="showDesktop()"><span class="menu-icon">🖥️</span> Show Desktop</div>
@@ -690,7 +1545,109 @@ white-space:nowrap;
 
 <!-- TASKBAR BUTTON CONTEXT MENU -->
 <div id="tbMenu">
-<div class="menu-item" id="tbMenuClose"><span class="menu-icon">✖</span> Close window</div>
+<div class="menu-item" id="tbMenuClose"><span class="menu-icon">✕</span> Close window</div>
+</div>
+
+<!-- APP RIGHT-CLICK CONTEXT MENU (Start menu apps) -->
+<div id="appCtxMenu">
+  <div class="app-ctx-header">
+    <span id="appCtxIcon" style="font-size:28px;line-height:1;flex-shrink:0;"></span>
+    <div style="display:flex;flex-direction:column;gap:1px;min-width:0;">
+      <span id="appCtxName" style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span>
+      <span id="appCtxSub" style="font-size:11px;color:var(--text-tertiary);">App</span>
+    </div>
+  </div>
+  <div class="app-ctx-sep"></div>
+  <div class="app-ctx-item" id="appCtxOpen">
+    <span class="app-ctx-icon-col"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><line x1="7" y1="4" x2="7" y2="10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="4" y1="7" x2="10" y2="7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+    Open
+  </div>
+  <div class="app-ctx-item" id="appCtxPin">
+    <span class="app-ctx-icon-col"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 2L9 2L9 6L11 8L3 8L5 6Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><line x1="7" y1="8" x2="7" y2="12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+    Pin to Start
+  </div>
+  <div class="app-ctx-item" id="appCtxDesktop">
+    <span class="app-ctx-icon-col"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><line x1="4" y1="13" x2="10" y2="13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="7" y1="10" x2="7" y2="13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+    Add to Desktop
+  </div>
+  <div class="app-ctx-item" id="appCtxTaskbar">
+    <span class="app-ctx-icon-col"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="9" width="12" height="4" rx="1" stroke="currentColor" stroke-width="1.3"/><line x1="7" y1="1" x2="7" y2="7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><polyline points="4,4 7,7 10,4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    Pin to Taskbar
+  </div>
+  <div class="app-ctx-sep"></div>
+  <div class="app-ctx-item" id="appCtxUnpin" style="display:none;">
+    <span class="app-ctx-icon-col"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 2L9 2L9 6L11 8L3 8L5 6Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><line x1="7" y1="8" x2="7" y2="12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="2" y1="2" x2="12" y2="12" stroke="rgba(255,99,132,0.9)" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+    <span style="color:rgba(255,153,164,0.9);">Unpin from Start</span>
+  </div>
+</div>
+
+<!-- SNAP LAYOUT FLYOUT — appears on maximize-button hover -->
+<div id="snapLayoutFlyout">
+  <div class="snap-layout-row">
+    <div class="snap-zone-btn szb-l" title="Snap left half" data-snap="left">
+      <svg width="36" height="28" viewBox="0 0 36 28" fill="none"><rect x="2" y="2" width="15" height="24" rx="2" fill="rgba(255,255,255,0.12)"/><rect x="19" y="2" width="15" height="24" rx="2" fill="rgba(255,255,255,0.05)"/></svg>
+    </div>
+    <div class="snap-zone-btn szb-r" title="Snap right half" data-snap="right">
+      <svg width="36" height="28" viewBox="0 0 36 28" fill="none"><rect x="2" y="2" width="15" height="24" rx="2" fill="rgba(255,255,255,0.05)"/><rect x="19" y="2" width="15" height="24" rx="2" fill="rgba(255,255,255,0.12)"/></svg>
+    </div>
+    <div class="snap-zone-btn szb-full" title="Maximize" data-snap="maximize">
+      <svg width="36" height="28" viewBox="0 0 36 28" fill="none"><rect x="2" y="2" width="32" height="24" rx="2" fill="rgba(255,255,255,0.12)"/></svg>
+    </div>
+  </div>
+  <div class="snap-layout-row">
+    <div class="snap-zone-btn szb-tl" title="Snap top-left" data-snap="tl">
+      <svg width="36" height="28" viewBox="0 0 36 28" fill="none"><rect x="2" y="2" width="15" height="11" rx="2" fill="rgba(255,255,255,0.12)"/><rect x="19" y="2" width="15" height="11" rx="2" fill="rgba(255,255,255,0.05)"/><rect x="2" y="15" width="15" height="11" rx="2" fill="rgba(255,255,255,0.05)"/><rect x="19" y="15" width="15" height="11" rx="2" fill="rgba(255,255,255,0.05)"/></svg>
+    </div>
+    <div class="snap-zone-btn szb-tr" title="Snap top-right" data-snap="tr">
+      <svg width="36" height="28" viewBox="0 0 36 28" fill="none"><rect x="2" y="2" width="15" height="11" rx="2" fill="rgba(255,255,255,0.05)"/><rect x="19" y="2" width="15" height="11" rx="2" fill="rgba(255,255,255,0.12)"/><rect x="2" y="15" width="15" height="11" rx="2" fill="rgba(255,255,255,0.05)"/><rect x="19" y="15" width="15" height="11" rx="2" fill="rgba(255,255,255,0.05)"/></svg>
+    </div>
+    <div class="snap-zone-btn szb-bl" title="Snap bottom-left" data-snap="bl">
+      <svg width="36" height="28" viewBox="0 0 36 28" fill="none"><rect x="2" y="2" width="15" height="11" rx="2" fill="rgba(255,255,255,0.05)"/><rect x="19" y="2" width="15" height="11" rx="2" fill="rgba(255,255,255,0.05)"/><rect x="2" y="15" width="15" height="11" rx="2" fill="rgba(255,255,255,0.12)"/><rect x="19" y="15" width="15" height="11" rx="2" fill="rgba(255,255,255,0.05)"/></svg>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK SETTINGS — Win11 Action Center tray panel -->
+<div id="quickSettings">
+  <div class="qs-header">
+    <span class="qs-title">Quick Settings</span>
+    <button class="qs-close" onclick="closeQuickSettings()">✕</button>
+  </div>
+  <div class="qs-grid">
+    <div class="qs-tile on" id="qs-wifi" onclick="toggleQsTile(this)">
+      <span class="qs-tile-icon">🌐</span>
+      <span class="qs-tile-label">Wi-Fi</span>
+    </div>
+    <div class="qs-tile on" id="qs-bt" onclick="toggleQsTile(this)">
+      <span class="qs-tile-icon">🔵</span>
+      <span class="qs-tile-label">Bluetooth</span>
+    </div>
+    <div class="qs-tile" id="qs-aeroplane" onclick="toggleQsTile(this)">
+      <span class="qs-tile-icon">✈️</span>
+      <span class="qs-tile-label">Airplane mode</span>
+    </div>
+    <div class="qs-tile on" id="qs-night" onclick="toggleQsTile(this)">
+      <span class="qs-tile-icon">🌙</span>
+      <span class="qs-tile-label">Night light</span>
+    </div>
+    <div class="qs-tile" id="qs-focus" onclick="toggleQsTile(this)">
+      <span class="qs-tile-icon">🎯</span>
+      <span class="qs-tile-label">Focus</span>
+    </div>
+    <div class="qs-tile" id="qs-accessibility" onclick="openSettings()">
+      <span class="qs-tile-icon">♿</span>
+      <span class="qs-tile-label">Accessibility</span>
+    </div>
+  </div>
+  <hr class="qs-divider">
+  <div class="qs-slider-row">
+    <span class="qs-slider-icon">🔆</span>
+    <input type="range" class="qs-slider" min="10" max="100" value="80" title="Brightness" oninput="document.body.style.filter='brightness('+((this.value/100)*0.4+0.6)+')'">
+  </div>
+  <div class="qs-slider-row">
+    <span class="qs-slider-icon">🔊</span>
+    <input type="range" class="qs-slider" min="0" max="100" value="70" title="Volume">
+  </div>
 </div>
 
 <script>
@@ -767,7 +1724,10 @@ const raw=localStorage.getItem(SETTINGS_KEY);
 if(!raw)return;
 const s=JSON.parse(raw);
 applyBackground(s.bg||'#1a1a1a');
-if(s.accent){document.documentElement.style.setProperty('--accent',s.accent);}
+if(s.accent){
+  document.documentElement.style.setProperty('--accent',s.accent);
+  document.documentElement.style.setProperty('--accent-fill',s.accent);
+}
 if(s.taskOpacity){setTaskbarOpacity(parseFloat(s.taskOpacity));}
 if(s.tbHeight){setTaskbarHeight(s.tbHeight);}
 if(s.tbMode){setTaskbarMode(s.tbMode);}
@@ -826,7 +1786,9 @@ saveSettings();
 function setTaskbarOpacity(val){
 document.documentElement.style.setProperty('--task-opacity',val);
 const tb=document.getElementById('taskbar');
-tb.style.background='rgba(255,255,255,'+val+')';
+// Win11 acrylic: dark base tint scaled by opacity setting
+const alpha=Math.min(0.97, 0.72 + parseFloat(val));
+tb.style.background='rgba(32,32,32,'+alpha+')';
 saveSettings();
 }
 function setTaskbarHeight(val){
@@ -845,16 +1807,14 @@ tb.querySelectorAll('.dock-sep').forEach(s=>s.remove());
 const opacity=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--task-opacity').trim()||'0.08');
 if(mode==='dock'){
 tb.classList.add('dock-mode');
-// In dock mode we need a separator pill between icons and tray
 const sep=document.createElement('div');
 sep.className='dock-sep';
 const taskRight=document.getElementById('taskRight');
 tb.insertBefore(sep,taskRight);
-// Apply current opacity to dock background immediately
-tb.style.background='rgba(255,255,255,'+opacity+')';
+const alpha=Math.min(0.97, 0.72 + opacity);
+tb.style.background='rgba(32,32,32,'+alpha+')';
 } else {
 tb.classList.remove('dock-mode');
-// Restore full-width styles that dock may have overridden
 tb.style.width='';
 tb.style.left='';
 tb.style.transform='';
@@ -862,8 +1822,8 @@ tb.style.borderRadius='';
 tb.style.padding='';
 tb.style.gap='';
 tb.style.border='';
-// Re-apply the opacity background
-tb.style.background='rgba(255,255,255,'+opacity+')';
+const alpha=Math.min(0.97, 0.72 + opacity);
+tb.style.background='rgba(32,32,32,'+alpha+')';
 }
 saveSettings();
 }
@@ -889,9 +1849,10 @@ kbHintTimer=setTimeout(()=>el.classList.remove('show'),1600);
 
 // ===================== KEYBOARD SHORTCUTS =====================
 document.addEventListener('keydown',e=>{
-// Escape — just close start menu; never touch fullscreen
+// Escape — close start menu and any open app ctx menu
 if(e.key==='Escape'){
   start.classList.remove('active');
+  document.getElementById('appCtxMenu').classList.remove('open');
   return;
 }
 // Meta / Win key
@@ -969,7 +1930,22 @@ function renderRecent(){
     grid.innerHTML='<div style="grid-column:1/-1;font-size:11px;opacity:.35;text-align:center;padding:12px 0;">No recent apps yet</div>';
     return;
   }
-  grid.innerHTML=recentApps.map(a=>`<div class="app" onclick="${a.onclick}">${a.icon} ${a.name}</div>`).join('');
+  grid.innerHTML='';
+  recentApps.forEach(a=>{
+    const tile=document.createElement('div');
+    tile.className='app';
+    tile.dataset.name=a.name;
+    tile.setAttribute('onclick',a.onclick);
+    tile.innerHTML=`<span style="font-size:22px">${a.icon}</span>${a.name}`;
+    tile.addEventListener('click',()=>{ if(typeof launchApp==='function') launchApp(a.name); else { try{eval(a.onclick);}catch(err){} } });
+    tile.addEventListener('contextmenu',ev=>{
+      ev.preventDefault(); ev.stopPropagation();
+      if(!ev.target.closest('#start')) return;
+      closeAllMenus();
+      showAppCtxMenu(ev, tile);
+    });
+    grid.appendChild(tile);
+  });
 }
 
 function startShowAll(){
@@ -1017,11 +1993,7 @@ m.style.top=(e.clientY-m.offsetHeight-4)+'px';
 taskIcons.appendChild(b);
 return b;
 }
-
-document.getElementById('tbMenuClose').onclick=()=>{
-if(_tbMenuTarget) closeW(_tbMenuTarget);
-document.getElementById('tbMenu').style.display='none';
-};
+// tbMenuClose handler is wired in the CONTEXT MENUS section below
 
 function createWindow(title,w=900,h=600,icon='🪟'){
 const win=document.createElement('div');
@@ -1065,6 +2037,39 @@ setTimeout(()=>win.classList.remove('win-opening'),220);
 win.querySelector('.ctrl-min').addEventListener('click',()=>minWin(win));
 win.querySelector('.ctrl-max').addEventListener('click',e=>{toggleMaximize(win.querySelector('.ctrl-max'));});
 win.querySelector('.ctrl-close').addEventListener('click',()=>closeW(win));
+
+// ── Win11 Snap Layout popup on maximize button hover ──
+(function(){
+  const maxBtn = win.querySelector('.ctrl-max');
+  const pop = document.getElementById('snapLayoutPop');
+  let hoverTimer = null;
+
+  maxBtn.addEventListener('mouseenter', ()=>{
+    hoverTimer = setTimeout(()=>{
+      const r = maxBtn.getBoundingClientRect();
+      pop.style.display = 'flex';
+      // Position above the button, right-aligned to it
+      const pw = 200; // approximate popup width
+      let left = r.right - pw;
+      if(left < 4) left = 4;
+      pop.style.left = left + 'px';
+      pop.style.top  = (r.top - pop.offsetHeight - 8) + 'px';
+      // After display flex we know real height
+      requestAnimationFrame(()=>{
+        pop.style.top = (r.top - pop.offsetHeight - 8) + 'px';
+      });
+      pop._activeWin = win;
+    }, 400);
+  });
+
+  maxBtn.addEventListener('mouseleave', ()=>{
+    clearTimeout(hoverTimer);
+    // Delay hide so user can move into popup
+    hoverTimer = setTimeout(()=>{
+      if(!pop.matches(':hover')) pop.style.display = 'none';
+    }, 150);
+  });
+})();
 drag(win);
 resize(win);
 // Click anywhere on window to bring to front
@@ -1088,6 +2093,23 @@ _maximizeToggle(win);
 }
 // Keep legacy name for any existing calls
 function toggleFullscreen(el){ toggleMaximize(el); }
+
+// ── Snap layout popup global handlers ──
+(function(){
+  const pop = document.getElementById('snapLayoutPop');
+  pop.addEventListener('mouseleave', ()=>{ pop.style.display = 'none'; });
+  pop.querySelectorAll('[data-snap]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const zone = btn.dataset.snap;
+      const win = pop._activeWin;
+      pop.style.display = 'none';
+      if(!win) return;
+      // Map snap zone names to snapWin positions
+      const map = { left:'left', right:'right', tl:'tl', br:'br' };
+      if(map[zone]) snapWin(win, map[zone]);
+    });
+  });
+})();
 
 function _maximizeToggle(win){
 const RESTORE_SVG=`<svg width="10" height="10" viewBox="0 0 10 10"><rect x=".5" y="2.5" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1"/><polyline points="2.5,2.5 2.5,0.5 9.5,0.5 9.5,7.5 7.5,7.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>`;
@@ -1199,8 +2221,8 @@ splash.innerHTML=`
   <div style="font-size:12px;opacity:0.55;max-width:320px;line-height:1.6;">
     This game works best in its own tab.<br>Keyboard controls and fullscreen will work properly there.
   </div>
-  <button style="margin-top:6px;padding:11px 32px;border-radius:24px;border:none;background:var(--accent,#00ff7f);color:#000;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;"
-    onmouseenter="this.style.opacity='.85'" onmouseleave="this.style.opacity='1'"
+  <button style="margin-top:6px;padding:8px 28px;border-radius:var(--radius-control);border:1px solid var(--accent-fill);background:var(--accent-fill);color:#000;font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer;transition:background var(--dur-faster) linear,opacity var(--dur-faster) linear;"
+    onmouseenter="this.style.background='var(--accent-fill-hover)'" onmouseleave="this.style.background='var(--accent-fill)'"
     onclick="(function(){const t=window.open('about:blank','_blank');if(t){t.document.open();t.document.write('<!DOCTYPE html><html><head><title>\\u200B</title><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#000}iframe{width:100%;height:100%;border:none;display:block}</style></head><body><iframe src=\\'${url}\\' allow=\\'autoplay;fullscreen\\' allowfullscreen></iframe></body></html>');t.document.close();}else{alert('Pop-up blocked — please allow pop-ups for this site.');}})()">
     Open Minecraft in new tab ↗
   </button>
@@ -1233,7 +2255,7 @@ ifr.src=url;ifr.allow='autoplay; fullscreen; storage-access';
 ifr.style.cssText='flex:1;border:none;background:#000;';
 const fallbackDiv=document.createElement('div');
 fallbackDiv.style.cssText='display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#0d0d0d;color:rgba(255,255,255,0.7);font-family:"Segoe UI",sans-serif;font-size:13px;text-align:center;padding:24px;';
-fallbackDiv.innerHTML=`<div style="font-size:40px;">🎮</div><div style="font-size:15px;font-weight:500;color:#fff;">${label}</div><div style="opacity:0.6;max-width:300px;">This game can't be embedded.<br>Click below to open it in a new tab.</div><button style="margin-top:8px;padding:10px 28px;border-radius:22px;border:none;background:var(--accent,#00ff7f);color:#000;font-size:13px;font-weight:600;cursor:pointer;" onclick="window.open('${url.replace(/'/g,"\\'")}','_blank')">Open ${label} ↗</button>`;
+fallbackDiv.innerHTML=`<div style="font-size:40px;">🎮</div><div style="font-size:15px;font-weight:600;color:var(--text-primary);">${label}</div><div style="color:var(--text-secondary);max-width:300px;font-size:13px;">This game can't be embedded here.<br>Click below to open it in a new tab.</div><button style="margin-top:8px;padding:7px 22px;border-radius:var(--radius-control);border:1px solid var(--accent-fill);background:var(--accent-fill);color:#000;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;" onclick="window.open('${url.replace(/'/g,"\\'")}','_blank')">Open ${label} ↗</button>`;
 ifr.addEventListener('error',()=>{ifr.style.display='none';fallbackDiv.style.display='flex';});
 ifr.addEventListener('load',()=>{try{const doc=ifr.contentDocument||ifr.contentWindow.document;if(!doc||doc.location.href==='about:blank'){ifr.style.display='none';fallbackDiv.style.display='flex';}}catch(e){}});
 win.appendChild(ifr);win.appendChild(fallbackDiv);
@@ -1668,10 +2690,16 @@ fsSel.onchange=()=>area.style.fontSize=fsSel.value+'px';
 
 // Word wrap toggle
 let wrap=true;
-const wrapBtn=makeBtn('Wrap','Toggle word wrap',()=>{
-wrap=!wrap;area.style.whiteSpace=wrap?'pre-wrap':'pre';wrapBtn.style.background=wrap?'rgba(255,255,255,0.15)':'';
+const wrapBtn=makeBtn('Word Wrap','Toggle word wrap',()=>{
+wrap=!wrap;
+area.style.whiteSpace=wrap?'pre-wrap':'pre';
+wrapBtn.style.background=wrap?'var(--accent-fill)':'';
+wrapBtn.style.color=wrap?'#000':'';
+wrapBtn.style.borderColor=wrap?'var(--accent-fill)':'';
 });
-wrapBtn.style.background='rgba(255,255,255,0.15)';
+wrapBtn.style.background='var(--accent-fill)';
+wrapBtn.style.color='#000';
+wrapBtn.style.borderColor='var(--accent-fill)';
 
 // Save
 function saveTxt(){
@@ -1722,12 +2750,13 @@ setTimeout(()=>area.focus(),50);
 
 // ===================== SETTINGS =====================
 function openSettings(){
-const win=createWindow('Settings',720,560);
+const win=createWindow('Settings',760,580,'⚙️');
 const p=allocProc({name:'Settings',mem:+(40+Math.random()*10).toFixed(0),cpu:+(Math.random()*2).toFixed(1)});
 processes.push(p);p.win=win;settingsProcId=p.id;
 
 const BG_PRESETS=[
-{label:'Dark Gray',value:'#1a1a1a',isDefault:true},
+{label:'Windows Blue',value:'linear-gradient(135deg,#041728 0%,#0a2547 25%,#0d3b70 50%,#0a2e5c 75%,#061525 100%)',isDefault:true},
+{label:'Dark Gray',value:'#1a1a1a'},
 {label:'Night',value:'radial-gradient(circle at center,#182033,#05070f)'},
 {label:'Sunset',value:'linear-gradient(135deg,#1a0533,#8b1a4a,#ff6b35)'},
 {label:'Forest',value:'linear-gradient(135deg,#0a2a0a,#1a5c1a,#2d8b2d)'},
@@ -1737,18 +2766,104 @@ const BG_PRESETS=[
 {label:'Void',value:'#000'},
 ];
 const ACCENT_PRESETS=[
-{label:'Cyan',value:'#00d4ff'},
-{label:'Green',value:'#00ff7f'},
-{label:'Purple',value:'#a855f7'},
-{label:'Orange',value:'#f59e0b'},
-{label:'Pink',value:'#ec4899'},
-{label:'Red',value:'#ef4444'},
-{label:'White',value:'#e2e8f0'},
+{label:'Windows Blue (default)',value:'#0078D4'},
+{label:'Sky',     value:'#60CDFF'},
+{label:'Lavender',value:'#9B6CFE'},
+{label:'Mint',    value:'#6CCB5F'},
+{label:'Orange',  value:'#F7630C'},
+{label:'Rose',    value:'#E74856'},
+{label:'Gold',    value:'#FFB900'},
+{label:'Seafoam', value:'#00B7C3'},
 ];
 
+// Build Win11-style Settings layout: left nav (NavigationView) + right content
+const settingsShell = document.createElement('div');
+settingsShell.style.cssText = 'flex:1;display:flex;overflow:hidden;';
+
+// ── Left NavigationView pane: 240px, BG secondary
+const navPane = document.createElement('div');
+navPane.style.cssText = `
+  width:220px;flex-shrink:0;
+  background:rgba(28,28,28,0.98);
+  border-right:1px solid var(--stroke-divider);
+  display:flex;flex-direction:column;
+  padding:8px 0;
+  overflow-y:auto;
+`;
+
+const navItems = [
+  {id:'personalization', icon:'🎨', label:'Personalization'},
+  {id:'taskbar',         icon:'📌', label:'Taskbar'},
+  {id:'keyboard',        icon:'⌨️', label:'Keyboard Shortcuts'},
+  {id:'config',          icon:'💾', label:'Config'},
+];
+
+let activeNav = 'personalization';
+
+function makeNavItem(item){
+  const el = document.createElement('div');
+  el.dataset.navId = item.id;
+  el.style.cssText = `
+    display:flex;align-items:center;gap:10px;
+    padding:0 12px;height:36px;
+    margin:1px 4px;
+    border-radius:var(--radius-control);
+    cursor:pointer;
+    font-size:13px;
+    font-family:var(--font);
+    color:var(--text-secondary);
+    transition:background var(--dur-faster) linear, color var(--dur-faster) linear;
+    position:relative;
+  `;
+  el.innerHTML = `<span style="font-size:15px;width:20px;text-align:center">${item.icon}</span><span>${item.label}</span>`;
+
+  el.addEventListener('mouseenter',()=>{ if(activeNav!==item.id) el.style.background='var(--subtle-hover)'; });
+  el.addEventListener('mouseleave',()=>{ if(activeNav!==item.id) el.style.background=''; });
+  el.addEventListener('click',()=>{ setActiveNav(item.id); });
+  return el;
+}
+
+const navEls = {};
+navItems.forEach(item=>{
+  const el = makeNavItem(item);
+  navEls[item.id] = el;
+  navPane.appendChild(el);
+});
+
+function setActiveNav(id){
+  // Deactivate old
+  const old = navEls[activeNav];
+  if(old){
+    old.style.background='';
+    old.style.color='var(--text-secondary)';
+    // remove indicator
+    const ind = old.querySelector('.nav-indicator');
+    if(ind) ind.remove();
+  }
+  activeNav = id;
+  // Activate new
+  const el = navEls[id];
+  if(el){
+    el.style.background='var(--subtle-hover)';
+    el.style.color='var(--text-primary)';
+    // Win11 selection indicator: 3×16px accent pill on left
+    const ind = document.createElement('div');
+    ind.className='nav-indicator';
+    ind.style.cssText=`position:absolute;left:-4px;top:50%;transform:translateY(-50%);
+      width:3px;height:16px;border-radius:var(--radius-small);
+      background:var(--accent-fill);`;
+    el.appendChild(ind);
+  }
+  // Show/hide panels
+  Object.keys(panels).forEach(k=>{
+    panels[k].style.display = k===id ? 'flex' : 'none';
+  });
+}
+
+// ── Right content area
 const root=document.createElement('div');root.className='settings-root';
 
-const currentBg=document.body.style.background||'#1a1a1a';
+const currentBg=document.body.style.background||'linear-gradient(135deg,#041728 0%,#0a2547 25%,#0d3b70 50%,#0a2e5c 75%,#061525 100%)';
 let selectedBg=currentBg;
 
 // Background section
@@ -1763,7 +2878,7 @@ div.classList.add('selected');selectedBg=pr.value;applyBackground(pr.value);
 return div;
 });
 const customInput=document.createElement('input');
-customInput.className='custom-bg-input';customInput.placeholder='CSS value, e.g. #ff0000 or url(...)';customInput.type='text';
+customInput.className='custom-bg-input';customInput.placeholder='CSS: #ff0000  or  url(...)';customInput.type='text';
 const applyBtn=document.createElement('button');
 applyBtn.className='settings-apply-btn';applyBtn.textContent='Apply';
 applyBtn.onclick=()=>{applyBackground(customInput.value.trim()||selectedBg);showToast('Background applied','success','🖼️',1800);};
@@ -1772,77 +2887,14 @@ bgPresetGrid.forEach(el=>bgRow.appendChild(el));
 const customRow=document.createElement('div');customRow.className='custom-bg-row';
 customRow.appendChild(customInput);customRow.appendChild(applyBtn);
 const bgSection=document.createElement('div');bgSection.className='settings-section';
-bgSection.innerHTML='<div class="settings-label">Background</div>';
+bgSection.innerHTML='<div class="settings-label">Desktop Background</div>';
 bgSection.appendChild(bgRow);bgSection.appendChild(customRow);
-
-// Taskbar opacity section
-const tbSection=document.createElement('div');tbSection.className='settings-section';
-tbSection.innerHTML='<div class="settings-label">Taskbar Opacity</div>';
-const tbRow=document.createElement('div');tbRow.className='settings-row';tbRow.style.cssText='display:flex;align-items:center;gap:12px;width:100%;';
-const currentOpacity=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--task-opacity'))||0.08;
-const slider=document.createElement('input');
-slider.type='range';slider.className='opacity-slider';slider.min='0';slider.max='0.85';slider.step='0.01';slider.value=currentOpacity;slider.style.flex='1';
-const opLabel=document.createElement('span');opLabel.className='opacity-label';opLabel.textContent=Math.round(currentOpacity*100)+'%';
-slider.oninput=()=>{const v=parseFloat(slider.value);setTaskbarOpacity(v);opLabel.textContent=Math.round(v*100)+'%';};
-tbRow.appendChild(slider);tbRow.appendChild(opLabel);tbSection.appendChild(tbRow);
-
-// Taskbar customization section
-const tbCustomSection=document.createElement('div');tbCustomSection.className='settings-section';
-tbCustomSection.innerHTML='<div class="settings-label">Taskbar Style</div>';
-
-// Height presets
-const tbHeightRow=document.createElement('div');tbHeightRow.className='settings-row';tbHeightRow.style.cssText='gap:8px;flex-wrap:wrap;align-items:center;';
-const tbHeightLabel=document.createElement('span');tbHeightLabel.style.cssText='font-size:11px;opacity:.5;min-width:44px;';tbHeightLabel.textContent='Height';
-const currentTbH=getComputedStyle(document.documentElement).getPropertyValue('--tb-height').trim()||'60px';
-const tbHeightPresets=[{label:'Slim',val:'40px'},{label:'Normal',val:'60px'}];
-tbHeightRow.appendChild(tbHeightLabel);
-tbHeightPresets.forEach(pr=>{
-  const b=document.createElement('button');
-  b.className='settings-apply-btn';
-  b.style.cssText='padding:5px 12px;font-size:11px;'+(currentTbH===pr.val?'':'background:rgba(255,255,255,0.08);color:#fff;');
-  b.textContent=pr.label;
-  b.addEventListener('click',()=>{
-    setTaskbarHeight(pr.val);
-    tbHeightRow.querySelectorAll('button').forEach(x=>{x.style.background='rgba(255,255,255,0.08)';x.style.color='#fff';});
-    b.style.background='var(--accent,#00ff7f)';b.style.color='#000';
-    showToast('Taskbar: '+pr.label,'info','📐',1500);
-  });
-  if(currentTbH===pr.val){b.style.background='var(--accent,#00ff7f)';b.style.color='#000';}
-  tbHeightRow.appendChild(b);
-});
-
-// Mode presets
-const tbModeRow=document.createElement('div');tbModeRow.className='settings-row';tbModeRow.style.cssText='gap:8px;flex-wrap:wrap;align-items:center;';
-const tbModeLabel=document.createElement('span');tbModeLabel.style.cssText='font-size:11px;opacity:.5;min-width:44px;';tbModeLabel.textContent='Mode';
-const currentMode=document.getElementById('taskbar').dataset.tbMode||'full';
-const tbModePresets=[
-  {label:'🖥 Full Width',val:'full'},
-  {label:'⬛ Dock',val:'dock'},
-];
-tbModeRow.appendChild(tbModeLabel);
-tbModePresets.forEach(pr=>{
-  const b=document.createElement('button');
-  b.className='settings-apply-btn';
-  b.style.cssText='padding:5px 14px;font-size:11px;'+(currentMode===pr.val?'':'background:rgba(255,255,255,0.08);color:#fff;');
-  b.textContent=pr.label;
-  b.addEventListener('click',()=>{
-    setTaskbarMode(pr.val);
-    tbModeRow.querySelectorAll('button').forEach(x=>{x.style.background='rgba(255,255,255,0.08)';x.style.color='#fff';});
-    b.style.background='var(--accent,#00ff7f)';b.style.color='#000';
-    showToast('Taskbar mode: '+pr.label,'info','🎛',1500);
-  });
-  if(currentMode===pr.val){b.style.background='var(--accent,#00ff7f)';b.style.color='#000';}
-  tbModeRow.appendChild(b);
-});
-
-tbCustomSection.appendChild(tbHeightRow);
-tbCustomSection.appendChild(tbModeRow);
 
 // Accent section
 const accentSection=document.createElement('div');accentSection.className='settings-section';
 accentSection.innerHTML='<div class="settings-label">Accent Color</div>';
 const accentRow=document.createElement('div');accentRow.className='settings-row';
-const currentAccent=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#00ff7f';
+const currentAccent=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#0078D4';
 ACCENT_PRESETS.forEach(pr=>{
 const swatch=document.createElement('div');
 swatch.className='accent-swatch'+(currentAccent===pr.value?' selected':'');
@@ -1851,58 +2903,132 @@ swatch.onclick=()=>{
 accentRow.querySelectorAll('.accent-swatch').forEach(x=>x.classList.remove('selected'));
 swatch.classList.add('selected');
 document.documentElement.style.setProperty('--accent',pr.value);
+document.documentElement.style.setProperty('--accent-fill',pr.value);
 saveSettings();
 showToast('Accent: '+pr.label,'info','🎨',1800);
 };
 accentRow.appendChild(swatch);
 });
 const accentPicker=document.createElement('input');
-accentPicker.type='color';accentPicker.value=currentAccent.startsWith('#')?currentAccent:'#00d4ff';
+accentPicker.type='color';accentPicker.value=currentAccent.startsWith('#')?currentAccent:'#0078D4';
 accentPicker.title='Custom accent';
-accentPicker.style.cssText='width:32px;height:32px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);cursor:pointer;background:none;padding:0;';
+accentPicker.style.cssText='width:28px;height:28px;border-radius:50%;border:2px solid var(--stroke);cursor:pointer;background:none;padding:0;';
 accentPicker.oninput=()=>{
 accentRow.querySelectorAll('.accent-swatch').forEach(x=>x.classList.remove('selected'));
 document.documentElement.style.setProperty('--accent',accentPicker.value);
+document.documentElement.style.setProperty('--accent-fill',accentPicker.value);
 saveSettings();
 };
 accentRow.appendChild(accentPicker);
 accentSection.appendChild(accentRow);
 
-// Keyboard shortcuts reference section
-const kbSection=document.createElement('div');kbSection.className='settings-section';
-kbSection.innerHTML=`<div class="settings-label">Keyboard Shortcuts</div>
-<div style="font-size:12px;line-height:2;opacity:.75;background:rgba(255,255,255,0.04);border-radius:8px;padding:12px 14px;">
-<b>Win / Meta</b> — Toggle Start &nbsp;&nbsp;
-<b>Esc</b> — Close Start<br>
-<b>Ctrl+Shift+Esc</b> — Task Manager &nbsp;&nbsp;
-<b>Ctrl+N</b> — New Notepad<br>
-<b>Ctrl+D</b> — Show / Restore Desktop &nbsp;&nbsp;
-<b>Enter</b> in search — Open top result
-</div>`;
+// ── Panel: Personalization
+const panelPersonalization = document.createElement('div');
+panelPersonalization.style.cssText='flex-direction:column;gap:20px;flex:1;padding:24px 28px;overflow-y:auto;';
+panelPersonalization.innerHTML='<div style="font-size:20px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">Personalization</div>';
+panelPersonalization.appendChild(bgSection);
+const hr1=document.createElement('hr');hr1.className='settings-divider';panelPersonalization.appendChild(hr1);
+panelPersonalization.appendChild(accentSection);
 
-root.appendChild(bgSection);
-const hr1=document.createElement('hr');hr1.className='settings-divider';root.appendChild(hr1);
-root.appendChild(tbSection);
-const hr1b=document.createElement('hr');hr1b.className='settings-divider';root.appendChild(hr1b);
-root.appendChild(tbCustomSection);
-const hr2=document.createElement('hr');hr2.className='settings-divider';root.appendChild(hr2);
-root.appendChild(accentSection);
-const hr3=document.createElement('hr');hr3.className='settings-divider';root.appendChild(hr3);
-root.appendChild(kbSection);
+// ── Panel: Taskbar
+const tbSection=document.createElement('div');tbSection.className='settings-section';
+tbSection.innerHTML='<div class="settings-label">Taskbar Transparency</div>';
+const tbRow=document.createElement('div');tbRow.className='settings-row';tbRow.style.cssText='display:flex;align-items:center;gap:12px;width:100%;';
+const currentOpacity=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--task-opacity'))||0.08;
+const slider=document.createElement('input');
+slider.type='range';slider.className='opacity-slider';slider.min='0';slider.max='0.85';slider.step='0.01';slider.value=currentOpacity;slider.style.flex='1';
+const opLabel=document.createElement('span');opLabel.className='opacity-label';opLabel.textContent=Math.round(currentOpacity*100)+'%';
+slider.oninput=()=>{const v=parseFloat(slider.value);setTaskbarOpacity(v);opLabel.textContent=Math.round(v*100)+'%';};
+tbRow.appendChild(slider);tbRow.appendChild(opLabel);tbSection.appendChild(tbRow);
 
-// Config import/export section
-const hr4=document.createElement('hr');hr4.className='settings-divider';root.appendChild(hr4);
+const tbCustomSection=document.createElement('div');tbCustomSection.className='settings-section';
+tbCustomSection.innerHTML='<div class="settings-label">Taskbar Behaviors</div>';
+const tbHeightRow=document.createElement('div');tbHeightRow.className='settings-row';tbHeightRow.style.cssText='gap:8px;flex-wrap:wrap;align-items:center;';
+const tbHeightLabel=document.createElement('span');tbHeightLabel.style.cssText='font-size:12px;color:var(--text-tertiary);min-width:48px;';tbHeightLabel.textContent='Size';
+const currentTbH=getComputedStyle(document.documentElement).getPropertyValue('--tb-height').trim()||'48px';
+const tbHeightPresets=[{label:'Slim (40px)',val:'40px'},{label:'Default (48px)',val:'48px'},{label:'Large (60px)',val:'60px'}];
+tbHeightRow.appendChild(tbHeightLabel);
+tbHeightPresets.forEach(pr=>{
+  const b=document.createElement('button');
+  b.className='settings-apply-btn';
+  b.style.cssText='padding:5px 12px;font-size:12px;'+(currentTbH===pr.val?'':'background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);');
+  b.textContent=pr.label;
+  b.addEventListener('click',()=>{
+    setTaskbarHeight(pr.val);
+    tbHeightRow.querySelectorAll('button').forEach(x=>{x.style.background='var(--ctrl-bg)';x.style.color='var(--text-primary)';});
+    b.style.background='var(--accent-fill)';b.style.color='#000';
+    showToast('Taskbar height: '+pr.label,'info','📐',1500);
+  });
+  if(currentTbH===pr.val){b.style.background='var(--accent-fill)';b.style.color='#000';}
+  tbHeightRow.appendChild(b);
+});
+
+const tbModeRow=document.createElement('div');tbModeRow.className='settings-row';tbModeRow.style.cssText='gap:8px;flex-wrap:wrap;align-items:center;';
+const tbModeLabel=document.createElement('span');tbModeLabel.style.cssText='font-size:12px;color:var(--text-tertiary);min-width:48px;';tbModeLabel.textContent='Mode';
+const currentMode=document.getElementById('taskbar').dataset.tbMode||'full';
+const tbModePresets=[{label:'Full Width',val:'full'},{label:'Centered Dock',val:'dock'}];
+tbModeRow.appendChild(tbModeLabel);
+tbModePresets.forEach(pr=>{
+  const b=document.createElement('button');
+  b.className='settings-apply-btn';
+  b.style.cssText='padding:5px 14px;font-size:12px;'+(currentMode===pr.val?'':'background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);');
+  b.textContent=pr.label;
+  b.addEventListener('click',()=>{
+    setTaskbarMode(pr.val);
+    tbModeRow.querySelectorAll('button').forEach(x=>{x.style.background='var(--ctrl-bg)';x.style.color='var(--text-primary)';});
+    b.style.background='var(--accent-fill)';b.style.color='#000';
+    showToast('Taskbar: '+pr.label,'info','🎛',1500);
+  });
+  if(currentMode===pr.val){b.style.background='var(--accent-fill)';b.style.color='#000';}
+  tbModeRow.appendChild(b);
+});
+
+tbCustomSection.appendChild(tbHeightRow);
+tbCustomSection.appendChild(tbModeRow);
+
+const panelTaskbar = document.createElement('div');
+panelTaskbar.style.cssText='flex-direction:column;gap:20px;flex:1;padding:24px 28px;overflow-y:auto;display:none;';
+panelTaskbar.innerHTML='<div style="font-size:20px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">Taskbar</div>';
+panelTaskbar.appendChild(tbSection);
+const hrT=document.createElement('hr');hrT.className='settings-divider';panelTaskbar.appendChild(hrT);
+panelTaskbar.appendChild(tbCustomSection);
+
+// ── Panel: Keyboard shortcuts
+const panelKeyboard = document.createElement('div');
+panelKeyboard.style.cssText='flex-direction:column;gap:16px;flex:1;padding:24px 28px;overflow-y:auto;display:none;';
+panelKeyboard.innerHTML=`
+  <div style="font-size:20px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">Keyboard Shortcuts</div>
+  <div style="display:flex;flex-direction:column;gap:0;border-radius:var(--radius-control);overflow:hidden;border:1px solid var(--stroke-divider);">
+    ${[
+      ['Win / Meta','Toggle Start menu'],
+      ['Esc','Close Start menu'],
+      ['Ctrl+Shift+Esc','Open Task Manager'],
+      ['Ctrl+N','New Notepad window'],
+      ['Ctrl+D','Show / Restore Desktop'],
+      ['Enter (in search)','Open top search result'],
+    ].map((r,i)=>`
+      <div style="display:flex;padding:10px 14px;background:${i%2===0?'var(--bg-card)':'transparent'};align-items:center;border-bottom:1px solid var(--stroke-divider);">
+        <code style="font-family:var(--font-mono);font-size:12px;background:var(--ctrl-bg);padding:2px 8px;border-radius:var(--radius-control);border:1px solid var(--stroke);color:var(--text-primary);min-width:160px;">${r[0]}</code>
+        <span style="font-size:13px;color:var(--text-secondary);margin-left:16px;">${r[1]}</span>
+      </div>
+    `).join('')}
+  </div>`;
+
+// ── Panel: Config
+const panelConfig = document.createElement('div');
+panelConfig.style.cssText='flex-direction:column;gap:16px;flex:1;padding:24px 28px;overflow-y:auto;display:none;';
+panelConfig.innerHTML='<div style="font-size:20px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">Config File</div>';
 const cfgSection=document.createElement('div');cfgSection.className='settings-section';
-cfgSection.innerHTML='<div class="settings-label">Config File</div>';
+cfgSection.innerHTML='<div class="settings-label">Backup & Restore</div>';
 const cfgRow=document.createElement('div');cfgRow.className='settings-row';cfgRow.style.cssText='gap:8px;flex-wrap:wrap;';
 const exportBtn=document.createElement('button');
-exportBtn.className='settings-apply-btn';exportBtn.textContent='⬇ Export Config';
+exportBtn.className='settings-apply-btn';exportBtn.textContent='Export Config';
 exportBtn.style.cssText='padding:8px 16px;font-size:12px;';
-exportBtn.addEventListener('click',()=>{exportConfig();showToast('Config exported!','success','⬇',2000);});
+exportBtn.addEventListener('click',()=>{exportConfig();showToast('Config exported!','success','💾',2000);});
 const importLabel=document.createElement('label');
 importLabel.className='settings-apply-btn';
-importLabel.textContent='⬆ Import Config';
-importLabel.style.cssText='padding:8px 16px;font-size:12px;cursor:pointer;background:rgba(255,255,255,0.08);color:#fff;';
+importLabel.textContent='Import Config';
+importLabel.style.cssText='padding:8px 16px;font-size:12px;cursor:pointer;background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);';
 const importInput=document.createElement('input');
 importInput.type='file';importInput.accept='.json';importInput.style.display='none';
 importInput.addEventListener('change',e=>{
@@ -1919,9 +3045,24 @@ importLabel.appendChild(importInput);
 cfgRow.appendChild(exportBtn);
 cfgRow.appendChild(importLabel);
 cfgSection.appendChild(cfgRow);
-root.appendChild(cfgSection);
+panelConfig.appendChild(cfgSection);
 
-win.appendChild(root);
+// ── Wire panels
+const panels = {
+  personalization: panelPersonalization,
+  taskbar: panelTaskbar,
+  keyboard: panelKeyboard,
+  config: panelConfig,
+};
+
+Object.values(panels).forEach(p=>root.appendChild(p));
+
+// Activate initial nav
+setActiveNav('personalization');
+
+settingsShell.appendChild(navPane);
+settingsShell.appendChild(root);
+win.appendChild(settingsShell);
 finish(win,'⚙️',p);
 start.classList.remove('active');
 }
@@ -1935,11 +3076,11 @@ processes.push(p);p.win=win;cmdProcId=p.id;
 
 // Wrapper holds both output + input in a single flex column, filling the window
 const wrapper=document.createElement('div');
-wrapper.style.cssText='flex:1;display:flex;flex-direction:column;overflow:hidden;background:#000;';
+wrapper.style.cssText='flex:1;display:flex;flex-direction:column;overflow:hidden;background:#0C0C0C;';
 
 // Output area — scrollable, grows to fill space
 const output=document.createElement('div');
-output.style.cssText='flex:1;overflow-y:auto;padding:10px 10px 4px 10px;font-family:monospace;font-size:13px;color:var(--accent);line-height:1.6;word-break:break-word;cursor:text;';
+output.style.cssText='flex:1;overflow-y:auto;padding:10px 10px 4px 10px;font-family:var(--font-mono,"Cascadia Code","Consolas",monospace);font-size:14px;color:#CCCCCC;line-height:1.5;word-break:break-word;cursor:text;background:#0C0C0C;';
 
 // Append a line to the output area using DOM nodes (avoids innerHTML += destroying state)
 function printLine(html){
@@ -1953,19 +3094,19 @@ printLine('Command Prompt &mdash; type <b>help</b> for a list of commands.<br>')
 
 // Input row at the bottom
 const inputRow=document.createElement('div');
-inputRow.style.cssText='display:flex;align-items:center;flex-shrink:0;background:#000;border-top:1px solid rgba(255,255,255,0.08);padding:4px 6px;';
+inputRow.style.cssText='display:flex;align-items:center;flex-shrink:0;background:#0C0C0C;border-top:1px solid rgba(255,255,255,0.08);padding:4px 6px;';
 
 let cwd='C:\\Users\\User';
 
 const promptSpan=document.createElement('span');
-promptSpan.style.cssText='color:var(--accent);font-family:monospace;font-size:13px;white-space:nowrap;user-select:none;';
+promptSpan.style.cssText='color:#60CDFF;font-family:var(--font-mono,"Cascadia Code","Consolas",monospace);font-size:14px;white-space:nowrap;user-select:none;';
 promptSpan.textContent=cwd+'> ';
 
 const input=document.createElement('input');
 input.type='text';
 input.autocomplete='off';
 input.spellcheck=false;
-input.style.cssText='flex:1;background:transparent;border:none;outline:none;color:var(--accent);font-family:monospace;font-size:13px;padding:2px 0;user-select:text;caret-color:var(--accent);';
+input.style.cssText='flex:1;background:transparent;border:none;outline:none;color:#CCCCCC;font-family:var(--font-mono,"Cascadia Code","Consolas",monospace);font-size:14px;padding:2px 0;user-select:text;caret-color:#CCCCCC;';
 
 inputRow.appendChild(promptSpan);
 inputRow.appendChild(input);
@@ -2056,7 +3197,11 @@ input.addEventListener('keydown',(e)=>{
     if(tEl) tEl.textContent=args.join(' ');
     appendCmd(raw,null);return;
   } else if(cmd==='color'){
-    if(args[0]){document.documentElement.style.setProperty('--accent',args[0]);promptSpan.style.color=args[0];input.style.color=args[0];o='Accent color set to '+args[0]+'.';}
+    if(args[0]){
+      document.documentElement.style.setProperty('--accent',args[0]);
+      document.documentElement.style.setProperty('--accent-fill',args[0]);
+      o='Accent color set to '+args[0]+'.';
+    }
     else o='Usage: color #hexcode';
   } else if(cmd==='history'){
     o=cmdHistory.slice(-20).map((h,i)=>(i+1)+'.&nbsp;'+h.replace(/</g,'&lt;')).join('<br>');
@@ -2267,10 +3412,10 @@ ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();ctx.fillStyle=fillColor;ctx.fill
 }
 
 const COLORS={
-cpu:{line:'#00d4ff',fill:'rgba(0,212,255,0.12)',mini:'rgba(0,212,255,0.5)',miniFill:'rgba(0,212,255,0.2)'},
-ram:{line:'#a855f7',fill:'rgba(168,85,247,0.12)',mini:'rgba(168,85,247,0.6)',miniFill:'rgba(168,85,247,0.2)'},
-disk:{line:'#22c55e',fill:'rgba(34,197,94,0.12)',mini:'rgba(34,197,94,0.5)',miniFill:'rgba(34,197,94,0.2)'},
-net:{line:'#f59e0b',fill:'rgba(245,158,11,0.12)',mini:'rgba(245,158,11,0.5)',miniFill:'rgba(245,158,11,0.2)'},
+cpu: {line:'#60CDFF',fill:'rgba(96,205,255,0.12)',mini:'rgba(96,205,255,0.55)',miniFill:'rgba(96,205,255,0.18)'},
+ram: {line:'#9B6CFE',fill:'rgba(155,108,254,0.12)',mini:'rgba(155,108,254,0.60)',miniFill:'rgba(155,108,254,0.18)'},
+disk:{line:'#6CCB5F',fill:'rgba(108,203,95,0.12)', mini:'rgba(108,203,95,0.55)', miniFill:'rgba(108,203,95,0.18)'},
+net: {line:'#FCE100',fill:'rgba(252,225,0,0.12)',  mini:'rgba(252,225,0,0.55)',  miniFill:'rgba(252,225,0,0.18)'},
 };
 const startTime=Date.now();let loopId;
 function setText(id,val){const el=document.getElementById(id);if(el)el.textContent=val;}
@@ -2409,6 +3554,7 @@ w.addEventListener('mousedown',e=>{
     return;
   }
   d=true; dx=e.clientX-w.offsetLeft; dy=e.clientY-w.offsetTop;
+  document.body.classList.add('win-dragging');
 });
 
 document.addEventListener('mousemove',e=>{
@@ -2417,6 +3563,7 @@ document.addEventListener('mousemove',e=>{
     const movedY=Math.abs(e.clientY-pendingMouseY);
     if(movedX>4||movedY>4){
       unmaximizePending=false;
+      document.body.classList.add('win-dragging');
       const preRestoreWidth=w.offsetWidth;
       const titlebarRect=titlebar.getBoundingClientRect();
       const clickRatio=Math.max(0,Math.min(1,(pendingMouseX-titlebarRect.left)/preRestoreWidth));
@@ -2444,6 +3591,7 @@ document.addEventListener('mousemove',e=>{
 
 document.addEventListener('mouseup',e=>{
   unmaximizePending=false;
+  document.body.classList.remove('win-dragging');
   if(!d) return;
   d=false;
   hideOverlay();
@@ -2482,19 +3630,257 @@ w.querySelectorAll('.resizeHandle').forEach(r=>{
 }
 
 // ===================== CONTEXT MENUS =====================
-document.addEventListener('contextmenu',e=>{
-e.preventDefault();
-document.getElementById('tbMenu').style.display='none';
-const m=document.getElementById('menu');
-m.style.display='block';
-const mx=Math.min(e.clientX,window.innerWidth-200);
-const my=Math.min(e.clientY,window.innerHeight-180);
-m.style.left=mx+'px';m.style.top=my+'px';
+
+// ── Desktop right-click (background) ──
+document.addEventListener('contextmenu', e=>{
+  e.preventDefault();
+  e.stopPropagation();
+
+  // If right-clicking a .app tile inside the Start menu — show app context menu
+  const appTile = e.target.closest('.app');
+  if(appTile && e.target.closest('#start')){
+    closeAllMenus();
+    showAppCtxMenu(e, appTile);
+    return;
+  }
+
+  // Otherwise show the normal desktop context menu
+  closeAllMenus();
+  const m = document.getElementById('menu');
+  m.style.display = 'block';
+  positionMenu(m, e.clientX, e.clientY, 200, 220);
 });
-document.addEventListener('click',e=>{
-document.getElementById('menu').style.display='none';
-document.getElementById('tbMenu').style.display='none';
-if(!e.target.closest('#start')&&!e.target.closest('.taskBtn')&&!e.target.closest('#menu')) start.classList.remove('active');
+
+// Global click: close all menus unless click is inside one of them
+document.addEventListener('click', e=>{
+  // Don't close if clicking inside a menu (let item handlers fire first via bubbling)
+  if(e.target.closest('#appCtxMenu') || e.target.closest('#menu') || e.target.closest('#tbMenu')) return;
+  closeAllMenus();
+  if(!e.target.closest('#start') && !e.target.closest('.taskBtn'))
+    start.classList.remove('active');
+});
+
+// Close every menu at once
+function closeAllMenus(){
+  document.getElementById('menu').style.display = 'none';
+  document.getElementById('tbMenu').style.display = 'none';
+  const acm = document.getElementById('appCtxMenu');
+  acm.classList.remove('open');
+}
+
+// Smart position — flip left/up if menu would overflow the viewport
+function positionMenu(el, cx, cy, approxW, approxH){
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const tbH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tb-height')) || 48;
+  const x = (cx + approxW > vw) ? cx - approxW : cx;
+  const y = (cy + approxH > vh - tbH) ? cy - approxH : cy;
+  el.style.left = Math.max(4, x) + 'px';
+  el.style.top  = Math.max(4, Math.min(y, vh - tbH - approxH - 4)) + 'px';
+}
+
+// ─────────────────────────────────────────────────────────────────
+// APP CONTEXT MENU
+// Each .app tile carries a data-name and a data-fn attribute.
+// data-fn is a key into the APP_FN_MAP that maps to the actual
+// launch function — no eval(), no fragile attribute strings.
+// ─────────────────────────────────────────────────────────────────
+
+// Map of app name → launch function, built at boot and updated when
+// new apps are registered via registerAppFn()
+const APP_FN_MAP = {};
+
+function registerAppFn(name, fn){
+  APP_FN_MAP[name] = fn;
+}
+
+// Register all built-in apps up front
+(function registerBuiltins(){
+  registerAppFn('Camera',         ()=>openCamera());
+  registerAppFn('Minecraft',      ()=>openMinecraft());
+  registerAppFn('Smash Karts',    ()=>openGame(atob('aHR0cHM6Ly9zbWFzaGthcnRzLmlvLw=='),'Smash Karts'));
+  registerAppFn('FNAF 1',         ()=>openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8xLw=='),'FNAF 1'));
+  registerAppFn('FNAF 2',         ()=>openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8yLw=='),'FNAF 2'));
+  registerAppFn('FNAF 3',         ()=>openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8zLw=='),'FNAF 3'));
+  registerAppFn('FNAF 4',         ()=>openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi80Lw=='),'FNAF 4'));
+  registerAppFn('Deadshot',       ()=>openGame(atob('aHR0cHM6Ly9kZWFkc2hvdC5pby8='),'Deadshot'));
+  registerAppFn('FNAE',           ()=>openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvZm5hZS5odG1s'),'FNAE'));
+  registerAppFn('NZP',            ()=>openGame(atob('aHR0cHM6Ly9uenAuZ2F5Lw=='),'NZP'));
+  registerAppFn('Poly Track',     ()=>openPolyTrack());
+  registerAppFn('Task Manager',   ()=>openTaskManager());
+  registerAppFn('Notepad',        ()=>openNotepad());
+  registerAppFn('CMD',            ()=>openCMD());
+  registerAppFn('CMD Command Prompt', ()=>openCMD());
+  registerAppFn('Settings',       ()=>openSettings());
+})();
+
+// Pinned-to-start set (dynamically added names)
+const _pinnedSet = new Set();
+// Pinned-to-taskbar set
+const _taskbarPinned = new Set();
+
+function launchApp(name){
+  const fn = APP_FN_MAP[name];
+  if(fn){ start.classList.remove('active'); fn(); }
+}
+
+function showAppCtxMenu(e, tile){
+  const menu = document.getElementById('appCtxMenu');
+  const name = tile.dataset.name || tile.textContent.trim().replace(/^\S+\s*/,'');
+  const iconEl = tile.querySelector('span[style]');
+  const icon = iconEl ? iconEl.textContent.trim() : '🗂️';
+
+  // Populate header
+  document.getElementById('appCtxIcon').textContent = icon;
+  document.getElementById('appCtxName').textContent = name;
+
+  // Store on menu for action handlers
+  menu._appName = name;
+  menu._appIcon = icon;
+  menu._appTile = tile;
+
+  // Pin vs Unpin logic
+  const isInPinned = !!tile.closest('#pinnedGrid');
+  const isDynPinned = _pinnedSet.has(name);
+  const showUnpin = isInPinned || isDynPinned;
+  document.getElementById('appCtxPin').style.display   = showUnpin ? 'none' : 'flex';
+  document.getElementById('appCtxUnpin').style.display = showUnpin ? 'flex' : 'none';
+
+  // Re-trigger entrance animation
+  menu.classList.remove('open');
+  void menu.offsetWidth;
+  menu.classList.add('open');
+  positionMenu(menu, e.clientX, e.clientY, 228, 220);
+}
+
+// ── Open ──
+document.getElementById('appCtxOpen').addEventListener('click', ()=>{
+  const name = document.getElementById('appCtxMenu')._appName;
+  closeAllMenus();
+  launchApp(name);
+});
+
+// ── Pin to Start ──
+document.getElementById('appCtxPin').addEventListener('click', ()=>{
+  const menu = document.getElementById('appCtxMenu');
+  const { _appName: name, _appIcon: icon } = menu;
+  closeAllMenus();
+  if(_pinnedSet.has(name)){ showToast(`Already pinned`, 'warn', icon, 1800); return; }
+  _pinnedSet.add(name);
+
+  const tile = document.createElement('div');
+  tile.className = 'app';
+  tile.dataset.name = name;
+  tile.innerHTML = `<span style="font-size:22px">${icon}</span>${name}`;
+  tile.addEventListener('click', ()=> launchApp(name));
+  tile.addEventListener('contextmenu', ev=>{
+    ev.preventDefault(); ev.stopPropagation();
+    showAppCtxMenu(ev, tile);
+  });
+  document.getElementById('pinnedGrid').appendChild(tile);
+  showToast(`"${name}" pinned to Start`, 'success', icon, 2200);
+});
+
+// ── Unpin from Start ──
+document.getElementById('appCtxUnpin').addEventListener('click', ()=>{
+  const menu = document.getElementById('appCtxMenu');
+  const { _appName: name, _appTile: tile } = menu;
+  closeAllMenus();
+  if(_pinnedSet.has(name)){
+    _pinnedSet.delete(name);
+    tile.remove();
+  } else {
+    tile.style.display = 'none';
+  }
+  showToast(`"${name}" unpinned`, 'info', '📌', 2000);
+});
+
+// ── Add to Desktop ──
+document.getElementById('appCtxDesktop').addEventListener('click', ()=>{
+  const menu = document.getElementById('appCtxMenu');
+  const { _appName: name, _appIcon: icon } = menu;
+  closeAllMenus();
+
+  const desktop = document.getElementById('desktop');
+  if(desktop.querySelector(`.desktop-icon[data-name="${name.replace(/"/g,'&quot;')}"]`)){
+    showToast(`Already on Desktop`, 'warn', icon, 2000);
+    return;
+  }
+
+  window.addDesktopIcon(name, icon, name);
+  showToast(`"${name}" added to Desktop`, 'success', icon, 2200);
+});
+
+// ── Pin to Taskbar ──
+document.getElementById('appCtxTaskbar').addEventListener('click', ()=>{
+  const menu = document.getElementById('appCtxMenu');
+  const { _appName: name, _appIcon: icon } = menu;
+  closeAllMenus();
+
+  if(_taskbarPinned.has(name)){
+    showToast(`Already on Taskbar`, 'warn', icon, 2000);
+    return;
+  }
+  _taskbarPinned.add(name);
+
+  const btn = document.createElement('div');
+  btn.className = 'taskBtn';
+  btn.title = name;
+  btn.dataset.pinnedApp = name;
+  btn.innerHTML = `<span style="font-size:20px;pointer-events:none">${icon}</span>`;
+  btn.addEventListener('click', ()=> launchApp(name));
+
+  // Right-click pinned taskbar button → unpin menu
+  btn.addEventListener('contextmenu', ev=>{
+    ev.preventDefault(); ev.stopPropagation();
+    closeAllMenus();
+    const tbm = document.getElementById('tbMenu');
+    tbm._unpinBtn  = btn;
+    tbm._unpinName = name;
+    tbm._isPinned  = true;
+    tbm.style.display = 'block';
+    positionMenu(tbm, ev.clientX, ev.clientY - 60, 180, 70);
+    // Show unpin row, hide close row
+    document.getElementById('tbMenuClose').style.display = 'none';
+    let unpinRow = tbm.querySelector('.tbm-unpin');
+    if(!unpinRow){
+      unpinRow = document.createElement('div');
+      unpinRow.className = 'menu-item tbm-unpin';
+      unpinRow.innerHTML = '<span class="menu-icon">📌</span> Unpin from Taskbar';
+      unpinRow.addEventListener('click', ()=>{
+        tbm._unpinBtn?.remove();
+        _taskbarPinned.delete(tbm._unpinName);
+        document.getElementById('tbMenuClose').style.display = '';
+        tbm._isPinned = false;
+        closeAllMenus();
+        showToast(`"${tbm._unpinName}" unpinned`, 'info', '📌', 2000);
+      });
+      tbm.appendChild(unpinRow);
+    } else {
+      unpinRow.style.display = 'flex';
+    }
+  });
+
+  document.getElementById('taskIcons').appendChild(btn);
+  showToast(`"${name}" pinned to Taskbar`, 'success', icon, 2200);
+});
+
+// ── Wire existing .app tiles at boot ──
+document.querySelectorAll('.app').forEach(tile=>{
+  tile.addEventListener('contextmenu', ev=>{
+    ev.preventDefault(); ev.stopPropagation();
+    if(!ev.target.closest('#start')) return;
+    closeAllMenus();
+    showAppCtxMenu(ev, tile);
+  });
+});
+
+// Restore tbMenuClose visibility whenever tbMenu is used for a real window task
+const _origTbMenuClose = document.getElementById('tbMenuClose');
+_origTbMenuClose.addEventListener('click', ()=>{
+  if(_tbMenuTarget) closeW(_tbMenuTarget);
+  document.getElementById('tbMenu').style.display = 'none';
+  document.getElementById('tbMenu')._isPinned = false;
+  document.getElementById('tbMenuClose').style.display = '';
 });
 
 // ===================== FULLSCREEN =====================
@@ -2506,10 +3892,10 @@ function _updateFsBtn(){
   const label = document.getElementById('fsBtnLabel');
   if(!icon) return;
   if(document.fullscreenElement){
-    icon.innerHTML='<path d="M4 1V4H1M13 4H10V1M10 13V10H13M1 10H4V13" stroke="rgba(255,255,255,0.85)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>';
+    icon.innerHTML='<path d="M4 1V4H1M13 4H10V1M10 13V10H13M1 10H4V13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>';
     if(label) label.textContent='Exit';
   } else {
-    icon.innerHTML='<path d="M1 4V1H4M10 1H13V4M13 10V13H10M4 13H1V10" stroke="rgba(255,255,255,0.85)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>';
+    icon.innerHTML='<path d="M1 4V1H4M10 1H13V4M13 10V13H10M4 13H1V10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>';
     if(label) label.textContent='Fullscreen';
   }
 }
@@ -2564,16 +3950,343 @@ document.addEventListener('fullscreenchange', ()=>{
 // Click the desktop to enter fullscreen
 document.addEventListener('click', e=>{
   if(document.fullscreenElement) return;
-  const ignored = ['#taskbar','#start','.window','#menu','#tbMenu','#fsHint'];
+  const ignored = ['#taskbar','#start','.window','#menu','#tbMenu','#fsHint','#appCtxMenu'];
   if(ignored.some(sel => e.target.closest(sel))) return;
   _userExitedFS = false;
   enterFS();
 }, true);
 
+// ===================== DESKTOP ICON DRAG SYSTEM =====================
+// Grid cell size matches Win11's ~88×96px icon cells.
+// Icons snap to grid on drop. Multi-select via rubber-band or Ctrl+click.
+// Double-click launches the app. Single click selects.
+
+(function initDesktopIcons(){
+
+const CELL_W  = 88;   // grid column width  (icon 80px + 8px gap)
+const CELL_H  = 96;   // grid row height    (icon ~88px + 8px gap)
+const PAD_X   = 14;   // desktop left/top padding
+const PAD_Y   = 14;
+
+const desktop  = document.getElementById('desktop');
+const selRect  = document.getElementById('diSelRect');
+
+// ── Occupied grid cells: Map of "col,row" → icon element ──
+const occupied = new Map();
+
+function cellKey(c, r){ return `${c},${r}`; }
+
+function cellToPos(c, r){
+  return { x: PAD_X + c * CELL_W, y: PAD_Y + r * CELL_H };
+}
+
+function posToCell(x, y){
+  return {
+    c: Math.max(0, Math.round((x - PAD_X) / CELL_W)),
+    r: Math.max(0, Math.round((y - PAD_Y) / CELL_H))
+  };
+}
+
+// Find nearest free cell to a given col/row
+function nearestFreeCell(c, r, exclude){
+  for(let dist = 0; dist < 30; dist++){
+    for(let dr = -dist; dr <= dist; dr++){
+      for(let dc = -dist; dc <= dist; dc++){
+        if(Math.abs(dc) !== dist && Math.abs(dr) !== dist) continue;
+        const cc = c + dc, rr = r + dr;
+        if(cc < 0 || rr < 0) continue;
+        const key = cellKey(cc, rr);
+        if(!occupied.has(key) || occupied.get(key) === exclude)
+          return { c: cc, r: rr };
+      }
+    }
+  }
+  return { c, r };
+}
+
+// Place icon at grid cell, updating occupied map
+function placeIcon(icon, c, r){
+  // Remove from old cell
+  occupied.forEach((el, k) => { if(el === icon) occupied.delete(k); });
+  const { x, y } = cellToPos(c, r);
+  icon.style.left = x + 'px';
+  icon.style.top  = y + 'px';
+  icon.dataset.diCol = c;
+  icon.dataset.diRow = r;
+  occupied.set(cellKey(c, r), icon);
+}
+
+// Init all existing icons from data-di-col/data-di-row attributes
+function initExistingIcons(){
+  desktop.querySelectorAll('.desktop-icon').forEach(icon => {
+    const c = parseInt(icon.dataset.diCol) || 0;
+    const r = parseInt(icon.dataset.diRow) || 0;
+    const free = nearestFreeCell(c, r, icon);
+    placeIcon(icon, free.c, free.r);
+    wireIcon(icon);
+  });
+}
+
+// ── Selection state ──
+let selectedIcons = new Set();
+
+function selectIcon(icon, addToSelection){
+  if(!addToSelection) clearSelection();
+  icon.classList.add('di-selected');
+  selectedIcons.add(icon);
+}
+
+function clearSelection(){
+  selectedIcons.forEach(el => el.classList.remove('di-selected'));
+  selectedIcons.clear();
+}
+
+// Deselect when clicking bare desktop
+desktop.addEventListener('mousedown', e => {
+  if(e.target === desktop) clearSelection();
+});
+
+// ── Drop target highlight element ──
+let dropTarget = null;
+function showDropTarget(c, r){
+  if(!dropTarget){
+    dropTarget = document.createElement('div');
+    dropTarget.className = 'di-drop-target';
+    desktop.appendChild(dropTarget);
+  }
+  const { x, y } = cellToPos(c, r);
+  dropTarget.style.left   = x + 'px';
+  dropTarget.style.top    = y + 'px';
+  dropTarget.style.width  = (CELL_W - 8) + 'px';
+  dropTarget.style.height = (CELL_H - 8) + 'px';
+  dropTarget.style.display = 'block';
+}
+function hideDropTarget(){
+  if(dropTarget) dropTarget.style.display = 'none';
+}
+
+// ── Per-icon event wiring ──
+function wireIcon(icon){
+  let dragStarted  = false;
+  let mouseDownPos = null;
+  let ghost        = null;
+  let offsetX = 0, offsetY = 0;
+  let lastDropCell = null;
+  const DRAG_THRESHOLD = 6; // px before drag begins
+
+  // Single click: select
+  icon.addEventListener('mousedown', e => {
+    if(e.button !== 0) return;
+    e.stopPropagation();
+
+    mouseDownPos = { x: e.clientX, y: e.clientY };
+    dragStarted  = false;
+
+    // Ctrl+click: toggle in selection
+    if(e.ctrlKey || e.metaKey){
+      if(selectedIcons.has(icon)){
+        icon.classList.remove('di-selected');
+        selectedIcons.delete(icon);
+      } else {
+        selectIcon(icon, true);
+      }
+    } else {
+      if(!selectedIcons.has(icon)) selectIcon(icon, false);
+    }
+
+    const rect = icon.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+
+    function onMove(ev){
+      if(!dragStarted){
+        const dx = ev.clientX - mouseDownPos.x;
+        const dy = ev.clientY - mouseDownPos.y;
+        if(Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return;
+        // Start drag
+        dragStarted = true;
+        document.body.classList.add('win-dragging');
+
+        // Make sure the dragged icon is selected
+        if(!selectedIcons.has(icon)) selectIcon(icon, false);
+
+        // Mark all selected icons as dragging
+        selectedIcons.forEach(el => el.classList.add('di-dragging'));
+
+        // Create ghost for primary icon
+        ghost = document.createElement('div');
+        ghost.className = 'di-ghost';
+        ghost.innerHTML = icon.innerHTML;
+        document.body.appendChild(ghost);
+      }
+
+      if(!dragStarted) return;
+
+      // Move ghost
+      ghost.style.left = (ev.clientX - offsetX) + 'px';
+      ghost.style.top  = (ev.clientY - offsetY) + 'px';
+
+      // Show drop cell highlight
+      const desktopRect = desktop.getBoundingClientRect();
+      const relX = ev.clientX - offsetX + (CELL_W/2) - desktopRect.left;
+      const relY = ev.clientY - offsetY + (CELL_H/2) - desktopRect.top;
+      const { c, r } = posToCell(relX - CELL_W/2 + 40, relY - CELL_H/2 + 40);
+      const maxCols = Math.floor((window.innerWidth - PAD_X * 2) / CELL_W);
+      const clampedC = Math.min(c, maxCols - 1);
+      const clampedR = Math.max(0, r);
+      lastDropCell = { c: clampedC, r: clampedR };
+      showDropTarget(clampedC, clampedR);
+    }
+
+    function onUp(ev){
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup',   onUp);
+      document.body.classList.remove('win-dragging');
+
+      if(!dragStarted){
+        // Was just a click — keep selection, nothing to do
+        mouseDownPos = null;
+        return;
+      }
+
+      // Clean up ghost and dragging state
+      if(ghost){ ghost.remove(); ghost = null; }
+      hideDropTarget();
+      selectedIcons.forEach(el => el.classList.remove('di-dragging'));
+
+      // Snap to drop cell
+      if(lastDropCell){
+        const { c: tc, r: tr } = lastDropCell;
+        // If only one icon dragged, place it directly (free cell search)
+        if(selectedIcons.size === 1){
+          const free = nearestFreeCell(tc, tr, icon);
+          placeIcon(icon, free.c, free.r);
+        } else {
+          // Multi-drag: move each icon relative to the primary's delta
+          const origC = parseInt(icon.dataset.diCol);
+          const origR = parseInt(icon.dataset.diRow);
+          const dc = tc - origC;
+          const dr = tr - origR;
+          selectedIcons.forEach(el => {
+            const ec = parseInt(el.dataset.diCol) + dc;
+            const er = parseInt(el.dataset.diRow) + dr;
+            const free = nearestFreeCell(Math.max(0,ec), Math.max(0,er), el);
+            placeIcon(el, free.c, free.r);
+          });
+        }
+      }
+
+      dragStarted  = false;
+      lastDropCell = null;
+      mouseDownPos = null;
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup',   onUp);
+  });
+
+  // Double click: launch app
+  icon.addEventListener('dblclick', e => {
+    e.stopPropagation();
+    const name = icon.dataset.name;
+    if(name && typeof launchApp === 'function') launchApp(name);
+  });
+
+  // Right-click: show desktop context menu (handled by global contextmenu listener)
+}
+
+// ── Rubber-band multi-select ──
+let rubberBanding  = false;
+let rbStart        = null;
+
+desktop.addEventListener('mousedown', e => {
+  if(e.button !== 0) return;
+  if(e.target.closest('.desktop-icon')) return; // handled by icon
+
+  clearSelection();
+  rbStart = { x: e.clientX, y: e.clientY };
+  rubberBanding = false;
+
+  function onMove(ev){
+    const dx = ev.clientX - rbStart.x;
+    const dy = ev.clientY - rbStart.y;
+    if(!rubberBanding && Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+    rubberBanding = true;
+
+    const l = Math.min(ev.clientX, rbStart.x);
+    const t = Math.min(ev.clientY, rbStart.y);
+    const w = Math.abs(dx);
+    const h = Math.abs(dy);
+
+    selRect.style.display = 'block';
+    selRect.style.left    = l + 'px';
+    selRect.style.top     = t + 'px';
+    selRect.style.width   = w + 'px';
+    selRect.style.height  = h + 'px';
+
+    // Highlight intersecting icons
+    desktop.querySelectorAll('.desktop-icon').forEach(ic => {
+      const r = ic.getBoundingClientRect();
+      const hit = r.left < l+w && r.right > l && r.top < t+h && r.bottom > t;
+      if(hit){
+        ic.classList.add('di-selected');
+        selectedIcons.add(ic);
+      } else {
+        ic.classList.remove('di-selected');
+        selectedIcons.delete(ic);
+      }
+    });
+  }
+
+  function onUp(){
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup',   onUp);
+    selRect.style.display = 'none';
+    rubberBanding = false;
+    rbStart = null;
+  }
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup',   onUp);
+});
+
+// ── Public: add a new icon to the desktop ──
+// Called by appCtxDesktop handler instead of the old DOM approach
+window.addDesktopIcon = function(name, icon, launchName){
+  const el = document.createElement('div');
+  el.className = 'desktop-icon';
+  el.dataset.name = launchName || name;
+  el.innerHTML = `<span class="di-icon">${icon}</span><span class="di-label">${name}</span>`;
+
+  // Find a free cell (scan left column first, then next columns)
+  let placed = false;
+  outer: for(let c = 0; c < 10; c++){
+    for(let r = 0; r < 20; r++){
+      if(!occupied.has(cellKey(c, r))){
+        desktop.appendChild(el);
+        placeIcon(el, c, r);
+        wireIcon(el);
+        placed = true;
+        break outer;
+      }
+    }
+  }
+  if(!placed){ desktop.appendChild(el); placeIcon(el, 0, 0); wireIcon(el); }
+  return el;
+};
+
+// Initialise existing icons
+initExistingIcons();
+
+})(); // end initDesktopIcons
+
 // ===================== BOOT =====================
-document.body.style.background = 'linear-gradient(135deg,#0a1628 0%,#1a237e 30%,#1565c0 60%,#0d47a1 80%,#051428 100%)';
+// Safety net: always clear win-dragging if mouse released anywhere or window loses focus
+document.addEventListener('mouseup',()=>document.body.classList.remove('win-dragging'),true);
+window.addEventListener('blur',()=>document.body.classList.remove('win-dragging'));
+document.body.style.background = 'linear-gradient(135deg,#041728 0%,#0a2547 25%,#0d3b70 50%,#0a2e5c 75%,#061525 100%)';
 loadSettings();
-setTimeout(()=>{ showToast('Desktop ready','success','\u{1F5A5}\uFE0F',2500); }, 600);
+setTimeout(()=>{ showToast('Welcome back','success','🖥️',2800); }, 600);
 _updateFsBtn();
 
 // ── Taskbar autohide peek ──
