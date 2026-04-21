@@ -1392,12 +1392,17 @@ function camOpenLightbox(idx){
 function camCloseLightbox(){cLightbox.classList.remove('open');camLightboxIdx=-1;}
 function camDownloadPhoto(idx){
   const ph=camPhotos[idx];
+  // Convert dataURL to Blob — required for Chrome OS to trigger a real download
+  const byteStr=atob(ph.dataUrl.split(',')[1]);
+  const mime=ph.dataUrl.split(',')[0].split(':')[1].split(';')[0];
+  const arr=new Uint8Array(byteStr.length);
+  for(let i=0;i<byteStr.length;i++) arr[i]=byteStr.charCodeAt(i);
+  const blob=new Blob([arr],{type:mime});
+  const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=ph.dataUrl;
-  a.download=ph.name;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  a.href=url;a.download=ph.name;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
   camToast('Downloading '+ph.name);
 }
 function camDeletePhoto(idx){
@@ -1487,9 +1492,16 @@ q('gallery').addEventListener('click',()=>{camUpdateGallery();cGalleryPanel.clas
 q('gallery-close').addEventListener('click',()=>cGalleryPanel.classList.remove('open'));
 q('dl-all').addEventListener('click',()=>{
   camPhotos.forEach((ph,i)=>setTimeout(()=>{
-    const a=document.createElement('a');a.href=ph.dataUrl;a.download=ph.name;
+    const byteStr=atob(ph.dataUrl.split(',')[1]);
+    const mime=ph.dataUrl.split(',')[0].split(':')[1].split(';')[0];
+    const arr=new Uint8Array(byteStr.length);
+    for(let j=0;j<byteStr.length;j++) arr[j]=byteStr.charCodeAt(j);
+    const blob=new Blob([arr],{type:mime});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=ph.name;
     document.body.appendChild(a);a.click();document.body.removeChild(a);
-  },i*200));
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  },i*300));
   camToast('Downloading all…');
 });
 
