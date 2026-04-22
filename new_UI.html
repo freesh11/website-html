@@ -377,8 +377,7 @@ background:transparent;font-size:18px;
 position:relative;
 transition:background var(--dur-faster) linear;
 flex-shrink:0;
-/* overflow:hidden keeps the indicator dot inside the button at all sizes */
-overflow:hidden;
+overflow:visible;
 }
 .taskBtn--start svg rect{transition:fill var(--dur-faster) linear;}
 .taskBtn--start:hover{background:var(--subtle-hover);}
@@ -391,7 +390,7 @@ overflow:hidden;
 .taskBtn:not(.taskBtn--start)::after{
 content:'';
 position:absolute;
-bottom:2px;
+bottom:-3px;
 left:50%;
 transform:translateX(-50%);
 width:0;height:3px;           /* hidden by default — zero width */
@@ -400,13 +399,13 @@ background:var(--text-tertiary);
 transition:width var(--dur-fast) var(--ease-decelerate),
            background var(--dur-faster) linear;
 }
-/* Running (minimized): small dot */
+/* Running (minimized): short muted pill — narrower and desaturated vs open */
 .taskBtn.running::after{
-width:4px;height:3px;
-border-radius:50%;
-background:var(--text-secondary);
+width:8px;height:3px;
+border-radius:var(--radius-small);
+background:rgba(255,255,255,0.35);
 }
-/* Open (focused): accent pill */
+/* Open (focused): full-width vivid accent pill */
 .taskBtn.open::after{
 width:16px;height:3px;
 border-radius:var(--radius-small);
@@ -728,8 +727,12 @@ transition:box-shadow var(--dur-faster) linear,
 /* Win11 window open: scale from 98% + fade, 250ms decelerate */
 .window.win-opening{animation:winOpen var(--dur-normal) var(--ease-decelerate) both;}
 .window.win-closing{animation:winClose var(--dur-fast) var(--ease-accelerate) forwards;}
-@keyframes winOpen {from{opacity:0;transform:scale(0.97) translateY(6px)} to{opacity:1;transform:scale(1) translateY(0)}}
-@keyframes winClose{from{opacity:1;transform:scale(1)}                    to{opacity:0;transform:scale(0.97) translateY(4px)}}
+.window.win-minimizing{animation:winMinimize var(--dur-fast) var(--ease-accelerate) forwards;}
+.window.win-restoring{animation:winRestore var(--dur-normal) var(--ease-decelerate) both;}
+@keyframes winOpen    {from{opacity:0;transform:scale(0.97) translateY(6px)} to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes winClose   {from{opacity:1;transform:scale(1)}                    to{opacity:0;transform:scale(0.97) translateY(4px)}}
+@keyframes winMinimize{from{opacity:1;transform:scale(1) translateY(0)}      to{opacity:0;transform:scale(0.94) translateY(18px)}}
+@keyframes winRestore {from{opacity:0;transform:scale(0.94) translateY(14px)} to{opacity:1;transform:scale(1) translateY(0)}}
 /* Focused window: brighter top stroke */
 .window:focus-within{
   box-shadow:var(--shadow-64),0 0 0 1px rgba(255,255,255,0.14);
@@ -778,6 +781,21 @@ pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 .ctrl-btn.ctrl-popout:hover{background:var(--subtle-hover);color:var(--text-primary);}
 .ctrl-btn svg{pointer-events:none;}
 /* Snap layout flyout removed — snapping is done by dragging to edges */
+/* ── IFRAME CLICK SHIELD ──
+   When any UI overlay is open (start, menus), a transparent pseudo-overlay
+   is placed over all iframes so clicks reach the document and close the UI.
+   This is done via a sibling div injected by JS into each window. */
+.window .iframe-click-shield {
+  position:absolute;
+  inset:0;
+  z-index:9990;
+  background:transparent;
+  pointer-events:none; /* default: inactive */
+  cursor:default;
+}
+body.ui-overlay-open .window .iframe-click-shield {
+  pointer-events:auto; /* active when any overlay is open */
+}
 iframe{flex:1;border:none;background:#000}
 /* Hotzone strip at bottom of maximized windows — sits above the iframe so
    mousemove events reach the parent document and trigger the taskbar peek */
@@ -1298,6 +1316,130 @@ box-shadow:var(--shadow-8);
 }
 .qs-divider{border:none;border-top:1px solid var(--stroke-divider);margin:0;}
 
+/* ═══════════════════════════════════════
+   PHOTOS APP
+   ═══════════════════════════════════════ */
+.photos-root{
+  flex:1;display:flex;flex-direction:column;overflow:hidden;
+  background:var(--bg-base);font-family:var(--font);color:var(--text-primary);
+}
+.photos-toolbar{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 16px;
+  background:var(--bg-secondary);
+  border-bottom:1px solid var(--stroke-divider);
+  flex-shrink:0;
+}
+.photos-toolbar-title{font-size:var(--text-body);font-weight:600;flex:1;}
+.photos-sort-btn{
+  padding:4px 10px;border-radius:var(--radius-control);
+  border:1px solid var(--stroke);background:var(--ctrl-bg);
+  color:var(--text-secondary);font-size:var(--text-caption);
+  font-family:var(--font);cursor:pointer;
+  transition:background var(--dur-faster) linear,color var(--dur-faster) linear;
+}
+.photos-sort-btn:hover{background:var(--ctrl-bg-hover);color:var(--text-primary);}
+.photos-sort-btn.active{background:rgba(96,205,255,0.15);border-color:var(--accent-fill);color:var(--accent-fill);}
+.photos-open-cam{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 12px;border-radius:var(--radius-control);
+  border:1px solid var(--accent-fill);background:var(--accent-fill);
+  color:#000;font-size:var(--text-caption);font-weight:600;
+  font-family:var(--font);cursor:pointer;
+  transition:background var(--dur-faster) linear;
+}
+.photos-open-cam:hover{background:var(--accent-fill-hover);}
+.photos-scroll{flex:1;overflow-y:auto;padding:20px 20px 12px;}
+.photos-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;gap:14px;color:var(--text-tertiary);text-align:center;
+}
+.photos-empty-icon{font-size:64px;opacity:.35;}
+.photos-empty-text{font-size:var(--text-body);color:var(--text-tertiary);}
+.photos-empty-sub{font-size:var(--text-caption);color:var(--text-disabled);max-width:260px;line-height:1.5;}
+.photos-date-group{margin-bottom:28px;}
+.photos-date-label{
+  display:flex;align-items:center;gap:10px;
+  font-size:var(--text-caption);font-weight:600;
+  color:var(--text-tertiary);letter-spacing:.4px;text-transform:uppercase;
+  margin-bottom:10px;
+}
+.photos-count-chip{font-size:var(--text-caption);color:var(--text-disabled);font-weight:400;letter-spacing:0;}
+.photos-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:4px;
+}
+.photos-item{
+  position:relative;aspect-ratio:1;overflow:hidden;
+  border-radius:var(--radius-control);cursor:pointer;
+  background:var(--bg-tertiary);
+}
+.photos-item img{
+  width:100%;height:100%;object-fit:cover;display:block;
+  transition:transform var(--dur-fast) var(--ease-decelerate),
+             filter var(--dur-faster) linear;
+}
+.photos-item:hover img{transform:scale(1.05);filter:brightness(1.08);}
+.photos-item-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 55%);
+  opacity:0;transition:opacity var(--dur-faster) linear;
+  display:flex;align-items:flex-end;padding:7px;gap:5px;
+}
+.photos-item:hover .photos-item-overlay{opacity:1;}
+.photos-item-btn{
+  width:26px;height:26px;border-radius:50%;
+  border:none;background:rgba(255,255,255,0.2);
+  backdrop-filter:blur(8px);
+  color:#fff;font-size:12px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background var(--dur-faster) linear;flex-shrink:0;
+}
+.photos-item-btn:hover{background:rgba(255,255,255,0.35);}
+/* lightbox */
+.photos-lightbox{
+  position:absolute;inset:0;
+  background:rgba(0,0,0,0.93);
+  backdrop-filter:blur(24px);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  z-index:500;
+}
+.photos-lightbox.open{display:flex;animation:menuOpen var(--dur-fast) var(--ease-decelerate) both;}
+.photos-lightbox-img{
+  max-width:88%;max-height:72%;
+  border-radius:var(--radius-overlay);
+  object-fit:contain;box-shadow:var(--shadow-64);
+}
+.photos-lightbox-bar{display:flex;gap:8px;margin-top:16px;align-items:center;}
+.photos-lb-nav{
+  width:36px;height:36px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);
+  color:#fff;font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background var(--dur-faster) linear;
+}
+.photos-lb-nav:hover{background:rgba(255,255,255,.2);}
+.photos-lb-nav:disabled{opacity:.2;cursor:default;pointer-events:none;}
+.photos-lb-action{
+  padding:7px 16px;border-radius:var(--radius-control);
+  border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);
+  color:#fff;font-size:var(--text-caption);font-family:var(--font);
+  cursor:pointer;transition:background var(--dur-faster) linear;
+}
+.photos-lb-action:hover{background:rgba(255,255,255,.18);}
+.photos-lb-action.danger{border-color:rgba(255,99,132,.35);color:#ff99a4;}
+.photos-lb-action.danger:hover{background:rgba(255,99,132,.15);}
+.photos-lb-close{
+  position:absolute;top:14px;right:16px;
+  width:36px;height:36px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.1);color:#fff;font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background var(--dur-faster) linear;
+}
+.photos-lb-close:hover{background:rgba(255,255,255,.22);}
+.photos-lb-caption{font-size:var(--text-caption);color:rgba(255,255,255,.45);margin-top:8px;text-align:center;}
+
 /* ── APP RIGHT-CLICK CONTEXT MENU ── */
 #appCtxMenu{
   position:fixed;
@@ -1357,6 +1499,187 @@ box-shadow:var(--shadow-8);
   color:var(--text-secondary);
 }
 
+/* ═══════════════════════════════════════
+   FILE EXPLORER
+   ═══════════════════════════════════════ */
+.fe-root{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg-base);font-family:var(--font);color:var(--text-primary);}
+.fe-ribbon{display:flex;align-items:center;gap:2px;padding:4px 8px;background:var(--bg-secondary);border-bottom:1px solid var(--stroke-divider);flex-shrink:0;flex-wrap:wrap;}
+.fe-ribbon-btn{display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 8px;border-radius:var(--radius-control);border:1px solid transparent;background:transparent;color:var(--text-secondary);font-size:9px;font-family:var(--font);cursor:pointer;transition:background var(--dur-faster) linear,color var(--dur-faster) linear;min-width:44px;}
+.fe-ribbon-btn:hover{background:var(--subtle-hover);color:var(--text-primary);border-color:var(--stroke);}
+.fe-ribbon-btn:active{background:var(--subtle-pressed);}
+.fe-ribbon-btn svg{flex-shrink:0;}
+.fe-ribbon-sep{width:1px;height:32px;background:var(--stroke-divider);margin:0 4px;flex-shrink:0;}
+.fe-addrbar{display:flex;align-items:center;gap:6px;padding:5px 10px;background:var(--bg-secondary);border-bottom:1px solid var(--stroke-divider);flex-shrink:0;}
+.fe-nav-btn{width:28px;height:28px;border-radius:var(--radius-control);border:none;background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background var(--dur-faster) linear;}
+.fe-nav-btn:hover{background:var(--subtle-hover);color:var(--text-primary);}
+.fe-nav-btn:disabled{opacity:.25;cursor:default;pointer-events:none;}
+.fe-breadcrumb{flex:1;display:flex;align-items:center;gap:2px;background:var(--ctrl-bg);border:1px solid var(--stroke);border-radius:var(--radius-control);padding:0 10px;height:28px;overflow:hidden;}
+.fe-crumb{font-size:12px;color:var(--text-secondary);white-space:nowrap;cursor:pointer;padding:2px 4px;border-radius:3px;}
+.fe-crumb:hover{background:var(--subtle-hover);color:var(--text-primary);}
+.fe-crumb-sep{font-size:11px;color:var(--text-disabled);padding:0 1px;}
+.fe-search{height:28px;width:180px;background:var(--ctrl-bg);border:1px solid var(--stroke);border-radius:var(--radius-control);padding:0 10px;color:var(--text-primary);font-size:12px;font-family:var(--font);outline:none;}
+.fe-search:focus{border-color:var(--accent-fill);border-bottom-width:2px;}
+.fe-body{flex:1;display:flex;overflow:hidden;}
+.fe-sidebar{width:200px;flex-shrink:0;border-right:1px solid var(--stroke-divider);overflow-y:auto;padding:8px 0;background:var(--bg-secondary);}
+.fe-sidebar-section{font-size:10px;font-weight:600;color:var(--text-disabled);letter-spacing:.5px;text-transform:uppercase;padding:10px 14px 4px;}
+.fe-sidebar-item{display:flex;align-items:center;gap:8px;padding:5px 12px 5px 16px;cursor:pointer;border-left:3px solid transparent;font-size:12px;color:var(--text-secondary);transition:background var(--dur-faster) linear,color var(--dur-faster) linear;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fe-sidebar-item:hover{background:var(--subtle-hover);color:var(--text-primary);}
+.fe-sidebar-item.active{background:rgba(96,205,255,0.07);border-left-color:var(--accent-fill);color:var(--text-primary);}
+.fe-sidebar-item .fe-si-icon{font-size:14px;flex-shrink:0;}
+.fe-content{flex:1;overflow-y:auto;padding:12px 14px;}
+.fe-view-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.fe-view-title{font-size:var(--text-body);font-weight:600;}
+.fe-view-count{font-size:var(--text-caption);color:var(--text-tertiary);}
+.fe-view-toggle{display:flex;gap:3px;}
+.fe-view-toggle-btn{width:24px;height:24px;border-radius:var(--radius-control);border:none;background:transparent;color:var(--text-tertiary);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background var(--dur-faster) linear;}
+.fe-view-toggle-btn:hover{background:var(--subtle-hover);color:var(--text-primary);}
+.fe-view-toggle-btn.active{background:var(--subtle-pressed);color:var(--text-primary);}
+.fe-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:4px;}
+.fe-item{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px 6px;border-radius:var(--radius-control);cursor:pointer;border:1px solid transparent;text-align:center;transition:background var(--dur-faster) linear,border-color var(--dur-faster) linear;}
+.fe-item:hover{background:var(--subtle-hover);}
+.fe-item.selected{background:rgba(96,205,255,0.15);border-color:rgba(96,205,255,0.4);}
+.fe-item-icon{font-size:32px;line-height:1;pointer-events:none;}
+.fe-item-name{font-size:11px;color:var(--text-primary);line-height:1.3;word-break:break-word;max-width:76px;pointer-events:none;}
+.fe-item-type{font-size:9px;color:var(--text-tertiary);pointer-events:none;}
+.fe-list{display:flex;flex-direction:column;gap:1px;}
+.fe-list-header{display:grid;grid-template-columns:1fr 80px 120px 70px;padding:4px 10px;background:var(--bg-secondary);border-radius:var(--radius-control);margin-bottom:4px;}
+.fe-list-hcell{font-size:10px;font-weight:600;color:var(--text-tertiary);letter-spacing:.3px;text-transform:uppercase;cursor:pointer;}
+.fe-list-hcell:hover{color:var(--text-primary);}
+.fe-list-row{display:grid;grid-template-columns:1fr 80px 120px 70px;padding:5px 10px;border-radius:var(--radius-control);cursor:pointer;align-items:center;transition:background var(--dur-faster) linear;}
+.fe-list-row:hover{background:var(--subtle-hover);}
+.fe-list-row.selected{background:rgba(96,205,255,0.12);}
+.fe-list-cell{font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fe-list-cell:first-child{display:flex;align-items:center;gap:8px;color:var(--text-primary);}
+.fe-list-icon{font-size:16px;flex-shrink:0;}
+.fe-statusbar{height:22px;background:var(--bg-secondary);border-top:1px solid var(--stroke-divider);display:flex;align-items:center;padding:0 14px;gap:20px;flex-shrink:0;}
+.fe-statusbar-cell{font-size:10px;color:var(--text-tertiary);}
+.fe-props-overlay{position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:400;}
+.fe-props-overlay.open{display:flex;}
+/* ── In-app confirm dialog ── */
+.fe-confirm-overlay{position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:700;}
+.fe-confirm-overlay.open{display:flex;}
+.fe-confirm-card{background:var(--bg-tertiary);border:1px solid var(--stroke-surface);border-radius:var(--radius-overlay);width:340px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow-64);animation:menuOpen var(--dur-fast) var(--ease-decelerate) both;}
+.fe-confirm-icon{font-size:32px;text-align:center;}
+.fe-confirm-title{font-size:var(--text-body);font-weight:600;text-align:center;}
+.fe-confirm-msg{font-size:var(--text-caption);color:var(--text-secondary);text-align:center;line-height:1.5;}
+.fe-confirm-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px;}
+.fe-confirm-cancel{padding:6px 16px;border-radius:var(--radius-control);border:1px solid var(--stroke);background:var(--ctrl-bg);color:var(--text-primary);font-size:var(--text-body);font-family:var(--font);cursor:pointer;}
+.fe-confirm-cancel:hover{background:var(--ctrl-bg-hover);}
+.fe-confirm-ok{padding:6px 16px;border-radius:var(--radius-control);border:1px solid rgba(255,99,132,.4);background:rgba(255,99,132,.15);color:#ff99a4;font-size:var(--text-body);font-weight:600;font-family:var(--font);cursor:pointer;}
+.fe-confirm-ok:hover{background:rgba(255,99,132,.28);}
+/* desktop icon right-click menu */
+#diCtxMenu{position:fixed;display:none;flex-direction:column;min-width:190px;background:rgba(44,44,44,0.96);backdrop-filter:blur(60px) saturate(125%);-webkit-backdrop-filter:blur(60px) saturate(125%);border:1px solid var(--stroke-flyout);border-radius:var(--radius-overlay);padding:4px;z-index:999999;box-shadow:var(--shadow-28);}
+#diCtxMenu.open{display:flex;animation:menuOpen var(--dur-fast) var(--ease-decelerate) both;}
+.di-ctx-item{display:flex;align-items:center;gap:10px;height:30px;padding:0 10px;border-radius:var(--radius-control);margin:1px;cursor:pointer;font-size:var(--text-body);font-family:var(--font);color:var(--text-primary);transition:background var(--dur-faster) linear;white-space:nowrap;}
+.di-ctx-item:hover{background:var(--subtle-hover);}
+.di-ctx-item:active{background:var(--subtle-pressed);}
+.di-ctx-icon{font-size:13px;width:16px;text-align:center;flex-shrink:0;color:var(--text-secondary);}
+.di-ctx-sep{height:1px;background:var(--stroke-divider);margin:3px 8px;}
+.fe-props-card{background:var(--bg-tertiary);border:1px solid var(--stroke-surface);border-radius:var(--radius-overlay);width:320px;padding:20px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow-28);}
+.fe-props-title{font-size:var(--text-body);font-weight:600;display:flex;align-items:center;gap:8px;}
+.fe-props-row{display:flex;gap:8px;font-size:12px;}
+.fe-props-key{color:var(--text-tertiary);min-width:100px;flex-shrink:0;}
+.fe-props-val{color:var(--text-primary);word-break:break-all;}
+.fe-props-hr{border:none;border-top:1px solid var(--stroke-divider);}
+.fe-props-close{align-self:flex-end;padding:5px 16px;border-radius:var(--radius-control);border:1px solid var(--stroke);background:var(--accent-fill);color:#000;font-size:12px;font-family:var(--font);cursor:pointer;font-weight:600;}
+.fe-props-close:hover{background:var(--accent-fill-hover);}
+.fe-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60%;gap:10px;color:var(--text-tertiary);}
+.fe-empty-icon{font-size:48px;opacity:.25;}
+
+/* ── File Explorer in-window context menu ── */
+.fe-ctx-menu{
+  position:fixed;
+  display:none;
+  flex-direction:column;
+  min-width:200px;
+  background:rgba(44,44,44,0.96);
+  backdrop-filter:blur(60px) saturate(125%);
+  -webkit-backdrop-filter:blur(60px) saturate(125%);
+  border:1px solid var(--stroke-flyout);
+  border-radius:var(--radius-overlay);
+  padding:4px;
+  z-index:9999;
+  box-shadow:var(--shadow-28);
+  transform-origin:top left;
+}
+.fe-ctx-menu.open{display:flex;animation:menuOpen var(--dur-fast) var(--ease-decelerate) both;}
+.fe-ctx-item{
+  display:flex;align-items:center;gap:10px;
+  height:30px;padding:0 10px;
+  border-radius:var(--radius-control);margin:1px;
+  cursor:pointer;font-size:var(--text-body);font-family:var(--font);
+  color:var(--text-primary);
+  transition:background var(--dur-faster) linear;
+  white-space:nowrap;
+}
+.fe-ctx-item:hover{background:var(--subtle-hover);}
+.fe-ctx-item:active{background:var(--subtle-pressed);}
+.fe-ctx-icon{font-size:13px;width:16px;text-align:center;flex-shrink:0;color:var(--text-secondary);}
+.fe-ctx-sep{height:1px;background:var(--stroke-divider);margin:3px 8px;}
+
+/* ── New File dialog ── */
+.fe-newfile-overlay{
+  position:absolute;inset:0;
+  background:rgba(0,0,0,0.55);
+  backdrop-filter:blur(6px);
+  display:none;align-items:center;justify-content:center;
+  z-index:600;
+}
+.fe-newfile-overlay.open{display:flex;}
+.fe-newfile-card{
+  background:var(--bg-tertiary);
+  border:1px solid var(--stroke-surface);
+  border-radius:var(--radius-overlay);
+  width:340px;
+  padding:20px;
+  display:flex;flex-direction:column;gap:14px;
+  box-shadow:var(--shadow-64);
+  animation:menuOpen var(--dur-fast) var(--ease-decelerate) both;
+}
+.fe-newfile-title{font-size:var(--text-body);font-weight:600;display:flex;align-items:center;gap:8px;}
+.fe-newfile-row{display:flex;flex-direction:column;gap:5px;}
+.fe-newfile-label{font-size:var(--text-caption);color:var(--text-tertiary);}
+.fe-newfile-input{
+  background:var(--ctrl-bg-input);
+  border:1px solid var(--stroke);
+  border-bottom:2px solid var(--accent-fill);
+  border-radius:var(--radius-control);
+  padding:6px 10px;color:var(--text-primary);
+  font-size:var(--text-body);font-family:var(--font);
+  outline:none;width:100%;box-sizing:border-box;
+}
+.fe-newfile-input:focus{border-color:var(--stroke);border-bottom-color:var(--accent-fill);}
+.fe-newfile-ext-row{display:flex;gap:8px;align-items:flex-end;}
+.fe-newfile-ext-row .fe-newfile-row{flex:1;}
+.fe-newfile-ext-select{
+  background:var(--ctrl-bg);border:1px solid var(--stroke);
+  border-bottom-color:var(--stroke-secondary);
+  border-radius:var(--radius-control);padding:6px 8px;
+  color:var(--text-primary);font-size:var(--text-body);font-family:var(--font);
+  outline:none;cursor:pointer;height:34px;
+}
+.fe-newfile-ext-select:focus{border-bottom:2px solid var(--accent-fill);}
+.fe-newfile-preview{
+  font-size:var(--text-caption);color:var(--text-tertiary);
+  background:var(--ctrl-bg);border-radius:var(--radius-control);
+  padding:6px 10px;border:1px solid var(--stroke);
+  font-family:var(--font-mono);
+}
+.fe-newfile-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:2px;}
+.fe-newfile-cancel{
+  padding:6px 14px;border-radius:var(--radius-control);
+  border:1px solid var(--stroke);background:var(--ctrl-bg);
+  color:var(--text-primary);font-size:var(--text-body);font-family:var(--font);cursor:pointer;
+}
+.fe-newfile-cancel:hover{background:var(--ctrl-bg-hover);}
+.fe-newfile-create{
+  padding:6px 16px;border-radius:var(--radius-control);
+  border:1px solid var(--accent-fill);background:var(--accent-fill);
+  color:#000;font-size:var(--text-body);font-weight:600;font-family:var(--font);cursor:pointer;
+}
+.fe-newfile-create:hover{background:var(--accent-fill-hover);}
+.fe-newfile-create:disabled{opacity:.4;cursor:default;}
+
 </style>
 </head>
 <body style="background:linear-gradient(135deg,#041728 0%,#0a2547 25%,#0d3b70 50%,#0a2e5c 75%,#061525 100%)">
@@ -1369,6 +1692,18 @@ box-shadow:var(--shadow-8);
   <div class="desktop-icon" data-name="Task Manager" data-di-col="0" data-di-row="0">
     <span class="di-icon">📊</span>
     <span class="di-label">Task Manager</span>
+  </div>
+  <div class="desktop-icon" data-name="Photos" data-di-col="0" data-di-row="4">
+    <span class="di-icon">🖼️</span>
+    <span class="di-label">Photos</span>
+  </div>
+  <div class="desktop-icon" data-name="File Explorer" data-di-col="1" data-di-row="0">
+    <span class="di-icon">📁</span>
+    <span class="di-label">File Explorer</span>
+  </div>
+  <div class="desktop-icon" data-name="Recycle Bin" data-di-col="1" data-di-row="1">
+    <span class="di-icon">🗑️</span>
+    <span class="di-label">Recycle Bin</span>
   </div>
   <div class="desktop-icon" data-name="Notepad" data-di-col="0" data-di-row="1">
     <span class="di-icon">📝</span>
@@ -1439,6 +1774,8 @@ box-shadow:var(--shadow-8);
   </div>
   <div id="pinnedGrid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px;">
     <div class="app" data-name="Camera" onclick="openCamera()"><span style="font-size:22px">📷</span>Camera</div>
+    <div class="app" data-name="Photos" onclick="openPhotos()"><span style="font-size:22px">🖼️</span>Photos</div>
+    <div class="app" data-name="File Explorer" onclick="openFileExplorer()"><span style="font-size:22px">📁</span>Files</div>
     <div class="app" data-name="Minecraft" onclick="openMinecraft()"><span style="font-size:22px">⛏</span>Minecraft</div>
     <div class="app" data-name="Smash Karts" onclick="openGame(atob('aHR0cHM6Ly9zbWFzaGthcnRzLmlvLw=='),'Smash Karts')"><span style="font-size:22px">🏎️</span>Smash Karts</div>
   </div>
@@ -1459,6 +1796,8 @@ box-shadow:var(--shadow-8);
   </div>
   <div id="allAppsGrid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px;overflow-y:auto;flex:1;min-height:0;padding-right:2px;">
     <div class="app" data-name="Camera" onclick="openCamera()"><span style="font-size:22px">📷</span>Camera</div>
+    <div class="app" data-name="Photos" onclick="openPhotos()"><span style="font-size:22px">🖼️</span>Photos</div>
+    <div class="app" data-name="File Explorer" onclick="openFileExplorer()"><span style="font-size:22px">📁</span>Files</div>
     <div class="app" data-name="Minecraft" onclick="openMinecraft()"><span style="font-size:22px">⛏</span>Minecraft</div>
     <div class="app" data-name="Smash Karts" onclick="openGame(atob('aHR0cHM6Ly9zbWFzaGthcnRzLmlvLw=='),'Smash Karts')"><span style="font-size:22px">🏎️</span>Smash Karts</div>
     <div class="app" data-name="FNAF 1" onclick="openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8xLw=='),'FNAF 1')"><span style="font-size:22px">🎮</span>FNAF 1</div>
@@ -1537,6 +1876,13 @@ box-shadow:var(--shadow-8);
 </div>
 </div>
 
+<!-- DESKTOP ICON CONTEXT MENU -->
+<div id="diCtxMenu">
+  <div class="di-ctx-item" id="diCtxOpen"><span class="di-ctx-icon">📂</span>Open</div>
+  <div class="di-ctx-sep"></div>
+  <div class="di-ctx-item" id="diCtxDelete"><span class="di-ctx-icon">🗑️</span><span style="color:rgba(255,153,164,0.9)">Move to Recycle Bin</span></div>
+</div>
+
 <!-- DESKTOP CONTEXT MENU — Win11 new-style: compact rows, icon column, acrylic -->
 <div id="menu">
 <div class="menu-item" onclick="closeAllMenus();toggleStart();">
@@ -1544,6 +1890,7 @@ box-shadow:var(--shadow-8);
   Start
 </div>
 <div class="menu-item" onclick="closeAllMenus();openCamera();"><span class="menu-icon">📷</span> Camera</div>
+<div class="menu-item" onclick="closeAllMenus();openFileExplorer();"><span class="menu-icon">📁</span> File Explorer</div>
 <div class="menu-item" onclick="closeAllMenus();openTaskManager();"><span class="menu-icon">📊</span> Task Manager</div>
 <div class="menu-item" onclick="closeAllMenus();openNotepad();"><span class="menu-icon">📝</span> Notepad</div>
 <div class="menu-item" onclick="closeAllMenus();openCMD();"><span class="menu-icon">⌨️</span> Command Prompt</div>
@@ -1952,7 +2299,7 @@ function renderRecent(){
     tile.addEventListener('contextmenu',ev=>{
       ev.preventDefault(); ev.stopPropagation();
       if(!ev.target.closest('#start')) return;
-      closeAllMenus();
+      closeAllMenus(true);
       showAppCtxMenu(ev, tile);
     });
     grid.appendChild(tile);
@@ -1972,9 +2319,11 @@ function startShowPinned(){
 function toggleStart(){
 start.classList.toggle('active');
 if(start.classList.contains('active')){
+  document.body.classList.add('ui-overlay-open');
   startShowPinned();
   setTimeout(()=>startSearchInput.focus(),100);
 } else {
+  document.body.classList.remove('ui-overlay-open');
   startSearchInput.value='';
   // Scope to #start only — never touch taskbar pinned buttons
   document.querySelectorAll('#start .app').forEach(a=>a.classList.remove('hidden'));
@@ -1992,9 +2341,14 @@ b.title=win.querySelector('.title-text')?.textContent||'App';
 b.innerHTML=`<span style="font-size:19px;pointer-events:none;line-height:1">${icon}</span>`;
 b.onclick=()=>{
   if(win.style.display==='none'){
-    win.style.display='flex'; bring(win); b.classList.add('open');
+    win.style.display='flex'; bring(win); b.classList.add('open'); b.classList.remove('running');
+    win.classList.remove('win-minimizing');
+    win.classList.add('win-restoring');
+    setTimeout(()=>win.classList.remove('win-restoring'), 250);
   } else if(win===windows.find(w=>parseInt(w.style.zIndex)===z)){
-    win.style.display='none'; b.classList.remove('open');
+    win.classList.add('win-minimizing');
+    setTimeout(()=>{ win.classList.remove('win-minimizing'); win.style.display='none'; }, 167);
+    b.classList.remove('open'); b.classList.add('running');
   } else {
     bring(win); b.classList.add('open');
   }
@@ -2046,6 +2400,7 @@ win.innerHTML=`
 <div class='resizeHandle se'></div>
 <div class='resizeHandle sw'></div>
 <div class='tb-hotzone'></div>
+<div class='iframe-click-shield'></div>
 `;
 document.body.appendChild(win);
 // Opening animation
@@ -2092,6 +2447,13 @@ drag(win);
 resize(win);
 // Click anywhere on window to bring to front
 win.addEventListener('mousedown',()=>bring(win),true);
+// Click on the iframe-click-shield (when overlays are open) → close everything
+const shield = win.querySelector('.iframe-click-shield');
+if(shield){
+  shield.addEventListener('click', ()=>{
+    closeAllMenus();
+  });
+}
 // Hotzone: relay mousemove from the hotzone strip to the document
 // so the taskbar peek fires even when an iframe covers the viewport
 const hz=win.querySelector('.tb-hotzone');
@@ -2225,8 +2587,12 @@ function _wireBtnToWin(btn, win, appName){
       bring(win);
       btn.classList.add('open');
       btn.classList.remove('running');
+      win.classList.remove('win-minimizing');
+      win.classList.add('win-restoring');
+      setTimeout(()=>win.classList.remove('win-restoring'), 250);
     } else if(win === windows.find(w=>parseInt(w.style.zIndex)===z)){
-      win.style.display = 'none';
+      win.classList.add('win-minimizing');
+      setTimeout(()=>{ win.classList.remove('win-minimizing'); win.style.display = 'none'; }, 167);
       btn.classList.remove('open');
       btn.classList.add('running');
     } else {
@@ -2289,13 +2655,16 @@ function closeWBtn(e){ closeW(e.closest('.window')); }
 
 function minWin(e){
 const win=(e instanceof HTMLElement&&e.classList.contains('window'))?e:e.closest('.window');
-win.style.display='none';
+// Play minimize animation, then hide
+win.classList.add('win-minimizing');
+setTimeout(()=>{
+  win.classList.remove('win-minimizing');
+  win.style.display='none';
+}, 167); // --dur-fast
 if(win.task){
   win.task.classList.remove('open');
-  // Only show 'running' dot on PINNED buttons — ephemeral buttons just dim
-  if(win.task.dataset.pinnedApp){
-    win.task.classList.add('running');
-  }
+  // All taskbar buttons (pinned or ephemeral) get the running dot when minimized
+  win.task.classList.add('running');
 }
 const anyMaxedVisible=windows.some(w=>w.classList.contains('maximized')&&w.style.display!=='none');
 if(!anyMaxedVisible){
@@ -2322,7 +2691,7 @@ splash.innerHTML=`
   </div>
   <button style="margin-top:6px;padding:8px 28px;border-radius:var(--radius-control);border:1px solid var(--accent-fill);background:var(--accent-fill);color:#000;font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer;transition:background var(--dur-faster) linear,opacity var(--dur-faster) linear;"
     onmouseenter="this.style.background='var(--accent-fill-hover)'" onmouseleave="this.style.background='var(--accent-fill)'"
-    onclick="(function(){const t=window.open('about:blank','_blank');if(t){t.document.open();t.document.write('<!DOCTYPE html><html><head><title>\\u200B</title><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#000}iframe{width:100%;height:100%;border:none;display:block}</style></head><body><iframe src=\\'${url}\\' allow=\\'autoplay;fullscreen\\' allowfullscreen></iframe></body></html>');t.document.close();}else{alert('Pop-up blocked — please allow pop-ups for this site.');}})()">
+    onclick="(function(){const t=window.open('about:blank','_blank');if(t){t.document.open();t.document.write('<!DOCTYPE html><html><head><title>\\u200B</title><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#000}iframe{width:100%;height:100%;border:none;display:block}</style></head><body><iframe src=\\'${url}\\' allow=\\'autoplay;fullscreen\\' allowfullscreen></iframe></body></html>');t.document.close();}else{showToast('Pop-up blocked — allow pop-ups for this site','warn','🚫',4000);}})()">
     Open Minecraft in new tab ↗
   </button>
 `;
@@ -2344,7 +2713,7 @@ popoutBtn.addEventListener('click',()=>{
   const u=win.dataset.gameUrl;
   const t=window.open('about:blank','_blank');
   if(t){t.document.open();t.document.write('<!DOCTYPE html><html><head><title>\u200B</title><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#000}iframe{width:100%;height:100%;border:none;display:block}</style></head><body><iframe src="'+u.replace(/"/g,'&quot;')+'" allowfullscreen></iframe></body></html>');t.document.close();}
-  else alert('Pop-up blocked — please allow pop-ups for this site.');
+  else showToast('Pop-up blocked — allow pop-ups for this site','warn','🚫',4000);
 });
 win.querySelector('.controls').insertBefore(popoutBtn,win.querySelector('.controls').firstChild);
 const p=allocProc({name:label,mem:+(100+Math.random()*80).toFixed(0),cpu:+(Math.random()*40).toFixed(1)});
@@ -2400,7 +2769,7 @@ popoutBtn.addEventListener('click',()=>{
     t.document.open();
     t.document.write('<!DOCTYPE html><html><head><title>\u200B</title><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#000}iframe{width:100%;height:100%;border:none;display:block}</style></head><body><iframe src="'+blobUrl.replace(/"/g,'&quot;')+'" allowfullscreen></iframe></body></html>');
     t.document.close();
-  } else alert('Pop-up blocked — please allow pop-ups for this site.');
+  } else showToast('Pop-up blocked — allow pop-ups for this site','warn','🚫',4000);
 });
 win.querySelector('.controls').insertBefore(popoutBtn, win.querySelector('.controls').firstChild);
 
@@ -2439,7 +2808,8 @@ const p=allocProc({name:'Camera',mem:72,cpu:3});
 processes.push(p);p.win=win;camProcId=p.id;
 
 // --- state ---
-let camPhotos=[], camMode='photo', camTimerSecs=0, camTimerHandle=null;
+if(!window._camPhotos) window._camPhotos=[];
+let camPhotos=window._camPhotos, camMode='photo', camTimerSecs=0, camTimerHandle=null;
 let camMirrored=true, camQuality='hd', camLightboxIdx=-1, camZoom=1, camStream=null;
 
 // --- build DOM (NO onclick attrs — all wired below) ---
@@ -2668,6 +3038,9 @@ function camCapture(){
   camPhotos.unshift({dataUrl,name,timestamp:now});
   camUpdateGallery();camAddThumb(camPhotos[0],0);camUpdateBadge();
   camToast('📸 Photo saved!');
+  // Notify Photos app if open
+  const photoWin=processes.find(x=>x.win&&x.win._photosRefresh);
+  if(photoWin) photoWin.win._photosRefresh();
 }
 
 // --- wire up ALL events via addEventListener (no onclick attrs!) ---
@@ -2753,6 +3126,1479 @@ showToast('Opening Camera','info','📷',1500);
 camInit();
 }
 
+// ===================== PHOTOS =====================
+let photosProcId=null;
+function openPhotos(){
+  // If already open, restore and refresh
+  if(photosProcId!==null){
+    const p=processes.find(x=>x.id===photosProcId);
+    if(p&&p.win){
+      p.win.style.display='flex';bring(p.win);
+      if(p.win.task){p.win.task.classList.add('open');p.win.task.classList.remove('running');}
+      if(p.win._photosRefresh) p.win._photosRefresh();
+    }
+    start.classList.remove('active');return;
+  }
+  const win=createWindow('Photos',920,640,'🖼️');
+  const p=allocProc({name:'Photos',mem:48,cpu:1});
+  processes.push(p);p.win=win;photosProcId=p.id;
+
+  const root=document.createElement('div');
+  root.className='photos-root';
+
+  // ── toolbar ──
+  root.innerHTML=`
+<div class="photos-toolbar">
+  <span class="photos-toolbar-title">Photos</span>
+  <button class="photos-sort-btn active" data-sort="newest">Newest</button>
+  <button class="photos-sort-btn" data-sort="oldest">Oldest</button>
+  <button class="photos-open-cam">📷 Open Camera</button>
+</div>
+<div class="photos-scroll" id="photos-scroll-area"></div>
+<div class="photos-lightbox" id="photos-lightbox">
+  <button class="photos-lb-close" id="photos-lb-close">✕</button>
+  <img class="photos-lightbox-img" id="photos-lb-img" src="" alt="">
+  <div class="photos-lb-caption" id="photos-lb-caption"></div>
+  <div class="photos-lightbox-bar">
+    <button class="photos-lb-nav" id="photos-lb-prev">‹</button>
+    <button class="photos-lb-action" id="photos-lb-download">⬇ Download</button>
+    <button class="photos-lb-action danger" id="photos-lb-delete">🗑 Delete</button>
+    <button class="photos-lb-nav" id="photos-lb-next">›</button>
+  </div>
+</div>
+`;
+  win.appendChild(root);
+
+  // Use unique IDs scoped to this window instance via a random suffix
+  const uid = Math.random().toString(36).slice(2,7);
+  const scrollArea = root.querySelector('.photos-scroll');
+  const lightbox    = root.querySelector('.photos-lightbox');
+  const lbImg       = root.querySelector('.photos-lightbox-img');
+  const lbCaption   = root.querySelector('.photos-lb-caption');
+  const lbPrev      = root.querySelector('#photos-lb-prev');
+  const lbNext      = root.querySelector('#photos-lb-next');
+  const lbDownload  = root.querySelector('#photos-lb-download');
+  const lbDelete    = root.querySelector('#photos-lb-delete');
+  const lbClose     = root.querySelector('#photos-lb-close');
+
+  let sortOrder = 'newest'; // 'newest' | 'oldest'
+  let lbIdx = -1;           // index into sorted photos array
+  let sortedPhotos = [];    // sorted view
+
+  // ── helpers ──
+  function photosDownload(photo){
+    const byteStr=atob(photo.dataUrl.split(',')[1]);
+    const mime=photo.dataUrl.split(',')[0].split(':')[1].split(';')[0];
+    const arr=new Uint8Array(byteStr.length);
+    for(let i=0;i<byteStr.length;i++) arr[i]=byteStr.charCodeAt(i);
+    const blob=new Blob([arr],{type:mime});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=photo.name;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    showToast('Downloading '+photo.name,'info','⬇',1800);
+  }
+
+  function photosDelete(globalIdx){
+    // globalIdx = index in window._camPhotos
+    window._camPhotos.splice(globalIdx,1);
+    lightbox.classList.remove('open');
+    lbIdx=-1;
+    render();
+  }
+
+  function openLightbox(idx){
+    lbIdx=idx;
+    const ph=sortedPhotos[idx];
+    lbImg.src=ph.dataUrl;
+    lbCaption.textContent=ph.name;
+    lbPrev.disabled=(idx===0);
+    lbNext.disabled=(idx===sortedPhotos.length-1);
+    lightbox.classList.add('open');
+  }
+
+  lbClose.addEventListener('click',()=>{lightbox.classList.remove('open');lbIdx=-1;});
+  lbPrev.addEventListener('click',()=>{if(lbIdx>0) openLightbox(lbIdx-1);});
+  lbNext.addEventListener('click',()=>{if(lbIdx<sortedPhotos.length-1) openLightbox(lbIdx+1);});
+  lbDownload.addEventListener('click',()=>{ if(lbIdx>=0) photosDownload(sortedPhotos[lbIdx]); });
+  lbDelete.addEventListener('click',()=>{
+    if(lbIdx<0) return;
+    const ph=sortedPhotos[lbIdx];
+    const gi=window._camPhotos.indexOf(ph);
+    if(gi>=0) photosDelete(gi);
+  });
+
+  // ── sort buttons ──
+  root.querySelectorAll('.photos-sort-btn').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      sortOrder=this.dataset.sort;
+      root.querySelectorAll('.photos-sort-btn').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+      render();
+    });
+  });
+
+  // ── open camera button ──
+  root.querySelector('.photos-open-cam').addEventListener('click',()=>openCamera());
+
+  // ── main render ──
+  function render(){
+    const all = window._camPhotos || [];
+    sortedPhotos = sortOrder==='oldest' ? [...all].reverse() : [...all];
+
+    if(sortedPhotos.length===0){
+      scrollArea.innerHTML=`
+<div class="photos-empty">
+  <div class="photos-empty-icon">🖼️</div>
+  <div class="photos-empty-text">No photos yet</div>
+  <div class="photos-empty-sub">Open the Camera app and take a photo — it'll appear here instantly.</div>
+</div>`;
+      return;
+    }
+
+    // Group by date
+    const groups={};
+    sortedPhotos.forEach((ph,i)=>{
+      const d=new Date(ph.timestamp);
+      const label=d.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+      if(!groups[label]) groups[label]=[];
+      groups[label].push({ph,i}); // i = index in sortedPhotos
+    });
+
+    scrollArea.innerHTML='';
+    Object.entries(groups).forEach(([date,items])=>{
+      const group=document.createElement('div');
+      group.className='photos-date-group';
+      const labelRow=document.createElement('div');
+      labelRow.className='photos-date-label';
+      labelRow.innerHTML=`${date} <span class="photos-count-chip">${items.length} photo${items.length!==1?'s':''}</span>`;
+      group.appendChild(labelRow);
+
+      const grid=document.createElement('div');
+      grid.className='photos-grid';
+
+      items.forEach(({ph,i})=>{
+        const item=document.createElement('div');
+        item.className='photos-item';
+
+        const img=document.createElement('img');
+        img.src=ph.dataUrl;img.alt=ph.name;img.loading='lazy';
+        img.addEventListener('click',()=>openLightbox(i));
+
+        const ov=document.createElement('div');
+        ov.className='photos-item-overlay';
+
+        const dlBtn=document.createElement('button');
+        dlBtn.className='photos-item-btn';dlBtn.title='Download';dlBtn.textContent='⬇';
+        dlBtn.addEventListener('click',e=>{e.stopPropagation();photosDownload(ph);});
+
+        const delBtn=document.createElement('button');
+        delBtn.className='photos-item-btn';delBtn.title='Delete';delBtn.textContent='🗑';
+        delBtn.addEventListener('click',e=>{
+          e.stopPropagation();
+          const gi=window._camPhotos.indexOf(ph);
+          if(gi>=0) photosDelete(gi);
+        });
+
+        ov.append(dlBtn,delBtn);
+        item.append(img,ov);
+        grid.appendChild(item);
+      });
+
+      group.appendChild(grid);
+      scrollArea.appendChild(group);
+    });
+  }
+
+  // Expose refresh so re-opening can trigger it
+  win._photosRefresh = render;
+
+  // ── cleanup ──
+  win._tmCleanup=()=>{ photosProcId=null; };
+  const _obs=new MutationObserver(()=>{
+    if(!document.body.contains(win)){ photosProcId=null; _obs.disconnect(); }
+  });
+  _obs.observe(document.body,{childList:true});
+
+  finish(win,'🖼️',p);
+  start.classList.remove('active');
+  trackRecent('Photos','🖼️','openPhotos()');
+  showToast('Opening Photos','info','🖼️',1500);
+  render();
+}
+
+// ===================== VIRTUAL FILESYSTEM =====================
+// Windows-accurate in-memory VFS. Tree of nodes: {name, type:'folder'|'file', children:[], ...meta}
+(function buildVFS(){
+  const D=(name,children=[],meta={})=>({name,type:'folder',children,modified:new Date(2025,3,18),...meta});
+  const F=(name,ext,size,meta={})=>({name,type:'file',ext,size,modified:new Date(2025,3,18),icon:_extIcon(ext),...meta});
+
+  function _extIcon(ext){
+    const m={exe:'⚙️',dll:'🔧',sys:'🛡️',ini:'📄',cfg:'📄',txt:'📝',log:'📋',
+             ttf:'🅰️',otf:'🅰️',fon:'🅰️',woff:'🅰️',
+             png:'🖼️',jpg:'🖼️',jpeg:'🖼️',bmp:'🖼️',ico:'🖼️',
+             mp3:'🎵',wav:'🎵',ogg:'🎵',
+             mp4:'🎬',avi:'🎬',mov:'🎬',
+             zip:'📦',cab:'📦',msi:'📦',
+             lnk:'🔗',url:'🔗',
+             json:'📋',xml:'📋',bat:'⚙️',cmd:'⚙️',ps1:'🔷',
+             html:'🌐',css:'🎨',js:'📜'};
+    return m[(ext||'').toLowerCase()]||'📄';
+  }
+
+  // ── System32 DLLs / EXEs — accurate Win11 subset ──
+  const sys32files=[
+    F('ntoskrnl.exe','exe','9.8 MB',{desc:'NT OS Kernel'}),
+    F('hal.dll','dll','1.2 MB',{desc:'Hardware Abstraction Layer'}),
+    F('kernel32.dll','dll','1.1 MB',{desc:'Windows NT BASE API Client DLL'}),
+    F('kernelbase.dll','dll','3.4 MB',{desc:'Windows NT BASE API Client DLL'}),
+    F('user32.dll','dll','1.9 MB',{desc:'Multi-User Windows USER API Client DLL'}),
+    F('gdi32.dll','dll','0.3 MB',{desc:'GDI Client DLL'}),
+    F('gdi32full.dll','dll','2.1 MB',{desc:'GDI Client DLL'}),
+    F('shell32.dll','dll','22.7 MB',{desc:'Windows Shell Common Dll'}),
+    F('comctl32.dll','dll','3.5 MB',{desc:'User Experience Controls Library'}),
+    F('ole32.dll','dll','1.5 MB',{desc:'Microsoft OLE for Windows'}),
+    F('oleaut32.dll','dll','0.9 MB',{desc:'OLEAUT32.DLL'}),
+    F('advapi32.dll','dll','1.2 MB',{desc:'Advanced Windows 32 Base API'}),
+    F('rpcrt4.dll','dll','1.8 MB',{desc:'Remote Procedure Call Runtime'}),
+    F('sechost.dll','dll','0.4 MB',{desc:'Host for SCM/SDDL/LSA Lookup APIs'}),
+    F('msvcrt.dll','dll','0.7 MB',{desc:'Windows NT CRT DLL'}),
+    F('ntdll.dll','dll','2.9 MB',{desc:'NT Layer DLL'}),
+    F('win32u.dll','dll','0.3 MB',{desc:'Win32u'}),
+    F('ws2_32.dll','dll','0.5 MB',{desc:'Windows Socket 2.0 32-Bit DLL'}),
+    F('wininet.dll','dll','4.2 MB',{desc:'Internet Extensions for Win32'}),
+    F('crypt32.dll','dll','1.5 MB',{desc:'Crypto API32'}),
+    F('bcrypt.dll','dll','0.3 MB',{desc:'Windows Cryptographic Primitives Library'}),
+    F('clbcatq.dll','dll','0.6 MB',{desc:'COM+ Configuration Catalog'}),
+    F('dxgi.dll','dll','0.4 MB',{desc:'DirectX Graphics Infrastructure'}),
+    F('d3d11.dll','dll','22.4 MB',{desc:'Direct3D 11 Runtime'}),
+    F('opengl32.dll','dll','1.0 MB',{desc:'OpenGL Client DLL'}),
+    F('wintrust.dll','dll','0.4 MB',{desc:'Microsoft Trust Verification APIs'}),
+    F('explorer.exe','exe','5.2 MB',{desc:'Windows Explorer'}),
+    F('dwm.exe','exe','0.3 MB',{desc:'Desktop Window Manager'}),
+    F('svchost.exe','exe','0.1 MB',{desc:'Host Process for Windows Services'}),
+    F('lsass.exe','exe','0.1 MB',{desc:'Local Security Authority Process'}),
+    F('winlogon.exe','exe','0.3 MB',{desc:'Windows Logon Application'}),
+    F('csrss.exe','exe','0.1 MB',{desc:'Client Server Runtime Process'}),
+    F('smss.exe','exe','0.1 MB',{desc:'Windows Session Manager'}),
+    F('taskmgr.exe','exe','1.4 MB',{desc:'Task Manager'}),
+    F('cmd.exe','exe','0.4 MB',{desc:'Windows Command Processor'}),
+    F('powershell.exe','exe','0.5 MB',{desc:'Windows PowerShell'}),
+    F('regedit.exe','exe','0.5 MB',{desc:'Registry Editor'}),
+    F('mspaint.exe','exe','2.1 MB',{desc:'Paint'}),
+    F('notepad.exe','exe','0.2 MB',{desc:'Notepad'}),
+    F('calc.exe','exe','0.2 MB',{desc:'Calculator'}),
+    F('msiexec.exe','exe','0.5 MB',{desc:'Windows Installer'}),
+    F('conhost.exe','exe','0.6 MB',{desc:'Console Window Host'}),
+    F('services.exe','exe','0.1 MB',{desc:'Services and Controller app'}),
+    F('spoolsv.exe','exe','0.3 MB',{desc:'Spooler SubSystem App'}),
+    F('wuauclt.exe','exe','0.2 MB',{desc:'Windows Update'}),
+  ];
+
+  const sys32=D('System32',[
+    ...sys32files,
+    D('drivers',[
+      F('ntfs.sys','sys','1.9 MB',{desc:'NT File System Driver'}),
+      F('tcpip.sys','sys','2.4 MB',{desc:'TCP/IP Protocol Driver'}),
+      F('ndis.sys','sys','1.3 MB',{desc:'NDIS 6.0 driver'}),
+      F('dxgkrnl.sys','sys','4.1 MB',{desc:'DirectX Graphics Kernel'}),
+      F('acpi.sys','sys','0.5 MB',{desc:'ACPI Driver for NT'}),
+      F('disk.sys','sys','0.1 MB',{desc:'Disk Driver'}),
+      F('storport.sys','sys','0.5 MB',{desc:'Microsoft Storage Port Driver'}),
+      F('usbhub.sys','sys','0.4 MB',{desc:'Default hub driver for USB'}),
+      F('hidusb.sys','sys','0.1 MB',{desc:'USB HID Class Driver'}),
+      F('wdfilter.sys','sys','0.3 MB',{desc:'Windows Defender Filter Driver'}),
+    ]),
+    D('en-US',[
+      F('shell32.dll.mui','dll','6.4 MB'),F('user32.dll.mui','dll','0.5 MB'),
+      F('kernel32.dll.mui','dll','0.2 MB'),F('ntoskrnl.exe.mui','exe','2.1 MB'),
+    ]),
+    D('wbem',[
+      F('WMICore.dll','dll','3.2 MB'),F('wmic.exe','exe','0.4 MB'),
+      F('winmgmt.exe','exe','0.2 MB'),F('wmiprvse.exe','exe','0.3 MB'),
+    ]),
+    D('WindowsPowerShell',[
+      D('v1.0',[
+        F('powershell.exe','exe','0.5 MB'),F('powershell_ise.exe','exe','1.2 MB'),
+        F('System.Management.Automation.dll','dll','8.4 MB'),
+      ])
+    ]),
+  ]);
+
+  // ── Fonts ──
+  const fonts=D('Fonts',[
+    F('segoeui.ttf','ttf','2.4 MB',{desc:'Segoe UI'}),
+    F('segoeuib.ttf','ttf','2.1 MB',{desc:'Segoe UI Bold'}),
+    F('segoeuii.ttf','ttf','2.0 MB',{desc:'Segoe UI Italic'}),
+    F('segoeuil.ttf','ttf','2.0 MB',{desc:'Segoe UI Light'}),
+    F('seguivar.ttf','ttf','3.8 MB',{desc:'Segoe UI Variable'}),
+    F('seguiemj.ttf','ttf','22.1 MB',{desc:'Segoe UI Emoji'}),
+    F('seguisym.ttf','ttf','4.1 MB',{desc:'Segoe UI Symbol'}),
+    F('segmdl2.ttf','ttf','1.8 MB',{desc:'MDL2 Assets'}),
+    F('arial.ttf','ttf','0.9 MB',{desc:'Arial'}),
+    F('arialbd.ttf','ttf','0.9 MB',{desc:'Arial Bold'}),
+    F('times.ttf','ttf','1.1 MB',{desc:'Times New Roman'}),
+    F('timesbd.ttf','ttf','1.0 MB',{desc:'Times New Roman Bold'}),
+    F('cour.ttf','ttf','0.8 MB',{desc:'Courier New'}),
+    F('courbd.ttf','ttf','0.8 MB',{desc:'Courier New Bold'}),
+    F('consola.ttf','ttf','3.6 MB',{desc:'Consolas'}),
+    F('consolab.ttf','ttf','3.5 MB',{desc:'Consolas Bold'}),
+    F('calibri.ttf','ttf','1.1 MB',{desc:'Calibri'}),
+    F('calibrib.ttf','ttf','1.0 MB',{desc:'Calibri Bold'}),
+    F('cascadia.ttf','ttf','2.9 MB',{desc:'Cascadia Code'}),
+    F('cascadiamono.ttf','ttf','2.7 MB',{desc:'Cascadia Mono'}),
+    F('tahoma.ttf','ttf','0.7 MB',{desc:'Tahoma'}),
+    F('tahomabd.ttf','ttf','0.7 MB',{desc:'Tahoma Bold'}),
+    F('verdana.ttf','ttf','0.8 MB',{desc:'Verdana'}),
+    F('verdanab.ttf','ttf','0.8 MB',{desc:'Verdana Bold'}),
+    F('wingding.ttf','ttf','0.1 MB',{desc:'Wingdings'}),
+    F('marlett.ttf','ttf','0.1 MB',{desc:'Marlett'}),
+  ]);
+
+  // ── Program Files ──
+  const progFiles=D('Program Files',[
+    D('WindowsApps',[
+      D('Microsoft.Photos_2024',[
+        F('Photos.exe','exe','8.4 MB',{desc:'Microsoft Photos'}),
+        F('PhotosNativeApp.dll','dll','3.1 MB'),
+      ]),
+      D('Microsoft.WindowsCamera_2024',[
+        F('Camera.exe','exe','6.2 MB',{desc:'Windows Camera'}),
+        F('CameraEffects.dll','dll','2.8 MB'),
+      ]),
+      D('Microsoft.WindowsNotepad_2024',[
+        F('Notepad.exe','exe','1.2 MB',{desc:'Windows Notepad'}),
+      ]),
+      D('Microsoft.WindowsCalculator_2024',[
+        F('Calculator.exe','exe','3.4 MB',{desc:'Windows Calculator'}),
+      ]),
+      D('Microsoft.WindowsTerminal_1.18',[
+        F('WindowsTerminal.exe','exe','4.1 MB',{desc:'Windows Terminal'}),
+        F('OpenConsole.exe','exe','1.8 MB'),F('wt.exe','exe','0.3 MB'),
+      ]),
+      D('Microsoft.MicrosoftEdge_2024',[
+        F('msedge.exe','exe','4.2 MB',{desc:'Microsoft Edge'}),
+        F('msedgewebview2.exe','exe','3.1 MB'),
+        D('Extensions',[]),
+        D('Application',[F('msedge.dll','dll','128.4 MB')]),
+      ]),
+      D('Smash.Karts_1.0',[
+        F('SmashKarts.exe','exe','48.2 MB',{desc:'Smash Karts Racing'}),
+        F('UnityPlayer.dll','dll','32.4 MB'),
+        D('Data',[F('app.info','ini','0.1 KB'),D('StreamingAssets',[])]),
+      ]),
+      D('FNAF.Collection_1.0',[
+        F('FNAF1.exe','exe','122.4 MB',{desc:"Five Nights at Freddy's 1"}),
+        F('FNAF2.exe','exe','136.8 MB',{desc:"Five Nights at Freddy's 2"}),
+        F('FNAF3.exe','exe','142.1 MB',{desc:"Five Nights at Freddy's 3"}),
+        F('FNAF4.exe','exe','148.9 MB',{desc:"Five Nights at Freddy's 4"}),
+        F('UnityCrashHandler64.exe','exe','0.4 MB'),
+        D('FNAF1_Data',[F('app.info','ini','0.1 KB')]),
+        D('FNAF2_Data',[F('app.info','ini','0.1 KB')]),
+      ]),
+      D('Poly.Track_2.1',[
+        F('PolyTrack.exe','exe','88.6 MB',{desc:'Poly Track Racing'}),
+        F('AmmoPhysics.dll','dll','12.4 MB'),
+        D('tracks',[F('default.trk','txt','2.1 KB'),F('championship.trk','txt','4.4 KB')]),
+      ]),
+      D('NZP.WebGL_1.0',[
+        F('nzp.exe','exe','54.2 MB',{desc:'Nazi Zombies Portable'}),
+        D('assets',[F('textures.pak','txt','84.2 MB'),F('sounds.pak','txt','32.1 MB')]),
+      ]),
+      D('Deadshot.io_3.4',[
+        F('Deadshot.exe','exe','68.1 MB',{desc:'Deadshot.io FPS'}),
+        F('UnityPlayer.dll','dll','32.4 MB'),
+      ]),
+      D('Minecraft.EaglercraftX_1.8',[
+        F('EaglercraftX.exe','exe','98.4 MB',{desc:'EaglercraftX Minecraft 1.8'}),
+        F('lwjgl.dll','dll','8.2 MB'),
+        D('assets',[D('minecraft',[D('textures',[]),D('sounds',[])])]),
+        D('saves',[]),
+        D('mods',[]),
+        D('resourcepacks',[]),
+      ]),
+    ]),
+    D('Common Files',[
+      D('Microsoft Shared',[
+        D('VS7Debug',[F('mdm.exe','exe','0.3 MB')]),
+        D('VSTO',[F('vstostorage.dll','dll','0.2 MB')]),
+        D('ClickToRun',[F('C2RMain.exe','exe','4.4 MB')]),
+      ]),
+      D('Services',[]),
+    ]),
+    D('Internet Explorer',[
+      F('iexplore.exe','exe','0.8 MB',{desc:'Internet Explorer (Legacy)'}),
+    ]),
+    D('Windows Defender',[
+      F('MsMpEng.exe','exe','8.4 MB',{desc:'Antimalware Service Executable'}),
+      F('MpClient.dll','dll','4.1 MB'),
+      F('MpCommu.dll','dll','1.2 MB'),
+      D('Definition Updates',[
+        D('{current}',[F('mpasbase.vdm','txt','424.8 MB'),F('mpasdlta.vdm','txt','12.4 MB')]),
+      ]),
+    ]),
+    D('Windows Media Player',[
+      F('wmplayer.exe','exe','3.2 MB'),F('wmp.dll','dll','18.4 MB'),
+    ]),
+    D('Windows NT',[
+      D('Accessories',[
+        F('wordpad.exe','exe','1.1 MB'),F('mspaint.exe','exe','2.1 MB'),
+        F('snippingtool.exe','exe','0.8 MB'),
+      ]),
+    ]),
+  ]);
+
+  const progFilesX86=D('Program Files (x86)',[
+    D('Common Files',[
+      D('Adobe',[D('ARM',[F('armsvc.exe','exe','0.7 MB')])]),
+    ]),
+    D('DirectX',[F('dxsetup.exe','exe','0.3 MB'),F('dxdiag.exe','exe','0.6 MB')]),
+    D('Java',[
+      D('jre-17',[
+        D('bin',[F('java.exe','exe','0.2 MB'),F('javaw.exe','exe','0.2 MB')]),
+        D('lib',[F('rt.jar','txt','62.4 MB'),F('charsets.jar','txt','2.4 MB')]),
+      ]),
+    ]),
+  ]);
+
+  // ── Windows folder ──
+  const windowsFolder=D('Windows',[
+    sys32,
+    D('SysWOW64',[
+      F('wow64.dll','dll','0.4 MB',{desc:'Win32 Emulation on NT64'}),
+      F('wow64win.dll','dll','0.3 MB'),
+      F('wow64cpu.dll','dll','0.1 MB'),
+      F('kernel32.dll','dll','0.8 MB'),
+      F('user32.dll','dll','1.2 MB'),
+    ]),
+    fonts,
+    D('assembly',[
+      D('NativeImages_v4.0',[F('mscorlib.ni.dll','dll','18.4 MB'),F('System.ni.dll','dll','9.2 MB')]),
+    ]),
+    D('Logs',[
+      D('CBS',[F('CBS.log','log','4.2 MB'),F('CbsPersist.log','log','1.1 MB')]),
+      D('DISM',[F('dism.log','log','0.8 MB')]),
+      D('WindowsUpdate',[F('WindowsUpdate.log','log','2.4 MB')]),
+    ]),
+    D('Prefetch',[
+      F('EXPLORER.EXE-AB1234.pf','txt','0.2 MB'),
+      F('CHROME.EXE-CD5678.pf','txt','0.3 MB'),
+      F('NOTEPAD.EXE-EF9012.pf','txt','0.1 MB'),
+    ]),
+    D('Temp',[]),
+    D('INF',[F('usbstor.inf','ini','0.1 MB'),F('disk.inf','ini','0.1 MB')]),
+    D('Media',[
+      F('Windows Logon.wav','wav','0.3 MB'),F('Windows Shutdown.wav','wav','0.2 MB'),
+      F('Windows Error.wav','wav','0.1 MB'),F('Windows Notify.wav','wav','0.1 MB'),
+    ]),
+    D('System',[
+      F('user.dat','txt','3.2 MB'),F('NTUSER.DAT','txt','8.4 MB'),
+    ]),
+    D('WinSxS',[
+      F('amd64_microsoft-windows-s..','txt','—'),
+      F('amd64_microsoft-windows-w..','txt','—'),
+    ]),
+  ]);
+
+  // ── Users ──
+  const users=D('Users',[
+    D('User',[
+      D('Desktop',[
+        F('README.txt','txt','1 KB',{desc:'Desktop shortcut'}),
+      ]),
+      D('Documents',[
+        F('note.txt','txt','2 KB'),
+        D('My Games',[
+          D('Minecraft',[D('saves',[]),D('screenshots',[])]),
+        ]),
+      ]),
+      D('Downloads',[]),
+      D('Pictures',[
+        D('Camera Roll',[], {_isCameraRoll:true}),
+        D('Screenshots',[]),
+        D('Saved Pictures',[]),
+      ]),
+      D('Music',[]),
+      D('Videos',[]),
+      D('AppData',[
+        D('Local',[
+          D('Microsoft',[
+            D('Windows',[
+              D('INetCache',[]),D('WebCache',[]),
+            ]),
+            D('Edge',[D('User Data',[D('Default',[D('Cache',[]),D('Extensions',[])])])]),
+          ]),
+          D('Temp',[]),
+          D('Programs',[]),
+        ]),
+        D('Roaming',[
+          D('Microsoft',[
+            D('Windows',[
+              D('Start Menu',[
+                D('Programs',[
+                  D('Startup',[]),
+                  F('File Explorer.lnk','lnk','1 KB'),
+                  F('Notepad.lnk','lnk','1 KB'),
+                ]),
+              ]),
+              D('Recent',[]),
+              D('SendTo',[]),
+            ]),
+          ]),
+        ]),
+        D('LocalLow',[]),
+      ]),
+    ]),
+    D('Public',[
+      D('Desktop',[]),D('Documents',[]),D('Downloads',[]),D('Music',[]),
+      D('Pictures',[]),D('Videos',[]),
+    ]),
+    D('Default',[D('NTUSER.DAT (Default)',[])]),
+  ]);
+
+  // ── Root drives ──
+  window._VFS = {
+    'This PC': {type:'thispc', label:'This PC', children:[
+      {name:'Local Disk (C:)', type:'drive', letter:'C', totalGB:256, usedGB:84.2,
+       children:[windowsFolder, progFiles, progFilesX86, users,
+         D('PerfLogs',[]),
+         D('ProgramData',[
+           D('Microsoft',[D('Windows',[D('Start Menu',[D('Programs',[])])])]),
+           D('Windows Defender',[F('MpCmdRun.log','log','0.8 MB')]),
+         ]),
+       ]},
+    ]},
+    'Desktop':   Object.assign(users.children[0].children[0], {_isDesktop:true}),
+    'Documents': users.children[0].children[1],
+    'Downloads': users.children[0].children[2],
+    'Pictures':  users.children[0].children[3],
+    'Music':     users.children[0].children[4],
+    'Videos':    users.children[0].children[5],
+    'Recycle Bin': {name:'Recycle Bin', type:'folder', _isTrash:true, children:[], modified:new Date()},
+  };
+
+  // Helper: resolve a path array like ['C:','Windows','System32'] → node
+  window._vfsResolve = function(pathArr){
+    if(!pathArr||!pathArr.length) return null;
+    // First segment is drive or special
+    let node = null;
+    if(pathArr[0]==='This PC') return window._VFS['This PC'];
+    // drive letter  C:
+    const drive = window._VFS['This PC'].children.find(d=>d.name.startsWith(pathArr[0]));
+    if(!drive) return null;
+    node = drive;
+    for(let i=1;i<pathArr.length;i++){
+      if(!node.children) return null;
+      node = node.children.find(c=>c.name===pathArr[i]);
+      if(!node) return null;
+    }
+    return node;
+  };
+})();
+
+// Global recycle bin — items deleted in File Explorer land here
+if(!window._trash) window._trash = [];
+
+
+let feWinId=0;
+function openFileExplorer(startPath){
+  feWinId++;
+  const win=createWindow('File Explorer',1000,660,'📁');
+  const p=allocProc({name:'File Explorer',mem:+(40+Math.random()*20).toFixed(0),cpu:+(Math.random()*0.8).toFixed(1)});
+  processes.push(p);p.win=win;
+
+  // ── Navigation state ──
+  let history=[], histIdx=-1, viewMode='grid', selectedNode=null;
+  let currentPath=[]; // array of folder names, e.g. ['C:','Windows','System32']
+  let currentNode=null;
+  let searchQuery='';
+
+  // ── Build DOM ──
+  const root=document.createElement('div');
+  root.className='fe-root';
+  root.innerHTML=`
+<div class="fe-ribbon">
+  <button class="fe-ribbon-btn" data-fe="btn-up" title="Up one level">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 12V4M4 8l4-4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Up
+  </button>
+  <div class="fe-ribbon-sep"></div>
+  <button class="fe-ribbon-btn" data-fe="btn-copy" title="Copy">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="8" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3 11V3a1 1 0 0 1 1-1h8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Copy
+  </button>
+  <button class="fe-ribbon-btn" data-fe="btn-open" title="Open selected">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4a1 1 0 0 1 1-1h3l2 2h5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z" stroke="currentColor" stroke-width="1.3"/></svg>Open
+  </button>
+  <button class="fe-ribbon-btn" data-fe="btn-props" title="Properties">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><line x1="8" y1="7" x2="8" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="5" r="0.8" fill="currentColor"/></svg>Properties
+  </button>
+  <div class="fe-ribbon-sep"></div>
+  <button class="fe-ribbon-btn" data-fe="btn-refresh" title="Refresh">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 8A5 5 0 1 1 8 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><polyline points="13,3 13,8 8,8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Refresh
+  </button>
+</div>
+<div class="fe-addrbar">
+  <button class="fe-nav-btn" data-fe="nav-back" title="Back" disabled>
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <button class="fe-nav-btn" data-fe="nav-forward" title="Forward" disabled>
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 2l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <button class="fe-nav-btn" data-fe="nav-up" title="Up">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 10V4M3 7l4-4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <div class="fe-breadcrumb" data-fe="breadcrumb"></div>
+  <input class="fe-search" data-fe="search" placeholder="🔍 Search" autocomplete="off">
+</div>
+<div class="fe-body">
+  <div class="fe-sidebar" data-fe="sidebar"></div>
+  <div class="fe-content" data-fe="content"></div>
+</div>
+<div class="fe-statusbar">
+  <span class="fe-statusbar-cell" data-fe="status-count">0 items</span>
+  <span class="fe-statusbar-cell" data-fe="status-sel"></span>
+  <span class="fe-statusbar-cell" style="margin-left:auto;" data-fe="status-path"></span>
+  <div class="fe-view-toggle" style="margin-left:8px;">
+    <button class="fe-view-toggle-btn active" data-view="grid" title="Icon view">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="0" y="0" width="5" height="5" rx="1" fill="currentColor"/><rect x="7" y="0" width="5" height="5" rx="1" fill="currentColor"/><rect x="0" y="7" width="5" height="5" rx="1" fill="currentColor"/><rect x="7" y="7" width="5" height="5" rx="1" fill="currentColor"/></svg>
+    </button>
+    <button class="fe-view-toggle-btn" data-view="list" title="List view">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="0" y="1" width="12" height="2" rx="1" fill="currentColor"/><rect x="0" y="5" width="12" height="2" rx="1" fill="currentColor"/><rect x="0" y="9" width="12" height="2" rx="1" fill="currentColor"/></svg>
+    </button>
+  </div>
+</div>
+<div class="fe-props-overlay" data-fe="props-overlay">
+  <div class="fe-props-card">
+    <div class="fe-props-title" data-fe="props-title">Properties</div>
+    <hr class="fe-props-hr">
+    <div data-fe="props-body"></div>
+    <button class="fe-props-close" data-fe="props-close">OK</button>
+  </div>
+</div>
+<div class="fe-ctx-menu" data-fe="ctx-menu">
+  <div class="fe-ctx-item" data-fe="ctx-new-file">
+    <span class="fe-ctx-icon">📄</span>New File…
+  </div>
+  <div class="fe-ctx-item" data-fe="ctx-new-folder">
+    <span class="fe-ctx-icon">📁</span>New Folder
+  </div>
+  <div class="fe-ctx-sep"></div>
+  <div class="fe-ctx-item" data-fe="ctx-refresh">
+    <span class="fe-ctx-icon">🔄</span>Refresh
+  </div>
+  <div class="fe-ctx-sep" data-fe="ctx-sel-sep" style="display:none"></div>
+  <div class="fe-ctx-item" data-fe="ctx-open" style="display:none">
+    <span class="fe-ctx-icon">📂</span>Open
+  </div>
+  <div class="fe-ctx-item" data-fe="ctx-props-item" style="display:none">
+    <span class="fe-ctx-icon">ℹ️</span>Properties
+  </div>
+  <div class="fe-ctx-item" data-fe="ctx-delete" style="display:none">
+    <span class="fe-ctx-icon" style="color:var(--text-secondary)">🗑</span><span style="color:rgba(255,153,164,0.9)">Delete</span>
+  </div>
+</div>
+<div class="fe-confirm-overlay" data-fe="confirm-overlay">
+  <div class="fe-confirm-card">
+    <div class="fe-confirm-icon" data-fe="confirm-icon">⚠️</div>
+    <div class="fe-confirm-title" data-fe="confirm-title"></div>
+    <div class="fe-confirm-msg" data-fe="confirm-msg"></div>
+    <div class="fe-confirm-actions">
+      <button class="fe-confirm-cancel" data-fe="confirm-cancel">Cancel</button>
+      <button class="fe-confirm-ok" data-fe="confirm-ok">Delete</button>
+    </div>
+  </div>
+</div>
+<div class="fe-newfile-overlay" data-fe="newfile-overlay">
+  <div class="fe-newfile-card">
+    <div class="fe-newfile-title">📄 New File</div>
+    <div class="fe-newfile-row">
+      <label class="fe-newfile-label">File name</label>
+      <input class="fe-newfile-input" data-fe="newfile-name" placeholder="untitled" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="fe-newfile-ext-row">
+      <div class="fe-newfile-row">
+        <label class="fe-newfile-label">Extension</label>
+        <input class="fe-newfile-input" data-fe="newfile-ext" placeholder="txt" autocomplete="off" spellcheck="false" style="font-family:var(--font-mono)">
+      </div>
+      <div class="fe-newfile-row">
+        <label class="fe-newfile-label">Quick pick</label>
+        <select class="fe-newfile-ext-select" data-fe="newfile-ext-pick">
+          <option value="">— custom —</option>
+          <option value="txt">txt — Text</option>
+          <option value="md">md — Markdown</option>
+          <option value="json">json — JSON</option>
+          <option value="xml">xml — XML</option>
+          <option value="csv">csv — CSV</option>
+          <option value="html">html — HTML</option>
+          <option value="css">css — CSS</option>
+          <option value="js">js — JavaScript</option>
+          <option value="py">py — Python</option>
+          <option value="bat">bat — Batch</option>
+          <option value="ps1">ps1 — PowerShell</option>
+          <option value="log">log — Log</option>
+          <option value="ini">ini — Config</option>
+          <option value="cfg">cfg — Config</option>
+        </select>
+      </div>
+    </div>
+    <div class="fe-newfile-preview" data-fe="newfile-preview">untitled.txt</div>
+    <div class="fe-newfile-actions">
+      <button class="fe-newfile-cancel" data-fe="newfile-cancel">Cancel</button>
+      <button class="fe-newfile-create" data-fe="newfile-create">Create</button>
+    </div>
+  </div>
+</div>
+`;
+  win.appendChild(root);
+
+  // ── Element refs ──
+  const Q=s=>root.querySelector(`[data-fe="${s}"]`);
+  const sidebar=Q('sidebar'), content=Q('content'), breadcrumb=Q('breadcrumb');
+  const statusCount=Q('status-count'), statusSel=Q('status-sel'), statusPath=Q('status-path');
+  const searchInput=Q('search');
+  const propsOverlay=Q('props-overlay'), propsTitle=Q('props-title'), propsBody=Q('props-body');
+  const navBack=Q('nav-back'), navFwd=Q('nav-forward');
+  const confirmOverlay=Q('confirm-overlay');
+
+  // ── In-app confirm dialog ──
+  function feConfirm({icon='⚠️', title='Are you sure?', msg='', okLabel='Delete', onOk}){
+    Q('confirm-icon').textContent=icon;
+    Q('confirm-title').textContent=title;
+    Q('confirm-msg').textContent=msg;
+    Q('confirm-ok').textContent=okLabel;
+    confirmOverlay.classList.add('open');
+    // Wire buttons (replace each time to avoid stale closures)
+    const ok=Q('confirm-ok'), cancel=Q('confirm-cancel');
+    const newOk=ok.cloneNode(true); ok.replaceWith(newOk);
+    const newCancel=cancel.cloneNode(true); cancel.replaceWith(newCancel);
+    Q('confirm-ok').addEventListener('click',()=>{ confirmOverlay.classList.remove('open'); onOk&&onOk(); });
+    Q('confirm-cancel').addEventListener('click',()=>{ confirmOverlay.classList.remove('open'); });
+    confirmOverlay.addEventListener('click',e=>{ if(e.target===confirmOverlay) confirmOverlay.classList.remove('open'); },{once:true});
+  }
+
+  // ── Sidebar quick-access items ──
+  const SIDEBAR_ITEMS=[
+    {label:'This PC',       icon:'🖥️', path:[]                       , key:'thispc'},
+    {label:'Desktop',       icon:'🖥️', path:['Desktop']              , key:'desktop'},
+    {label:'Documents',     icon:'📄', path:['Documents']            , key:'docs'},
+    {label:'Downloads',     icon:'⬇️', path:['Downloads']            , key:'dls'},
+    {label:'Pictures',      icon:'🖼️', path:['Pictures']             , key:'pics'},
+    {label:'Music',         icon:'🎵', path:['Music']                , key:'music'},
+    {label:'Videos',        icon:'🎬', path:['Videos']               , key:'vids'},
+    {label:'──────',        icon:'',   path:null                     , key:'sep'},
+    {label:'Recycle Bin',   icon:'🗑️', path:['Recycle Bin']          , key:'trash'},
+    {label:'Local Disk (C:)',icon:'💿', path:['C:']                  , key:'c'},
+  ];
+
+  function buildSidebar(){
+    sidebar.innerHTML='';
+    const sec=document.createElement('div');sec.className='fe-sidebar-section';sec.textContent='Quick access';
+    sidebar.appendChild(sec);
+    SIDEBAR_ITEMS.forEach(item=>{
+      if(item.key==='sep'){
+        const d=document.createElement('div');d.style.cssText='height:1px;background:var(--stroke-divider);margin:4px 10px;';
+        sidebar.appendChild(d);return;
+      }
+      const el=document.createElement('div');el.className='fe-sidebar-item';
+      el.innerHTML=`<span class="fe-si-icon">${item.icon}</span>${item.label}`;
+      el.dataset.key=item.key;
+      el.addEventListener('click',()=>navigate(item.path));
+      sidebar.appendChild(el);
+    });
+  }
+
+  function updateSidebarActive(){
+    sidebar.querySelectorAll('.fe-sidebar-item').forEach(el=>{
+      const key=el.dataset.key;
+      const item=SIDEBAR_ITEMS.find(i=>i.key===key);
+      if(!item||!item.path) return;
+      // Active if current path starts with item path
+      const match = item.path.length===0
+        ? currentPath.length===0
+        : JSON.stringify(currentPath.slice(0,item.path.length))===JSON.stringify(item.path);
+      el.classList.toggle('active',match);
+    });
+  }
+
+  // ── Resolve a path to a node ──
+  function resolvePath(path){
+    if(!path||!path.length) return window._VFS['This PC'];
+    // Check quick-access shortcut names first (Desktop, Downloads, Recycle Bin, etc.)
+    if(path.length===1){
+      if(window._VFS[path[0]]) return window._VFS[path[0]];
+    }
+    // Otherwise walk the C: drive tree
+    const drive=window._VFS['This PC'].children.find(d=>d.name.startsWith(path[0])||d.letter===path[0]);
+    if(!drive) return null;
+    if(path.length===1) return drive;
+    let node=drive;
+    for(let i=1;i<path.length;i++){
+      if(!node.children) return null;
+      node=node.children.find(c=>c.name===path[i]);
+      if(!node) return null;
+    }
+    return node;
+  }
+
+  // ── Navigate to path ──
+  function navigate(path, pushHistory=true){
+    searchQuery='';searchInput.value='';
+    _resetCtxMenu();
+    const node=resolvePath(path);
+    if(!node) return;
+    currentPath=[...path];
+    currentNode=node;
+    if(pushHistory){
+      history=history.slice(0,histIdx+1);
+      history.push([...path]);
+      histIdx=history.length-1;
+    }
+    navBack.disabled=histIdx<=0;
+    navFwd.disabled=histIdx>=history.length-1;
+    render();
+  }
+
+  function goBack(){if(histIdx>0){histIdx--;navigate(history[histIdx],false);}}
+  function goForward(){if(histIdx<history.length-1){histIdx++;navigate(history[histIdx],false);}}
+  function goUp(){if(currentPath.length>0) navigate(currentPath.slice(0,-1));}
+
+  // ── Breadcrumb ──
+  function updateBreadcrumb(){
+    breadcrumb.innerHTML='';
+    const segments=[{label:'This PC',path:[]},...currentPath.map((seg,i)=>({label:seg,path:currentPath.slice(0,i+1)}))];
+    segments.forEach((seg,i)=>{
+      const el=document.createElement('span');el.className='fe-crumb';el.textContent=seg.label;
+      el.addEventListener('click',()=>navigate(seg.path));
+      breadcrumb.appendChild(el);
+      if(i<segments.length-1){const s=document.createElement('span');s.className='fe-crumb-sep';s.textContent='›';breadcrumb.appendChild(s);}
+    });
+  }
+
+  // ── Main render ──
+  function render(){
+    selectedNode=null;
+    updateBreadcrumb();
+    updateSidebarActive();
+    statusPath.textContent=currentPath.length ? currentPath.join(' \\ ') : 'This PC';
+    statusSel.textContent='';
+
+    // Special: This PC root
+    if(!currentNode||currentNode.type==='thispc'){
+      renderThisPC();return;
+    }
+
+    // Special: Recycle Bin — show live trash array
+    if(currentNode._isTrash){
+      renderTrash();return;
+    }
+
+    // Filter for search
+    let items=(currentNode.children||[]);
+
+    // Special: Desktop — mirror live desktop icons from DOM
+    if(currentNode._isDesktop){
+      const domIcons=document.querySelectorAll('#desktop .desktop-icon');
+      const liveDesktop=[];
+      domIcons.forEach(el=>{
+        const label=el.querySelector('.di-label')?.textContent||'Unknown';
+        const iconTxt=el.querySelector('.di-icon')?.textContent||'📄';
+        // Represent each desktop icon as a .lnk shortcut file
+        liveDesktop.push({
+          name: label+'.lnk',
+          type:'file', ext:'lnk', size:'1 KB', icon:'🔗',
+          modified: new Date(),
+          desc:`Shortcut to ${label}`,
+          _desktopLaunch: label,
+        });
+      });
+      // Merge real Desktop folder children (user-created files) + live shortcuts
+      const real=(currentNode.children||[]).filter(c=>!c._desktopAuto);
+      items=[...liveDesktop, ...real];
+      // Mark auto items so we don't duplicate on next render
+      liveDesktop.forEach(n=>n._desktopAuto=true);
+    }
+
+    if(searchQuery){
+      const q=searchQuery.toLowerCase();
+      items=items.filter(c=>c.name.toLowerCase().includes(q));
+    }
+
+    // Inject live camera roll into Pictures/Camera Roll
+    if(currentNode._isCameraRoll){
+      const livePhotos=(window._camPhotos||[]).map((ph,i)=>({
+        name:ph.name, type:'file', ext:'png', size:'~2 MB', icon:'🖼️',
+        modified:new Date(ph.timestamp), _photoIdx:i, _livePhoto:ph
+      }));
+      items=[...livePhotos,...(currentNode.children||[])];
+    }
+
+    const folders=items.filter(c=>c.type==='folder');
+    const files=items.filter(c=>c.type!=='folder');
+    const all=[...folders,...files];
+
+    statusCount.textContent=`${all.length} item${all.length!==1?'s':''}`;
+
+    content.innerHTML='';
+
+    if(all.length===0){
+      const emptyMsg = currentNode._isDesktop ? 'Desktop is empty' : 'This folder is empty';
+      content.innerHTML=`<div class="fe-empty"><div class="fe-empty-icon">📂</div><div style="font-size:13px;">${emptyMsg}</div></div>`;
+      return;
+    }
+
+    const header=document.createElement('div');header.className='fe-view-header';
+    header.innerHTML=`<span class="fe-view-title">${currentNode.name||'This PC'}</span><span class="fe-view-count">${all.length} item${all.length!==1?'s':''}</span>`;
+    content.appendChild(header);
+
+    if(viewMode==='grid') renderGrid(all);
+    else renderList(all);
+  }
+
+  function renderThisPC(){
+    content.innerHTML='';
+    const header=document.createElement('div');header.className='fe-view-header';
+    header.innerHTML=`<span class="fe-view-title">This PC</span>`;
+    content.appendChild(header);
+
+    // Drives section
+    const driveSec=document.createElement('div');
+    driveSec.style.cssText='margin-bottom:20px;';
+    driveSec.innerHTML='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px;">Devices and drives</div>';
+    const driveGrid=document.createElement('div');
+    driveGrid.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;';
+    (window._VFS['This PC'].children||[]).forEach(drive=>{
+      const card=document.createElement('div');
+      card.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-control);border:1px solid var(--stroke);background:var(--ctrl-bg);cursor:pointer;transition:background var(--dur-faster) linear;';
+      card.onmouseenter=()=>{card.style.background='var(--ctrl-bg-hover)';};
+      card.onmouseleave=()=>{card.style.background='var(--ctrl-bg)';};
+      const pct=Math.round((drive.usedGB/drive.totalGB)*100);
+      const freeGB=(drive.totalGB-drive.usedGB).toFixed(1);
+      card.innerHTML=`
+<span style="font-size:36px;flex-shrink:0;">💿</span>
+<div style="flex:1;min-width:0;">
+  <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${drive.name}</div>
+  <div style="height:4px;background:var(--ctrl-bg-hover);border-radius:2px;margin:5px 0;overflow:hidden;">
+    <div style="height:100%;width:${pct}%;background:${pct>85?'#FF99A4':pct>60?'#FCE100':'var(--accent-fill)'};border-radius:2px;"></div>
+  </div>
+  <div style="font-size:10px;color:var(--text-tertiary);">${freeGB} GB free of ${drive.totalGB} GB</div>
+</div>`;
+      card.addEventListener('dblclick',()=>navigate([drive.letter+':']||[drive.name]));
+      card.addEventListener('click',()=>navigate([drive.name.includes('C')?'C:':drive.name]));
+      driveGrid.appendChild(card);
+    });
+    driveSec.appendChild(driveGrid);
+    content.appendChild(driveSec);
+
+    // Folders section
+    const folderSec=document.createElement('div');
+    folderSec.innerHTML='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px;">Folders</div>';
+    const folderGrid=document.createElement('div');
+    folderGrid.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:4px;';
+    [
+      {label:'Desktop',icon:'🖥️',path:['Desktop']},
+      {label:'Documents',icon:'📄',path:['Documents']},
+      {label:'Downloads',icon:'⬇️',path:['Downloads']},
+      {label:'Music',icon:'🎵',path:['Music']},
+      {label:'Pictures',icon:'🖼️',path:['Pictures']},
+      {label:'Videos',icon:'🎬',path:['Videos']},
+    ].forEach(({label,icon,path})=>{
+      const item=document.createElement('div');item.className='fe-item';
+      item.innerHTML=`<span class="fe-item-icon">${icon}</span><span class="fe-item-name">${label}</span>`;
+      item.addEventListener('click',()=>{selectItem(item,null);});
+      item.addEventListener('dblclick',()=>navigate(path));
+      folderGrid.appendChild(item);
+    });
+    folderSec.appendChild(folderGrid);
+    content.appendChild(folderSec);
+    statusCount.textContent='6 folders, 1 drive';
+  }
+
+  function renderTrash(){
+    content.innerHTML='';
+    const trash=window._trash||[];
+
+    // Toolbar strip with Empty/Restore All
+    const bar=document.createElement('div');
+    bar.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:14px;';
+    const titleEl=document.createElement('span');
+    titleEl.style.cssText='font-size:var(--text-body);font-weight:600;flex:1;';
+    titleEl.textContent='Recycle Bin';
+    bar.appendChild(titleEl);
+
+    if(trash.length>0){
+      const emptyBtn=document.createElement('button');
+      emptyBtn.textContent='Empty Recycle Bin';
+      emptyBtn.style.cssText='padding:5px 12px;border-radius:var(--radius-control);border:1px solid rgba(255,99,132,.35);background:rgba(255,99,132,.1);color:#ff99a4;font-size:var(--text-caption);font-family:var(--font);cursor:pointer;';
+      emptyBtn.addEventListener('click',()=>{
+        feConfirm({
+          icon:'🗑️',
+          title:'Empty Recycle Bin?',
+          msg:`Permanently delete ${trash.length} item${trash.length!==1?'s':''}? This cannot be undone.`,
+          okLabel:'Empty Bin',
+          onOk:()=>{
+            window._trash=[];
+            showToast('Recycle Bin emptied','success','🗑️',2200);
+            _updateTrashIcon();
+            render();
+          }
+        });
+      });
+      const restoreAllBtn=document.createElement('button');
+      restoreAllBtn.textContent='Restore All';
+      restoreAllBtn.style.cssText='padding:5px 12px;border-radius:var(--radius-control);border:1px solid var(--stroke);background:var(--ctrl-bg);color:var(--text-primary);font-size:var(--text-caption);font-family:var(--font);cursor:pointer;';
+      restoreAllBtn.addEventListener('click',()=>{
+        trash.forEach(t=>{ if(t._parentNode&&t._parentNode.children) t._parentNode.children.push(t.node); });
+        window._trash=[];
+        showToast('All items restored','success','↩️',2200);
+        _updateTrashIcon();
+        render();
+      });
+      bar.append(restoreAllBtn, emptyBtn);
+    }
+    content.appendChild(bar);
+
+    statusCount.textContent=`${trash.length} item${trash.length!==1?'s':''}`;
+
+    if(trash.length===0){
+      content.innerHTML+='<div class="fe-empty"><div class="fe-empty-icon">🗑️</div><div style="font-size:13px;">Recycle Bin is empty</div></div>';
+      return;
+    }
+
+    const grid=document.createElement('div');grid.className='fe-grid';
+    trash.forEach((entry,idx)=>{
+      const {node}=entry;
+      const icon=node.type==='folder'?'📁':node.icon||'📄';
+      const item=document.createElement('div');item.className='fe-item';
+      item.innerHTML=`<span class="fe-item-icon" style="opacity:.65;filter:grayscale(.4)">${icon}</span><span class="fe-item-name">${node.name}</span><span class="fe-item-type">Deleted ${new Date(entry.deletedAt).toLocaleDateString()}</span>`;
+      item.addEventListener('click',e=>{e.stopPropagation();selectItem(item,node);});
+      item.addEventListener('contextmenu',e=>{
+        e.stopPropagation();
+        selectItem(item,node);
+        // Show a restore-specific context menu
+        openTrashCtx(e,entry,idx);
+      });
+      item.addEventListener('dblclick',()=>showProps(node));
+      grid.appendChild(item);
+    });
+    content.appendChild(grid);
+  }
+
+  // ── Trash-specific right-click ──
+  function openTrashCtx(e, entry, idx){
+    const ctxMenu=Q('ctx-menu');
+    // Temporarily repurpose the ctx menu for trash actions
+    Q('ctx-new-file').style.display='none';
+    Q('ctx-new-folder').style.display='none';
+    Q('ctx-refresh').style.display='none';
+    Q('ctx-sel-sep').style.display='';
+    Q('ctx-open').style.display='none';
+    Q('ctx-props-item').style.display='';
+    Q('ctx-delete').style.display='';
+    Q('ctx-delete').querySelector('.fe-ctx-icon').textContent='🗑';
+    Q('ctx-delete').querySelector('span:last-child').textContent='Delete permanently';
+
+    // Inject a Restore item if not already there
+    let restoreEl=ctxMenu.querySelector('[data-trash-restore]');
+    if(!restoreEl){
+      restoreEl=document.createElement('div');
+      restoreEl.className='fe-ctx-item';
+      restoreEl.dataset.trashRestore='1';
+      restoreEl.innerHTML='<span class="fe-ctx-icon">↩️</span>Restore';
+      ctxMenu.insertBefore(restoreEl, Q('ctx-sel-sep'));
+    }
+    restoreEl.style.display='';
+    restoreEl.onclick=()=>{
+      closeCtxMenu();
+      if(entry._parentNode&&entry._parentNode.children) entry._parentNode.children.push(entry.node);
+      window._trash.splice(idx,1);
+      showToast(`"${entry.node.name}" restored`,'success','↩️',2200);
+      _updateTrashIcon();
+      render();
+    };
+
+    // Override delete to permanently remove (with in-app confirm)
+    Q('ctx-delete').onclick=()=>{
+      closeCtxMenu();
+      feConfirm({
+        icon:'🗑️',
+        title:'Delete permanently?',
+        msg:`"${entry.node.name}" will be permanently deleted and cannot be recovered.`,
+        okLabel:'Delete permanently',
+        onOk:()=>{
+          window._trash.splice(idx,1);
+          showToast(`"${entry.node.name}" permanently deleted`,'warn','🗑',2200);
+          _updateTrashIcon();
+          render();
+        }
+      });
+    };
+
+    // Override props
+    Q('ctx-props-item').onclick=()=>{ closeCtxMenu(); showProps(entry.node); };
+
+    const winRect=win.getBoundingClientRect();
+    let x=e.clientX-winRect.left, y=e.clientY-winRect.top;
+    if(x+220>winRect.width) x=winRect.width-224;
+    if(y+160>winRect.height) y=winRect.height-164;
+    ctxMenu.style.left=x+'px'; ctxMenu.style.top=y+'px';
+    ctxMenu.style.position='absolute';
+    ctxMenu.classList.remove('open'); void ctxMenu.offsetWidth; ctxMenu.classList.add('open');
+    ctxMenu._targetNode=entry.node;
+  }
+
+  // Restore the normal ctx menu items when not in trash
+  function _resetCtxMenu(){
+    Q('ctx-new-file').style.display='';
+    Q('ctx-new-folder').style.display='';
+    Q('ctx-refresh').style.display='';
+    const restoreEl=Q('ctx-menu').querySelector('[data-trash-restore]');
+    if(restoreEl) restoreEl.style.display='none';
+    Q('ctx-delete').querySelector('.fe-ctx-icon').textContent='🗑';
+    Q('ctx-delete').querySelector('span:last-child').textContent='';
+    Q('ctx-delete').querySelector('span:last-child').style.color='rgba(255,153,164,0.9)';
+    // Re-wire delete to normal behaviour
+    Q('ctx-delete').onclick=null;
+    Q('ctx-props-item').onclick=null;
+  }
+
+  function renderGrid(items){
+    const grid=document.createElement('div');grid.className='fe-grid';
+    items.forEach(node=>{
+      const item=document.createElement('div');item.className='fe-item';
+      const icon=node.type==='folder'?'📁':node.icon||'📄';
+      item.innerHTML=`<span class="fe-item-icon">${icon}</span><span class="fe-item-name">${node.name}</span><span class="fe-item-type">${node.type==='folder'?'Folder':(node.ext||'').toUpperCase()+' File'}</span>`;
+      wireItem(item,node);grid.appendChild(item);
+    });
+    content.appendChild(grid);
+  }
+
+  function renderList(items){
+    const list=document.createElement('div');list.className='fe-list';
+    const header=document.createElement('div');header.className='fe-list-header';
+    header.innerHTML='<div class="fe-list-hcell">Name</div><div class="fe-list-hcell">Date modified</div><div class="fe-list-hcell">Type</div><div class="fe-list-hcell">Size</div>';
+    list.appendChild(header);
+    items.forEach(node=>{
+      const row=document.createElement('div');row.className='fe-list-row';
+      const icon=node.type==='folder'?'📁':node.icon||'📄';
+      const typeStr=node.type==='folder'?'File folder':(node.ext||'').toUpperCase()+' File';
+      const dateStr=node.modified?new Date(node.modified).toLocaleDateString():'';
+      row.innerHTML=`
+<div class="fe-list-cell"><span class="fe-list-icon">${icon}</span>${node.name}</div>
+<div class="fe-list-cell">${dateStr}</div>
+<div class="fe-list-cell">${typeStr}</div>
+<div class="fe-list-cell">${node.size||'—'}</div>`;
+      wireItem(row,node);list.appendChild(row);
+    });
+    content.appendChild(list);
+  }
+
+  function selectItem(el, node){
+    content.querySelectorAll('.fe-item.selected,.fe-list-row.selected').forEach(e=>e.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedNode=node;
+    if(node) statusSel.textContent=`"${node.name}" selected`;
+  }
+
+  function wireItem(el, node){
+    el.addEventListener('click',e=>{e.stopPropagation();selectItem(el,node);});
+    el.addEventListener('contextmenu',e=>{
+      e.stopPropagation();
+      selectItem(el,node);
+      openCtxMenu(e,node);
+    });
+    el.addEventListener('dblclick',()=>{
+      if(!node) return;
+      if(node.type==='folder') navigate([...currentPath,node.name]);
+      else if(node._livePhoto){
+        // Open image in Photos app lightbox simulation — just open Photos
+        openPhotos();
+      } else if(node.ext==='txt'||node.ext==='log'||node.ext==='ini'||node.ext==='cfg'||node.ext==='md'||node.ext==='json'||node.ext==='xml'||node.ext==='csv'||node.ext==='html'||node.ext==='css'||node.ext==='js'||node.ext==='py'||node.ext==='bat'||node.ext==='ps1'){
+        openNotepad(`[${node.name}]\n\nPath: ${[...currentPath,node.name].join('\\')}  \nSize: ${node.size||'unknown'}\nDescription: ${node.desc||'User-created file'}`);
+      } else if(node.ext==='exe'){
+        showToast(`"${node.name}" — cannot run executables in the browser`,'warn','⚙️',3000);
+      } else {
+        showToast(`Cannot open "${node.name}" — no associated app`,'info','📄',2200);
+      }
+    });
+  }
+
+  // ── Properties dialog ──
+  function showProps(node){
+    if(!node) return;
+    const icon=node.type==='folder'?'📁':node.icon||'📄';
+    propsTitle.innerHTML=`${icon} ${node.name}`;
+    const rows=[
+      ['Type', node.type==='folder'?'File folder':((node.ext||'').toUpperCase()+' file')],
+      ['Location', currentPath.join('\\') || 'This PC'],
+      ['Size', node.size||'—'],
+      ['Description', node.desc||'—'],
+      ['Modified', node.modified?new Date(node.modified).toLocaleString():'—'],
+      ['Extension', node.ext?('.'+node.ext):'—'],
+    ].filter(([,v])=>v&&v!=='—'||(v==='—'));
+    propsBody.innerHTML=rows.map(([k,v])=>`<div class="fe-props-row"><span class="fe-props-key">${k}</span><span class="fe-props-val">${v}</span></div>`).join('');
+    propsOverlay.classList.add('open');
+  }
+
+  Q('props-close').addEventListener('click',()=>propsOverlay.classList.remove('open'));
+  propsOverlay.addEventListener('click',e=>{ if(e.target===propsOverlay) propsOverlay.classList.remove('open'); });
+
+  // ── Ribbon buttons ──
+  Q('btn-up').addEventListener('click',goUp);
+  Q('btn-copy').addEventListener('click',()=>{
+    if(selectedNode) showToast(`Copied "${selectedNode.name}" to clipboard`,'info','📋',2000);
+  });
+  Q('btn-open').addEventListener('click',()=>{
+    if(!selectedNode) return;
+    if(selectedNode.type==='folder') navigate([...currentPath,selectedNode.name]);
+  });
+  Q('btn-props').addEventListener('click',()=>showProps(selectedNode));
+  Q('btn-refresh').addEventListener('click',()=>navigate(currentPath,false));
+
+  // ── Nav buttons ──
+  navBack.addEventListener('click',goBack);
+  navFwd.addEventListener('click',goForward);
+  Q('nav-up').addEventListener('click',goUp);
+
+  // ── View toggle ──
+  root.querySelectorAll('[data-view]').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      viewMode=this.dataset.view;
+      root.querySelectorAll('[data-view]').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+      render();
+    });
+  });
+
+  // ── Search ──
+  searchInput.addEventListener('input',function(){
+    searchQuery=this.value.trim();
+    render();
+  });
+
+  // ── Content area right-click context menu ──
+  const ctxMenu = Q('ctx-menu');
+
+  function closeCtxMenu(){ ctxMenu.classList.remove('open'); }
+
+  function openCtxMenu(e, onItem){
+    e.preventDefault(); e.stopPropagation();
+    // Toggle item-specific rows
+    Q('ctx-sel-sep').style.display   = onItem ? '' : 'none';
+    Q('ctx-open').style.display      = (onItem && onItem.type==='folder') ? '' : 'none';
+    Q('ctx-props-item').style.display= onItem ? '' : 'none';
+    Q('ctx-delete').style.display    = onItem ? '' : 'none';
+    // Position within the window bounds
+    const winRect = win.getBoundingClientRect();
+    const mw=210, mh=onItem?180:110;
+    let x = e.clientX - winRect.left;
+    let y = e.clientY - winRect.top;
+    if(x + mw > winRect.width)  x = winRect.width  - mw - 4;
+    if(y + mh > winRect.height) y = winRect.height - mh - 4;
+    ctxMenu.style.left = x + 'px';
+    ctxMenu.style.top  = y + 'px';
+    ctxMenu.style.position = 'absolute';
+    ctxMenu.classList.remove('open');
+    void ctxMenu.offsetWidth; // reflow for animation
+    ctxMenu.classList.add('open');
+    ctxMenu._targetNode = onItem || null;
+  }
+
+  // Right-click on empty content area
+  content.addEventListener('contextmenu', e => {
+    if(e.target.closest('.fe-item,.fe-list-row')) return; // handled below
+    openCtxMenu(e, null);
+  });
+
+  // Close ctx menu on any click outside
+  document.addEventListener('click', function _feCtxClose(e){
+    if(!ctxMenu.contains(e.target)) closeCtxMenu();
+  }, true);
+
+  // Ctx menu — Refresh
+  Q('ctx-refresh').addEventListener('click', ()=>{ closeCtxMenu(); navigate(currentPath, false); });
+
+  // Ctx menu — Open (folder)
+  Q('ctx-open').addEventListener('click', ()=>{
+    const n = ctxMenu._targetNode;
+    closeCtxMenu();
+    if(n && n.type==='folder') navigate([...currentPath, n.name]);
+  });
+
+  // Ctx menu — Properties (item)
+  Q('ctx-props-item').addEventListener('click', ()=>{
+    const n = ctxMenu._targetNode;
+    closeCtxMenu();
+    if(n) showProps(n);
+  });
+
+  // Ctx menu — Delete → send to Recycle Bin (unless already in trash)
+  Q('ctx-delete').addEventListener('click', ()=>{
+    const n = ctxMenu._targetNode;
+    closeCtxMenu();
+    if(!n || !currentNode || !currentNode.children) return;
+    const idx = currentNode.children.indexOf(n);
+    if(idx < 0) return;
+    currentNode.children.splice(idx, 1);
+    window._trash.unshift({node:n, _parentNode:currentNode, deletedAt:Date.now()});
+    _updateTrashIcon();
+    showToast(`"${n.name}" moved to Recycle Bin`, 'warn', '🗑️', 2200);
+    render();
+  });
+
+  // ── New File dialog ──
+  const nfOverlay = Q('newfile-overlay');
+  const nfName    = Q('newfile-name');
+  const nfExt     = Q('newfile-ext');
+  const nfPick    = Q('newfile-ext-pick');
+  const nfPreview = Q('newfile-preview');
+  const nfCreate  = Q('newfile-create');
+
+  function _extIcon2(ext){
+    const m={exe:'⚙️',dll:'🔧',sys:'🛡️',ini:'📄',cfg:'📄',txt:'📝',log:'📋',
+             ttf:'🅰️',otf:'🅰️',png:'🖼️',jpg:'🖼️',mp3:'🎵',mp4:'🎬',
+             zip:'📦',json:'📋',xml:'📋',bat:'⚙️',cmd:'⚙️',ps1:'🔷',
+             html:'🌐',css:'🎨',js:'📜',py:'🐍',md:'📝',csv:'📊'};
+    return m[(ext||'').toLowerCase()] || '📄';
+  }
+
+  function updateNfPreview(){
+    const name = nfName.value.trim() || 'untitled';
+    const ext  = nfExt.value.trim().replace(/^\.+/,'') || 'txt';
+    nfPreview.textContent = name + '.' + ext;
+    nfCreate.disabled = !nfName.value.trim() && !nfExt.value.trim();
+  }
+
+  function openNewFileDialog(){
+    closeCtxMenu();
+    nfName.value = '';
+    nfExt.value  = 'txt';
+    nfPick.value = 'txt';
+    updateNfPreview();
+    nfOverlay.classList.add('open');
+    setTimeout(()=>nfName.focus(), 80);
+  }
+
+  function closeNewFileDialog(){ nfOverlay.classList.remove('open'); }
+
+  nfName.addEventListener('input', updateNfPreview);
+  nfExt.addEventListener('input', ()=>{ nfPick.value=''; updateNfPreview(); });
+  nfPick.addEventListener('change', ()=>{ if(nfPick.value){ nfExt.value=nfPick.value; updateNfPreview(); }});
+
+  Q('newfile-cancel').addEventListener('click', closeNewFileDialog);
+  nfOverlay.addEventListener('click', e=>{ if(e.target===nfOverlay) closeNewFileDialog(); });
+
+  // Trap Enter/Escape inside dialog
+  nfOverlay.addEventListener('keydown', e=>{
+    if(e.key==='Enter'){ e.preventDefault(); nfCreate.click(); }
+    if(e.key==='Escape'){ closeNewFileDialog(); }
+  });
+
+  nfCreate.addEventListener('click', ()=>{
+    const rawName = nfName.value.trim() || 'untitled';
+    const ext     = nfExt.value.trim().replace(/^\.+/,'') || 'txt';
+    const fullName= rawName + '.' + ext;
+
+    // Guard: must be inside a real folder (not This PC root)
+    if(!currentNode || !currentNode.children){
+      showToast('Cannot create files here — navigate into a folder first','warn','⚠️',3000);
+      closeNewFileDialog(); return;
+    }
+
+    // Guard: duplicate name
+    if(currentNode.children.find(c=>c.name===fullName)){
+      showToast(`"${fullName}" already exists in this folder`,'warn','⚠️',2500);
+      nfName.focus(); return;
+    }
+
+    // Create the node and push it
+    const now = new Date();
+    const newNode = {
+      name:     fullName,
+      type:     'file',
+      ext:      ext,
+      size:     '0 KB',
+      icon:     _extIcon2(ext),
+      modified: now,
+      desc:     'User-created file',
+      _userCreated: true,
+    };
+    currentNode.children.push(newNode);
+    closeNewFileDialog();
+    render();
+    showToast(`Created "${fullName}"`, 'success', _extIcon2(ext), 2200);
+
+    // Auto-select and highlight the new item after render
+    setTimeout(()=>{
+      const all = content.querySelectorAll('.fe-item, .fe-list-row');
+      all.forEach(el=>{
+        const nameEl = el.querySelector('.fe-item-name,.fe-list-cell');
+        if(nameEl && nameEl.textContent.includes(rawName)){
+          selectItem(el, newNode);
+          el.scrollIntoView({block:'nearest'});
+        }
+      });
+    }, 50);
+  });
+
+  // Ctx menu — New File
+  Q('ctx-new-file').addEventListener('click', openNewFileDialog);
+
+  // Ctx menu — New Folder
+  Q('ctx-new-folder').addEventListener('click', ()=>{
+    closeCtxMenu();
+    if(!currentNode || !currentNode.children){
+      showToast('Cannot create folders here','warn','⚠️',2500); return;
+    }
+    let name='New folder', n=1;
+    while(currentNode.children.find(c=>c.name===name)) name=`New folder (${++n})`;
+    currentNode.children.unshift({name,type:'folder',children:[],modified:new Date(),_userCreated:true});
+    render();
+    showToast(`Created "${name}"`, 'success', '📁', 2000);
+  });
+
+  // ── Update trash desktop icon to show full/empty state ──
+  function _updateTrashIcon(){
+    const full=window._trash&&window._trash.length>0;
+    document.querySelectorAll('#desktop .desktop-icon').forEach(el=>{
+      if(el.dataset.name==='Recycle Bin'){
+        const ic=el.querySelector('.di-icon');
+        if(ic) ic.textContent=full?'🗑️':'🗑️'; // same emoji; could swap for styled version
+      }
+    });
+    // Update sidebar badge if visible
+    sidebar.querySelectorAll('.fe-sidebar-item').forEach(el=>{
+      if(el.dataset.key==='trash'){
+        const cnt=window._trash?window._trash.length:0;
+        el.style.opacity=cnt>0?'1':'0.6';
+        // Show count chip
+        let chip=el.querySelector('.fe-trash-count');
+        if(cnt>0){
+          if(!chip){chip=document.createElement('span');chip.className='fe-trash-count';chip.style.cssText='margin-left:auto;font-size:10px;background:rgba(255,153,164,0.2);color:#ff99a4;border-radius:8px;padding:1px 5px;';el.appendChild(chip);}
+          chip.textContent=cnt;
+        } else if(chip){ chip.remove(); }
+      }
+    });
+  }
+
+  // ── Click to deselect ──
+  content.addEventListener('click',e=>{
+    if(e.target===content||e.target.classList.contains('fe-grid')||e.target.classList.contains('fe-list')){
+      content.querySelectorAll('.fe-item.selected,.fe-list-row.selected').forEach(el=>el.classList.remove('selected'));
+      selectedNode=null;statusSel.textContent='';
+    }
+  });
+
+  // ── Cleanup ──
+  win._tmCleanup=()=>{};
+  win._feConfirm=feConfirm;  // expose so desktop icon ctx menu can use it
+  win._feUpdateTrashIcon=_updateTrashIcon;  // expose so _deleteDesktopIcon can refresh badge
+  buildSidebar();
+  finish(win,'📁',p);
+  start.classList.remove('active');
+  trackRecent('File Explorer','📁','openFileExplorer()');
+  showToast('Opening File Explorer','info','📁',1500);
+  navigate(startPath||[]);  // Start at This PC
+}
+
 // ===================== NOTEPAD =====================
 function openNotepad(initialText){
 const win=createWindow('Notepad',720,520,'📝');
@@ -2808,10 +4654,19 @@ a.download='note.txt';a.click();URL.revokeObjectURL(a.href);
 showToast('Saved as note.txt','success','💾',2000);
 }
 
-// Clear
-const clearBtn=makeBtn('New','Clear (Ctrl+Shift+N)',()=>{
-if(area.value&&!confirm('Discard changes?')) return;
-area.value='';updateStatus();
+// Clear — two-click confirmation via toast instead of native confirm()
+let _clearPending = false, _clearTimer = null;
+const clearBtn=makeBtn('New','Clear document',()=>{
+  if(!area.value){ area.value=''; updateStatus(); return; }
+  if(_clearPending){
+    clearTimeout(_clearTimer); _clearPending=false;
+    area.value=''; updateStatus();
+    showToast('Document cleared','info','📝',1800);
+  } else {
+    _clearPending=true;
+    showToast('Click "New" again to discard changes','warn','⚠️',2500);
+    _clearTimer=setTimeout(()=>{ _clearPending=false; }, 2600);
+  }
 });
 
 toolbar.append(clearBtn,makeSep(),makeBtn('Save .txt','Save to file',saveTxt),makeSep(),
@@ -3743,6 +5598,8 @@ w.querySelectorAll('.resizeHandle').forEach(r=>{
 // ===================== CONTEXT MENUS =====================
 
 // ── Desktop right-click ──
+let _suppressNextClick = false;
+
 document.addEventListener('contextmenu', e=>{
   e.preventDefault();
   e.stopPropagation();
@@ -3750,8 +5607,14 @@ document.addEventListener('contextmenu', e=>{
   // Right-clicking a .app tile inside the Start menu → app context menu
   const appTile = e.target.closest('.app');
   if(appTile && e.target.closest('#start')){
-    closeAllMenus();
+    // Close other menus but keep the start menu open
+    document.getElementById('menu').classList.remove('open');
+    document.getElementById('tbMenu').style.display = 'none';
+    document.getElementById('appCtxMenu').classList.remove('open');
+    document.getElementById('diCtxMenu').classList.remove('open');
     showAppCtxMenu(e, appTile);
+    // The right-click generates a click event too — suppress it so start menu stays open
+    _suppressNextClick = true;
     return;
   }
 
@@ -3761,6 +5624,9 @@ document.addEventListener('contextmenu', e=>{
   // Right-clicking inside an open window → let the window handle it (don't override)
   if(e.target.closest('.window')) return;
 
+  // Right-clicking a desktop icon → handled by wireIcon's contextmenu listener
+  if(e.target.closest('.desktop-icon')) return;
+
   // Everything else → desktop context menu
   closeAllMenus();
   const m = document.getElementById('menu');
@@ -3768,23 +5634,40 @@ document.addEventListener('contextmenu', e=>{
   m.classList.remove('open');
   void m.offsetWidth;
   m.classList.add('open');
+  document.body.classList.add('ui-overlay-open');
   positionMenu(m, e.clientX, e.clientY, 210, 240);
 });
 
 // Global click: close all menus unless click is inside one of them
 document.addEventListener('click', e=>{
-  // Don't close if clicking inside a menu (let item handlers fire first via bubbling)
-  if(e.target.closest('#appCtxMenu') || e.target.closest('#menu') || e.target.closest('#tbMenu')) return;
-  closeAllMenus();
-  if(!e.target.closest('#start') && !e.target.closest('.taskBtn'))
+  // Contextmenu on a start-menu item sets this flag — consume and bail
+  if(_suppressNextClick){ _suppressNextClick = false; return; }
+
+  const diCtx = document.getElementById('diCtxMenu');
+  // Don't close if clicking inside a context/dropdown menu
+  if(e.target.closest('#appCtxMenu') || e.target.closest('#menu') || e.target.closest('#tbMenu') || e.target.closest('#diCtxMenu')) return;
+  // Always close the desktop / taskbar / icon context menus
+  document.getElementById('menu').classList.remove('open');
+  document.getElementById('tbMenu').style.display = 'none';
+  diCtx.classList.remove('open');
+  document.getElementById('appCtxMenu').classList.remove('open');
+  // Close start menu only if clicking outside start and not the start button
+  if(!e.target.closest('#start') && !e.target.closest('.taskBtn--start')){
     start.classList.remove('active');
+    document.body.classList.remove('ui-overlay-open');
+  }
 });
 
-// Close every menu at once
-function closeAllMenus(){
+// Close every menu at once. Pass keepStart=true to leave the start menu open.
+function closeAllMenus(keepStart=false){
   document.getElementById('menu').classList.remove('open');
   document.getElementById('tbMenu').style.display = 'none';
   document.getElementById('appCtxMenu').classList.remove('open');
+  document.getElementById('diCtxMenu').classList.remove('open');
+  if(!keepStart){
+    start.classList.remove('active');
+    document.body.classList.remove('ui-overlay-open');
+  }
 }
 
 // Smart position — flip left/up if menu would overflow the viewport
@@ -3815,6 +5698,10 @@ function registerAppFn(name, fn){
 // Register all built-in apps up front
 (function registerBuiltins(){
   registerAppFn('Camera',              ()=>openCamera());
+  registerAppFn('Photos',              ()=>openPhotos());
+  registerAppFn('File Explorer',       ()=>openFileExplorer());
+  registerAppFn('Files',               ()=>openFileExplorer());
+  registerAppFn('Recycle Bin',         ()=>openFileExplorer(['Recycle Bin']));
   registerAppFn('Minecraft',           ()=>openMinecraft());
   registerAppFn('Smash Karts',         ()=>openGame(atob('aHR0cHM6Ly9zbWFzaGthcnRzLmlvLw=='),'Smash Karts'));
   registerAppFn('FNAF 1',              ()=>openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8xLw=='),'FNAF 1'));
@@ -3968,7 +5855,8 @@ document.querySelectorAll('.app').forEach(tile=>{
   tile.addEventListener('contextmenu', ev=>{
     ev.preventDefault(); ev.stopPropagation();
     if(!ev.target.closest('#start')) return;
-    closeAllMenus();
+    closeAllMenus(true);
+    _suppressNextClick = true;
     showAppCtxMenu(ev, tile);
   });
 });
@@ -4403,7 +6291,51 @@ function wireIcon(icon){
     if(name && typeof launchApp === 'function') launchApp(name);
   });
 
-  // Right-click: show desktop context menu (handled by global contextmenu listener)
+  // Right-click: desktop icon context menu
+  icon.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    const diMenu = document.getElementById('diCtxMenu');
+    const name = icon.dataset.name;
+
+    // Position menu
+    const mw=196, mh=80;
+    let x = e.clientX, y = e.clientY;
+    if(x + mw > window.innerWidth)  x = window.innerWidth  - mw - 4;
+    if(y + mh > window.innerHeight) y = window.innerHeight - mh - 4;
+    diMenu.style.left = x + 'px';
+    diMenu.style.top  = y + 'px';
+    diMenu.classList.remove('open');
+    void diMenu.offsetWidth;
+    diMenu.classList.add('open');
+    diMenu._icon = icon;
+
+    // Wire Open
+    document.getElementById('diCtxOpen').onclick = () => {
+      diMenu.classList.remove('open');
+      if(name && typeof launchApp === 'function') launchApp(name);
+    };
+
+    // Wire Delete
+    document.getElementById('diCtxDelete').onclick = () => {
+      diMenu.classList.remove('open');
+      const label = icon.querySelector('.di-label')?.textContent || name;
+      // Show in-app confirm if a File Explorer window is open, else use a toast-based approach
+      const feWin = windows.find(w=>w.style.display!=='none' && w.querySelector('.fe-root'));
+      if(feWin && feWin._feConfirm){
+        feWin._feConfirm({
+          icon:'🗑️',
+          title:`Move "${label}" to Recycle Bin?`,
+          msg:'The shortcut will be removed from the desktop.',
+          okLabel:'Move to Recycle Bin',
+          onOk:()=>_deleteDesktopIcon(icon, label)
+        });
+      } else {
+        // No FE window open — use a floating confirm built on the desktop
+        _desktopConfirm(icon, label);
+      }
+    };
+  });
 }
 
 // ── Rubber-band multi-select ──
@@ -4490,6 +6422,67 @@ window.addDesktopIcon = function(name, icon, launchName){
 initExistingIcons();
 
 })(); // end initDesktopIcons
+
+// ── Desktop icon delete helper ──
+function _deleteDesktopIcon(icon, label){
+  if(!window._trash) window._trash=[];
+  // Add to trash as a lnk-type node
+  const trashNode={
+    name: label+'.lnk', type:'file', ext:'lnk', size:'1 KB', icon:'🔗',
+    modified:new Date(), desc:'Desktop shortcut — '+label,
+    _desktopLaunch:label,
+  };
+  window._trash.unshift({node:trashNode, _parentNode:window._VFS['Desktop'], deletedAt:Date.now()});
+  // Remove the actual icon from the DOM
+  icon.remove();
+  showToast(`"${label}" moved to Recycle Bin`,'warn','🗑️',2200);
+  // Update trash badge in any open FE window
+  windows.forEach(w=>{ if(w._feUpdateTrashIcon) w._feUpdateTrashIcon(); });
+}
+
+// ── Floating desktop confirm (used when no FE window is open) ──
+function _desktopConfirm(icon, label){
+  const existing=document.getElementById('_diConfirmCard');
+  if(existing) existing.remove();
+
+  const card=document.createElement('div');
+  card.id='_diConfirmCard';
+  card.style.cssText=`
+    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+    background:rgba(44,44,44,0.97);border:1px solid var(--stroke-surface);
+    border-radius:var(--radius-overlay);padding:20px;width:320px;
+    display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow-64);
+    z-index:9999999;animation:menuOpen var(--dur-fast) var(--ease-decelerate) both;
+    font-family:var(--font);color:var(--text-primary);
+  `;
+  card.innerHTML=`
+    <div style="font-size:28px;text-align:center;">🗑️</div>
+    <div style="font-size:14px;font-weight:600;text-align:center;">Move to Recycle Bin?</div>
+    <div style="font-size:12px;color:var(--text-secondary);text-align:center;line-height:1.5;">"${label}" will be removed from the desktop and moved to the Recycle Bin.</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button id="_diConfirmCancel" style="padding:6px 16px;border-radius:var(--radius-control);border:1px solid var(--stroke);background:var(--ctrl-bg);color:var(--text-primary);font-size:13px;font-family:var(--font);cursor:pointer;">Cancel</button>
+      <button id="_diConfirmOk" style="padding:6px 16px;border-radius:var(--radius-control);border:1px solid rgba(255,99,132,.4);background:rgba(255,99,132,.15);color:#ff99a4;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;">Move to Recycle Bin</button>
+    </div>
+  `;
+  document.body.appendChild(card);
+  document.getElementById('_diConfirmCancel').addEventListener('click',()=>card.remove());
+  document.getElementById('_diConfirmOk').addEventListener('click',()=>{
+    card.remove();
+    _deleteDesktopIcon(icon, label);
+  });
+  // Click outside to cancel
+  setTimeout(()=>{
+    document.addEventListener('click', function _outsideClose(e){
+      if(!card.contains(e.target)){ card.remove(); document.removeEventListener('click',_outsideClose,true); }
+    }, true);
+  }, 50);
+}
+
+// ── Close desktop icon context menu on any outside click ──
+document.addEventListener('click', ()=>{
+  const m=document.getElementById('diCtxMenu');
+  if(m) m.classList.remove('open');
+}, true);
 
 // ===================== BOOT =====================
 // Safety net: always clear win-dragging if mouse released anywhere or window loses focus
