@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" style="background:#1a1a1a">
+<html lang="en" style="background:#202020">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -230,7 +230,7 @@
   font-family:var(--font);margin-bottom:2px;
 }
 #snapLayoutPop .snap-grid {
-  display:grid;grid-template-columns:repeat(2,1fr);gap:5px;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:5px;
 }
 .snap-zone-btn {
   height:36px;border-radius:var(--radius-control);
@@ -377,6 +377,8 @@ background:transparent;font-size:18px;
 position:relative;
 transition:background var(--dur-faster) linear;
 flex-shrink:0;
+/* overflow:hidden keeps the indicator dot inside the button at all sizes */
+overflow:hidden;
 }
 .taskBtn--start svg rect{transition:fill var(--dur-faster) linear;}
 .taskBtn--start:hover{background:var(--subtle-hover);}
@@ -385,19 +387,29 @@ flex-shrink:0;
 .taskBtn--start:active svg rect{fill:rgba(255,255,255,0.60);}
 .taskBtn:hover{background:var(--subtle-hover);}
 .taskBtn:active{background:var(--subtle-pressed);}
-/* Win11 running-app indicator: small dot below icon */
+/* Win11 indicator — ONLY shown when open or running, never on idle buttons */
 .taskBtn:not(.taskBtn--start)::after{
-content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);
-width:4px;height:4px;border-radius:50%;
+content:'';
+position:absolute;
+bottom:2px;
+left:50%;
+transform:translateX(-50%);
+width:0;height:3px;           /* hidden by default — zero width */
+border-radius:var(--radius-small);
 background:var(--text-tertiary);
 transition:width var(--dur-fast) var(--ease-decelerate),
-           height var(--dur-fast) var(--ease-decelerate),
-           border-radius var(--dur-fast) var(--ease-decelerate),
            background var(--dur-faster) linear;
 }
-/* Active (focused) window: accent pill indicator, 16px wide × 3px tall */
+/* Running (minimized): small dot */
+.taskBtn.running::after{
+width:4px;height:3px;
+border-radius:50%;
+background:var(--text-secondary);
+}
+/* Open (focused): accent pill */
 .taskBtn.open::after{
-width:16px;height:3px;border-radius:var(--radius-small);
+width:16px;height:3px;
+border-radius:var(--radius-small);
 background:var(--accent-fill);
 }
 
@@ -612,7 +624,7 @@ box-shadow:0 0 0 1px var(--accent-fill);
 #start{
 position:absolute;bottom:calc(var(--tb-height) + 8px);left:50%;
 transform:translateX(-50%) translateY(16px);
-width:640px;max-height:680px;
+width:min(640px, 96vw);max-height:min(680px, 80vh);
 /* Acrylic recipe */
 background:rgba(32,32,32,0.85);
 backdrop-filter:blur(60px) saturate(125%);
@@ -798,8 +810,10 @@ border-radius:var(--radius-overlay);
 min-width:200px;z-index:999999;overflow:hidden;
 box-shadow:var(--shadow-28);
 padding:4px;
-/* Win11 entrance: scale from 92% + fade, 167ms decelerate */
 transform-origin:top left;
+}
+#menu.open{
+display:block;
 animation:menuOpen var(--dur-fast) var(--ease-decelerate) both;
 }
 @keyframes menuOpen{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}
@@ -1031,7 +1045,7 @@ transition:background var(--dur-faster) linear;
 .end-btn:hover{background:rgba(255,153,164,0.22);}
 
 /* ===== CAMERA APP ===== */
-.cam-root{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#0d0d14;font-family:'Segoe UI',sans-serif;color:#e8eaf6;}
+.cam-root{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#0d0d14;font-family:var(--font);color:#e8eaf6;}
 .cam-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#1a1a2a;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0;}
 .cam-title{font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;opacity:.9;}
 .cam-top-controls{display:flex;gap:6px;align-items:center;}
@@ -1159,24 +1173,7 @@ box-shadow:var(--shadow-8);
 /* ═══════════════════════════════════════
    SNAP LAYOUT FLYOUT — Win11 maximize hover
    ═══════════════════════════════════════ */
-#snapLayoutFlyout{
-  position:fixed;
-  background:rgba(44,44,44,0.94);
-  backdrop-filter:blur(60px) saturate(125%);
-  -webkit-backdrop-filter:blur(60px) saturate(125%);
-  border:1px solid var(--stroke-flyout);
-  border-radius:var(--radius-overlay);
-  padding:10px;
-  display:none;
-  gap:6px;
-  flex-wrap:wrap;
-  width:244px;
-  z-index:9999999;
-  box-shadow:var(--shadow-28);
-  animation:menuOpen var(--dur-fast) var(--ease-decelerate) both;
-}
-#snapLayoutFlyout.show{display:flex;}
-.snap-layout-row{display:flex;gap:4px;width:100%;}
+/* .snap-layout-row was for the removed snapLayoutFlyout — kept stub for compat */
 .snap-zone-btn{
   flex:1;height:40px;
   border-radius:var(--radius-control);
@@ -1390,23 +1387,35 @@ box-shadow:var(--shadow-8);
 <!-- Snap overlay -->
 <div id="snapOverlay"></div>
 
-<!-- Snap layout popup (shown on maximize button hover) -->
+<!-- Snap layout popup (shown on maximize button hover) — 6 zones matching Win11 -->
 <div id="snapLayoutPop">
   <div class="snap-label">Snap layouts</div>
   <div class="snap-grid">
-    <div class="snap-zone-btn" data-snap="left">
+    <div class="snap-zone-btn szb-l" data-snap="left" title="Left half">
       <svg width="28" height="18" viewBox="0 0 28 18" fill="none"><rect x="0.5" y="0.5" width="12" height="17" rx="1.5" fill="rgba(96,205,255,0.3)" stroke="var(--accent-fill)"/><rect x="15" y="0.5" width="12.5" height="17" rx="1.5" fill="var(--ctrl-bg)" stroke="var(--stroke)"/></svg>
-      50/50 left
+      Left half
     </div>
-    <div class="snap-zone-btn" data-snap="right">
+    <div class="snap-zone-btn szb-r" data-snap="right" title="Right half">
       <svg width="28" height="18" viewBox="0 0 28 18" fill="none"><rect x="0.5" y="0.5" width="12.5" height="17" rx="1.5" fill="var(--ctrl-bg)" stroke="var(--stroke)"/><rect x="15" y="0.5" width="12" height="17" rx="1.5" fill="rgba(96,205,255,0.3)" stroke="var(--accent-fill)"/></svg>
-      50/50 right
+      Right half
     </div>
-    <div class="snap-zone-btn" data-snap="tl">
+    <div class="snap-zone-btn szb-full" data-snap="maximize" title="Maximize">
+      <svg width="28" height="18" viewBox="0 0 28 18" fill="none"><rect x="0.5" y="0.5" width="27" height="17" rx="1.5" fill="rgba(96,205,255,0.3)" stroke="var(--accent-fill)"/></svg>
+      Maximize
+    </div>
+    <div class="snap-zone-btn szb-tl" data-snap="tl" title="Top left">
       <svg width="28" height="18" viewBox="0 0 28 18" fill="none"><rect x="0.5" y="0.5" width="12" height="8" rx="1.5" fill="rgba(96,205,255,0.3)" stroke="var(--accent-fill)"/><rect x="0.5" y="10" width="12" height="7.5" rx="1.5" fill="var(--ctrl-bg)" stroke="var(--stroke)"/><rect x="15" y="0.5" width="12.5" height="17" rx="1.5" fill="var(--ctrl-bg)" stroke="var(--stroke)"/></svg>
       Top left
     </div>
-    <div class="snap-zone-btn" data-snap="br">
+    <div class="snap-zone-btn szb-tr" data-snap="tr" title="Top right">
+      <svg width="28" height="18" viewBox="0 0 28 18" fill="none"><rect x="0.5" y="0.5" width="12.5" height="17" rx="1.5" fill="var(--ctrl-bg)" stroke="var(--stroke)"/><rect x="15" y="0.5" width="12" height="8" rx="1.5" fill="rgba(96,205,255,0.3)" stroke="var(--accent-fill)"/><rect x="15" y="10" width="12" height="7.5" rx="1.5" fill="var(--ctrl-bg)" stroke="var(--stroke)"/></svg>
+      Top right
+    </div>
+    <div class="snap-zone-btn szb-bl" data-snap="bl" title="Bottom left">
+      <svg width="28" height="18" viewBox="0 0 28 18" fill="none"><rect x="0.5" y="0.5" width="12" height="8" rx="1.5" fill="var(--ctrl-bg)" stroke="var(--stroke)"/><rect x="0.5" y="10" width="12" height="7.5" rx="1.5" fill="rgba(96,205,255,0.3)" stroke="var(--accent-fill)"/><rect x="15" y="0.5" width="12.5" height="17" rx="1.5" fill="var(--ctrl-bg)" stroke="var(--stroke)"/></svg>
+      Bot left
+    </div>
+    <div class="snap-zone-btn szb-br" data-snap="br" title="Bottom right">
       <svg width="28" height="18" viewBox="0 0 28 18" fill="none"><rect x="0.5" y="0.5" width="12.5" height="17" rx="1.5" fill="var(--ctrl-bg)" stroke="var(--stroke)"/><rect x="15" y="0.5" width="12" height="8" rx="1.5" fill="var(--ctrl-bg)" stroke="var(--stroke)"/><rect x="15" y="10" width="12" height="7.5" rx="1.5" fill="rgba(96,205,255,0.3)" stroke="var(--accent-fill)"/></svg>
       Bot right
     </div>
@@ -1530,22 +1539,29 @@ box-shadow:var(--shadow-8);
 
 <!-- DESKTOP CONTEXT MENU — Win11 new-style: compact rows, icon column, acrylic -->
 <div id="menu">
-<div class="menu-item" onclick="document.getElementById('menu').style.display='none';toggleStart();">
+<div class="menu-item" onclick="closeAllMenus();toggleStart();">
   <span class="menu-icon"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="0.5" y="0.5" width="6.5" height="6.5" rx="1" fill="white"/><rect x="9" y="0.5" width="6.5" height="6.5" rx="1" fill="white"/><rect x="0.5" y="9" width="6.5" height="6.5" rx="1" fill="white"/><rect x="9" y="9" width="6.5" height="6.5" rx="1" fill="white"/></svg></span>
   Start
 </div>
-<div class="menu-item" onclick="openCamera()"><span class="menu-icon">📷</span> Camera</div>
-<div class="menu-item" onclick="openTaskManager()"><span class="menu-icon">📊</span> Task Manager</div>
-<div class="menu-item" onclick="openNotepad()"><span class="menu-icon">📝</span> Notepad</div>
-<div class="menu-item" onclick="openCMD()"><span class="menu-icon">⌨️</span> Command Prompt</div>
-<div class="menu-item" onclick="openSettings()"><span class="menu-icon">⚙️</span> Settings</div>
+<div class="menu-item" onclick="closeAllMenus();openCamera();"><span class="menu-icon">📷</span> Camera</div>
+<div class="menu-item" onclick="closeAllMenus();openTaskManager();"><span class="menu-icon">📊</span> Task Manager</div>
+<div class="menu-item" onclick="closeAllMenus();openNotepad();"><span class="menu-icon">📝</span> Notepad</div>
+<div class="menu-item" onclick="closeAllMenus();openCMD();"><span class="menu-icon">⌨️</span> Command Prompt</div>
+<div class="menu-item" onclick="closeAllMenus();openSettings();"><span class="menu-icon">⚙️</span> Settings</div>
 <hr>
-<div class="menu-item" onclick="showDesktop()"><span class="menu-icon">🖥️</span> Show Desktop</div>
+<div class="menu-item" onclick="closeAllMenus();showDesktop();"><span class="menu-icon">🖥️</span> Show Desktop</div>
 </div>
 
 <!-- TASKBAR BUTTON CONTEXT MENU -->
 <div id="tbMenu">
 <div class="menu-item" id="tbMenuClose"><span class="menu-icon">✕</span> Close window</div>
+<hr style="border:none;border-top:1px solid var(--stroke-divider);margin:3px 8px;" id="tbMenuSep">
+<div class="menu-item" id="tbMenuPin" style="display:none;">
+  <span class="menu-icon">📌</span> Pin to Taskbar
+</div>
+<div class="menu-item" id="tbMenuUnpin" style="display:none;">
+  <span class="menu-icon">📌</span> Unpin from Taskbar
+</div>
 </div>
 
 <!-- APP RIGHT-CLICK CONTEXT MENU (Start menu apps) -->
@@ -1578,32 +1594,6 @@ box-shadow:var(--shadow-8);
   <div class="app-ctx-item" id="appCtxUnpin" style="display:none;">
     <span class="app-ctx-icon-col"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 2L9 2L9 6L11 8L3 8L5 6Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><line x1="7" y1="8" x2="7" y2="12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="2" y1="2" x2="12" y2="12" stroke="rgba(255,99,132,0.9)" stroke-width="1.3" stroke-linecap="round"/></svg></span>
     <span style="color:rgba(255,153,164,0.9);">Unpin from Start</span>
-  </div>
-</div>
-
-<!-- SNAP LAYOUT FLYOUT — appears on maximize-button hover -->
-<div id="snapLayoutFlyout">
-  <div class="snap-layout-row">
-    <div class="snap-zone-btn szb-l" title="Snap left half" data-snap="left">
-      <svg width="36" height="28" viewBox="0 0 36 28" fill="none"><rect x="2" y="2" width="15" height="24" rx="2" fill="rgba(255,255,255,0.12)"/><rect x="19" y="2" width="15" height="24" rx="2" fill="rgba(255,255,255,0.05)"/></svg>
-    </div>
-    <div class="snap-zone-btn szb-r" title="Snap right half" data-snap="right">
-      <svg width="36" height="28" viewBox="0 0 36 28" fill="none"><rect x="2" y="2" width="15" height="24" rx="2" fill="rgba(255,255,255,0.05)"/><rect x="19" y="2" width="15" height="24" rx="2" fill="rgba(255,255,255,0.12)"/></svg>
-    </div>
-    <div class="snap-zone-btn szb-full" title="Maximize" data-snap="maximize">
-      <svg width="36" height="28" viewBox="0 0 36 28" fill="none"><rect x="2" y="2" width="32" height="24" rx="2" fill="rgba(255,255,255,0.12)"/></svg>
-    </div>
-  </div>
-  <div class="snap-layout-row">
-    <div class="snap-zone-btn szb-tl" title="Snap top-left" data-snap="tl">
-      <svg width="36" height="28" viewBox="0 0 36 28" fill="none"><rect x="2" y="2" width="15" height="11" rx="2" fill="rgba(255,255,255,0.12)"/><rect x="19" y="2" width="15" height="11" rx="2" fill="rgba(255,255,255,0.05)"/><rect x="2" y="15" width="15" height="11" rx="2" fill="rgba(255,255,255,0.05)"/><rect x="19" y="15" width="15" height="11" rx="2" fill="rgba(255,255,255,0.05)"/></svg>
-    </div>
-    <div class="snap-zone-btn szb-tr" title="Snap top-right" data-snap="tr">
-      <svg width="36" height="28" viewBox="0 0 36 28" fill="none"><rect x="2" y="2" width="15" height="11" rx="2" fill="rgba(255,255,255,0.05)"/><rect x="19" y="2" width="15" height="11" rx="2" fill="rgba(255,255,255,0.12)"/><rect x="2" y="15" width="15" height="11" rx="2" fill="rgba(255,255,255,0.05)"/><rect x="19" y="15" width="15" height="11" rx="2" fill="rgba(255,255,255,0.05)"/></svg>
-    </div>
-    <div class="snap-zone-btn szb-bl" title="Snap bottom-left" data-snap="bl">
-      <svg width="36" height="28" viewBox="0 0 36 28" fill="none"><rect x="2" y="2" width="15" height="11" rx="2" fill="rgba(255,255,255,0.05)"/><rect x="19" y="2" width="15" height="11" rx="2" fill="rgba(255,255,255,0.05)"/><rect x="2" y="15" width="15" height="11" rx="2" fill="rgba(255,255,255,0.12)"/><rect x="19" y="15" width="15" height="11" rx="2" fill="rgba(255,255,255,0.05)"/></svg>
-    </div>
   </div>
 </div>
 
@@ -1684,7 +1674,7 @@ const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov',
 document.getElementById('clockDate').textContent=`${days[now.getDay()]} ${months[now.getMonth()]} ${now.getDate()}`;
 }
 updateClock();
-setInterval(updateClock,10000);
+setInterval(updateClock,1000);
 
 // ===================== TOAST =====================
 function showToast(title, type='info', icon='', duration=3200){
@@ -1706,13 +1696,14 @@ const SETTINGS_KEY='desktop_settings_v2';
 function saveSettings(){
 try{
 const tb=document.getElementById('taskbar');
-const bg=document.body.style.backgroundImage||document.body.style.background||'#1a1a1a';
+const WIN11_DEFAULT_BG='linear-gradient(135deg,#041728 0%,#0a2547 25%,#0d3b70 50%,#0a2e5c 75%,#061525 100%)';
+const bg=document.body.style.backgroundImage||document.body.style.background||WIN11_DEFAULT_BG;
 const s={
 bg,
 bgImg:document.body.style.backgroundImage||'',
 accent:getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
 taskOpacity:getComputedStyle(document.documentElement).getPropertyValue('--task-opacity').trim(),
-tbHeight:getComputedStyle(document.documentElement).getPropertyValue('--tb-height').trim()||'60px',
+tbHeight:getComputedStyle(document.documentElement).getPropertyValue('--tb-height').trim()||'48px',
 tbMode:tb.dataset.tbMode||'full',
 };
 localStorage.setItem(SETTINGS_KEY,JSON.stringify(s));
@@ -1723,7 +1714,7 @@ try{
 const raw=localStorage.getItem(SETTINGS_KEY);
 if(!raw)return;
 const s=JSON.parse(raw);
-applyBackground(s.bg||'#1a1a1a');
+applyBackground(s.bg||WIN11_DEFAULT_BG);
 if(s.accent){
   document.documentElement.style.setProperty('--accent',s.accent);
   document.documentElement.style.setProperty('--accent-fill',s.accent);
@@ -1739,11 +1730,10 @@ const tb=document.getElementById('taskbar');
 const cfg={
   _type:'desktop-config',
   _version:1,
-  bg:document.body.style.backgroundImage||document.body.style.background||'',
-  bgImg:document.body.style.backgroundImage||'',
+  bg:document.body.style.backgroundImage||document.body.style.background||WIN11_DEFAULT_BG,
   accent:getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
   taskOpacity:getComputedStyle(document.documentElement).getPropertyValue('--task-opacity').trim(),
-  tbHeight:getComputedStyle(document.documentElement).getPropertyValue('--tb-height').trim()||'60px',
+  tbHeight:getComputedStyle(document.documentElement).getPropertyValue('--tb-height').trim()||'48px',
   tbMode:tb.dataset.tbMode||'full',
 };
 const blob=new Blob([JSON.stringify(cfg,null,2)],{type:'application/json'});
@@ -1847,6 +1837,11 @@ clearTimeout(kbHintTimer);
 kbHintTimer=setTimeout(()=>el.classList.remove('show'),1600);
 }
 
+// ===================== WINDOW HELPERS =====================
+// Defined here — before keyboard/search handlers that reference them
+const start=document.getElementById('start');
+const taskIcons=document.getElementById('taskIcons');
+
 // ===================== KEYBOARD SHORTCUTS =====================
 document.addEventListener('keydown',e=>{
 // Escape — close start menu and any open app ctx menu
@@ -1871,22 +1866,35 @@ if(e.ctrlKey&&e.key==='n'&&!e.shiftKey){ e.preventDefault(); openNotepad(); flas
 let _desktopHidden=false;
 function showDesktop(){
 if(!_desktopHidden){
-windows.forEach(w=>{if(w.style.display!=='none'){w.style.display='none';w._wasVisible=true;}});
-_desktopHidden=true;
+  // Hide all visible windows and dim their taskbar buttons
+  windows.forEach(w=>{
+    if(w.style.display!=='none'){
+      w.style.display='none';
+      w._wasVisible=true;
+      if(w.task) w.task.classList.remove('open');
+    }
+  });
+  _desktopHidden=true;
 } else {
-windows.forEach(w=>{if(w._wasVisible){w.style.display='flex';w._wasVisible=false;}});
-_desktopHidden=false;
+  // Restore windows and re-light their taskbar buttons
+  windows.forEach(w=>{
+    if(w._wasVisible){
+      w.style.display='flex';
+      w._wasVisible=false;
+      if(w.task) w.task.classList.add('open');
+      bring(w); // restore z-order
+    }
+  });
+  _desktopHidden=false;
 }
 }
 
 // ===================== START MENU SEARCH =====================
 const startSearchInput=document.getElementById('startSearchInput');
-const pinnedLabel=document.getElementById('pinnedLabel');
 const noResults=document.getElementById('noResults');
 startSearchInput.addEventListener('input',()=>{
 const q=startSearchInput.value.trim().toLowerCase();
 if(q){
-  // Show all-apps view for searching
   startShowAll();
   const apps=document.querySelectorAll('#allAppsGrid .app');
   let visible=0;
@@ -1899,20 +1907,24 @@ if(q){
   if(noResults) noResults.style.display=visible===0?'block':'none';
 } else {
   startShowPinned();
-  document.querySelectorAll('.app').forEach(a=>a.classList.remove('hidden'));
+  // Scope to #start only — never touch taskbar pinned buttons
+  document.querySelectorAll('#start .app').forEach(a=>a.classList.remove('hidden'));
   if(noResults) noResults.style.display='none';
 }
 });
 startSearchInput.addEventListener('keydown',e=>{
 if(e.key==='Enter'){
-const first=document.querySelector('#allAppsGrid .app:not(.hidden)')||document.querySelector('#pinnedGrid .app:not(.hidden)');
-if(first){first.click();start.classList.remove('active');startSearchInput.value='';document.querySelectorAll('.app').forEach(a=>a.classList.remove('hidden'));if(noResults)noResults.style.display='none';}
+  const first=document.querySelector('#allAppsGrid .app:not(.hidden)')||document.querySelector('#pinnedGrid .app:not(.hidden)');
+  if(first){
+    first.click();
+    start.classList.remove('active');
+    startSearchInput.value='';
+    // Scope to #start only
+    document.querySelectorAll('#start .app').forEach(a=>a.classList.remove('hidden'));
+    if(noResults) noResults.style.display='none';
+  }
 }
 });
-
-// ===================== WINDOW HELPERS =====================
-const start=document.getElementById('start');
-const taskIcons=document.getElementById('taskIcons');
 
 // ===================== RECENTLY PLAYED =====================
 let recentApps = [];
@@ -1935,9 +1947,8 @@ function renderRecent(){
     const tile=document.createElement('div');
     tile.className='app';
     tile.dataset.name=a.name;
-    tile.setAttribute('onclick',a.onclick);
     tile.innerHTML=`<span style="font-size:22px">${a.icon}</span>${a.name}`;
-    tile.addEventListener('click',()=>{ if(typeof launchApp==='function') launchApp(a.name); else { try{eval(a.onclick);}catch(err){} } });
+    tile.addEventListener('click',()=>launchApp(a.name));
     tile.addEventListener('contextmenu',ev=>{
       ev.preventDefault(); ev.stopPropagation();
       if(!ev.target.closest('#start')) return;
@@ -1965,7 +1976,8 @@ if(start.classList.contains('active')){
   setTimeout(()=>startSearchInput.focus(),100);
 } else {
   startSearchInput.value='';
-  document.querySelectorAll('.app').forEach(a=>a.classList.remove('hidden'));
+  // Scope to #start only — never touch taskbar pinned buttons
+  document.querySelectorAll('#start .app').forEach(a=>a.classList.remove('hidden'));
   const nr=document.getElementById('noResults');if(nr)nr.style.display='none';
   const tb=document.getElementById('taskbar');
   if(tb.classList.contains('fs-hidden')&&!tb.matches(':hover')) tb.classList.remove('tb-peek');
@@ -1976,20 +1988,23 @@ function bring(w){w.style.zIndex=++z;}
 function createTask(win,icon){
 const b=document.createElement('div');
 b.className='taskBtn open';
-b.innerText=icon;
+b.title=win.querySelector('.title-text')?.textContent||'App';
+b.innerHTML=`<span style="font-size:19px;pointer-events:none;line-height:1">${icon}</span>`;
 b.onclick=()=>{
-if(win.style.display==='none'){win.style.display='flex';bring(win);b.classList.add('open');}
-else{win.style.display='none';b.classList.remove('open');}
+  if(win.style.display==='none'){
+    win.style.display='flex'; bring(win); b.classList.add('open');
+  } else if(win===windows.find(w=>parseInt(w.style.zIndex)===z)){
+    win.style.display='none'; b.classList.remove('open');
+  } else {
+    bring(win); b.classList.add('open');
+  }
 };
-// Right-click on taskbar button
-b.addEventListener('contextmenu',e=>{
-e.preventDefault();e.stopPropagation();
-_tbMenuTarget=win;
-const m=document.getElementById('tbMenu');
-m.style.display='block';
-m.style.left=e.clientX+'px';
-m.style.top=(e.clientY-m.offsetHeight-4)+'px';
-});
+b.oncontextmenu=e=>{
+  e.preventDefault(); e.stopPropagation();
+  _tbMenuTarget = win;
+  const appName = win.querySelector('.title-text')?.textContent?.trim() || '';
+  _showTbMenu(e.clientX, e.clientY, win, appName, false);
+};
 taskIcons.appendChild(b);
 return b;
 }
@@ -1998,10 +2013,13 @@ return b;
 function createWindow(title,w=900,h=600,icon='🪟'){
 const win=document.createElement('div');
 win.className='window';
-// Center the window in the desktop area
-const vw=window.innerWidth, vh=window.innerHeight-60;
-const left=Math.max(20,Math.round((vw-w)/2));
-const top=Math.max(20,Math.round((vh-h)/2));
+// Center the window, accounting for actual taskbar height
+const tbH=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tb-height'))||48;
+const vw=window.innerWidth, vh=window.innerHeight-tbH;
+// Cascade offset so multiple windows don't perfectly overlap
+const cascade=(windows.length%8)*24;
+const left=Math.max(20,Math.round((vw-w)/2)+cascade);
+const top=Math.max(20,Math.round((vh-h)/2)+cascade);
 win.style.cssText=`left:${left}px;top:${top}px;display:flex;z-index:${++z};width:${w}px;height:${h}px;`;
 win.innerHTML=`
 <div class='titlebar'>
@@ -2104,9 +2122,14 @@ function toggleFullscreen(el){ toggleMaximize(el); }
       const win = pop._activeWin;
       pop.style.display = 'none';
       if(!win) return;
-      // Map snap zone names to snapWin positions
-      const map = { left:'left', right:'right', tl:'tl', br:'br' };
-      if(map[zone]) snapWin(win, map[zone]);
+      if(zone === 'maximize'){
+        // Only maximize if not already maximized
+        if(!win.classList.contains('maximized')) _maximizeToggle(win);
+      } else {
+        // All other zones map 1-to-1 with snapWin positions
+        const validZones = new Set(['left','right','tl','tr','bl','br']);
+        if(validZones.has(zone)) snapWin(win, zone);
+      }
     });
   });
 })();
@@ -2132,7 +2155,7 @@ win._maxBackup={left:win.style.left,top:win.style.top,width:win.style.width,heig
 win.classList.add('maximized');
 const btn=win.querySelector('.ctrl-max'); if(btn) btn.innerHTML=RESTORE_SVG;
 // Expand hotzone to cover the full taskbar height so mousemove fires in parent
-const tbH=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tb-height'))||60;
+const tbH=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tb-height'))||48;
 if(hz){hz.style.height=tbH+'px';hz.style.pointerEvents='auto';}
 // Hide taskbar when a window maximizes (autohide on fullscreen)
 tb.classList.add('fs-hidden');
@@ -2146,7 +2169,7 @@ function closest_win(el){return el.closest('.window');}
 function snapWin(win,pos){
 if(!win)return;
 const tb=document.getElementById('taskbar');
-const tbH=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tb-height'))||60;
+const tbH=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tb-height'))||48;
 const W=window.innerWidth, H=window.innerHeight-tbH;
 // Remove maximized state first
 if(win.classList.contains('maximized')){
@@ -2168,9 +2191,60 @@ win.style.width=p.width+'px';win.style.height=p.height+'px';
 bring(win);
 }
 
-function finish(win,icon,p){
-win.task=createTask(win,icon);
-if(p) p.win=win;
+// Map of app name → pinned taskbar button
+const _pinnedBtnMap = {};
+
+function finish(win, icon, p){
+  const appName = win.querySelector('.title-text')?.textContent?.trim() || '';
+  const pinnedBtn = _pinnedBtnMap[appName];
+
+  if(pinnedBtn && document.contains(pinnedBtn)){
+    // Reuse the existing pinned button — wire it to this window
+    _wireBtnToWin(pinnedBtn, win, appName);
+    pinnedBtn.classList.add('open');
+    pinnedBtn.classList.remove('running');
+    win.task = pinnedBtn;
+  } else {
+    // No pinned button — make a normal ephemeral button
+    win.task = createTask(win, icon);
+  }
+
+  if(p) p.win = win;
+}
+
+// Wire a button to control a window — NO cloning, just replace onclick
+function _wireBtnToWin(btn, win, appName){
+  // Stamp a generation ID so stale closures self-disable
+  const gen = (btn._gen || 0) + 1;
+  btn._gen = gen;
+
+  btn.onclick = ()=>{
+    if(btn._gen !== gen) return; // stale closure
+    if(win.style.display === 'none'){
+      win.style.display = 'flex';
+      bring(win);
+      btn.classList.add('open');
+      btn.classList.remove('running');
+    } else if(win === windows.find(w=>parseInt(w.style.zIndex)===z)){
+      win.style.display = 'none';
+      btn.classList.remove('open');
+      btn.classList.add('running');
+    } else {
+      bring(win);
+      btn.classList.add('open');
+      btn.classList.remove('running');
+    }
+  };
+
+  // Mark what window this button currently controls
+  btn._linkedWin = win;
+
+  // Wire contextmenu to show close+unpin
+  btn.oncontextmenu = e=>{
+    e.preventDefault(); e.stopPropagation();
+    _tbMenuTarget = win;
+    _showTbMenu(e.clientX, e.clientY, win, appName, true);
+  };
 }
 
 function closeW(win){
@@ -2183,7 +2257,27 @@ if(removedProc.id===settingsProcId) settingsProcId=null;
 if(removedProc.id===cmdProcId) cmdProcId=null;
 }
 processes=processes.filter(p=>p.win!==win);
-if(win.task) win.task.remove();
+
+// If this window's task button is a PINNED button, reset it to idle
+// instead of removing it — it stays on the taskbar ready to relaunch
+const appName = win.querySelector('.title-text')?.textContent?.trim() || '';
+const pinnedBtn = _pinnedBtnMap[appName];
+if(pinnedBtn && pinnedBtn._linkedWin === win){
+  // Reset to idle — no dot indicator at all
+  pinnedBtn.classList.remove('open');
+  pinnedBtn.classList.remove('running');
+  pinnedBtn._linkedWin = null;
+  pinnedBtn._gen = (pinnedBtn._gen || 0) + 1; // invalidate stale closure
+  pinnedBtn.onclick = ()=> launchApp(appName);
+  pinnedBtn.oncontextmenu = e=>{
+    e.preventDefault(); e.stopPropagation();
+    _showTbMenu(e.clientX, e.clientY, null, appName, true);
+  };
+} else if(win.task && !win.task.dataset.pinnedApp){
+  // Only remove if it's a non-pinned ephemeral button
+  win.task.remove();
+}
+
 if(win._tmCleanup) win._tmCleanup();
 win.remove();
 // Restore taskbar if no maximized windows remain
@@ -2196,8 +2290,13 @@ function closeWBtn(e){ closeW(e.closest('.window')); }
 function minWin(e){
 const win=(e instanceof HTMLElement&&e.classList.contains('window'))?e:e.closest('.window');
 win.style.display='none';
-if(win.task) win.task.classList.remove('open');
-// Restore taskbar if no maximized windows remain visible
+if(win.task){
+  win.task.classList.remove('open');
+  // Only show 'running' dot on PINNED buttons — ephemeral buttons just dim
+  if(win.task.dataset.pinnedApp){
+    win.task.classList.add('running');
+  }
+}
 const anyMaxedVisible=windows.some(w=>w.classList.contains('maximized')&&w.style.display!=='none');
 if(!anyMaxedVisible){
   document.getElementById('taskbar').classList.remove('fs-hidden');
@@ -2214,7 +2313,7 @@ win.dataset.gameUrl=url;
 const p=allocProc({name:label,mem:+(100+Math.random()*80).toFixed(0),cpu:+(Math.random()*40).toFixed(1)});
 processes.push(p);
 const splash=document.createElement('div');
-splash.style.cssText='flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#0d0d0d;color:rgba(255,255,255,0.75);font-family:"Segoe UI",sans-serif;text-align:center;padding:32px;';
+splash.style.cssText='flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#0d0d0d;color:rgba(255,255,255,0.75);font-family:var(--font);text-align:center;padding:32px;';
 splash.innerHTML=`
   <div style="font-size:52px;line-height:1;">⛏️</div>
   <div style="font-size:17px;font-weight:600;color:#fff;">Minecraft</div>
@@ -2254,7 +2353,7 @@ const ifr=document.createElement('iframe');
 ifr.src=url;ifr.allow='autoplay; fullscreen; storage-access';
 ifr.style.cssText='flex:1;border:none;background:#000;';
 const fallbackDiv=document.createElement('div');
-fallbackDiv.style.cssText='display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#0d0d0d;color:rgba(255,255,255,0.7);font-family:"Segoe UI",sans-serif;font-size:13px;text-align:center;padding:24px;';
+fallbackDiv.style.cssText='display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#0d0d0d;color:rgba(255,255,255,0.7);font-family:var(--font);font-size:13px;text-align:center;padding:24px;';
 fallbackDiv.innerHTML=`<div style="font-size:40px;">🎮</div><div style="font-size:15px;font-weight:600;color:var(--text-primary);">${label}</div><div style="color:var(--text-secondary);max-width:300px;font-size:13px;">This game can't be embedded here.<br>Click below to open it in a new tab.</div><button style="margin-top:8px;padding:7px 22px;border-radius:var(--radius-control);border:1px solid var(--accent-fill);background:var(--accent-fill);color:#000;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;" onclick="window.open('${url.replace(/'/g,"\\'")}','_blank')">Open ${label} ↗</button>`;
 ifr.addEventListener('error',()=>{ifr.style.display='none';fallbackDiv.style.display='flex';});
 ifr.addEventListener('load',()=>{try{const doc=ifr.contentDocument||ifr.contentWindow.document;if(!doc||doc.location.href==='about:blank'){ifr.style.display='none';fallbackDiv.style.display='flex';}}catch(e){}});
@@ -2750,6 +2849,13 @@ setTimeout(()=>area.focus(),50);
 
 // ===================== SETTINGS =====================
 function openSettings(){
+// Singleton: if already open, focus it
+if(settingsProcId!==null){
+  const p=processes.find(x=>x.id===settingsProcId);
+  if(p&&p.win){p.win.style.display='flex';bring(p.win);if(p.win.task)p.win.task.classList.add('open');}
+  start.classList.remove('active');
+  return;
+}
 const win=createWindow('Settings',760,580,'⚙️');
 const p=allocProc({name:'Settings',mem:+(40+Math.random()*10).toFixed(0),cpu:+(Math.random()*2).toFixed(1)});
 processes.push(p);p.win=win;settingsProcId=p.id;
@@ -3404,7 +3510,7 @@ const canvas=document.getElementById(canvasId);if(!canvas)return;
 const ctx=canvas.getContext('2d');const W=canvas.parentElement.offsetWidth||600;const H=180;
 canvas.width=W;canvas.height=H;ctx.clearRect(0,0,W,H);
 ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;
-[25,50,75].forEach(pct=>{const y=H-(pct/(maxVal||100))*H;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();ctx.fillStyle='rgba(255,255,255,0.2)';ctx.font='10px Segoe UI';ctx.fillText(pct+(maxVal?'':'%'),4,y-3);});
+[25,50,75].forEach(pct=>{const y=H-(pct/(maxVal||100))*H;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();ctx.fillStyle='rgba(255,255,255,0.2)';ctx.font='10px "Segoe UI Variable","Segoe UI",system-ui,sans-serif';ctx.fillText(pct+(maxVal?'':'%'),4,y-3);});
 ctx.beginPath();const dDenom=Math.max(data.length-1,1);
 data.forEach((v,i)=>{const x=(i/dDenom)*W;const y=H-(v/(maxVal||100))*H;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
 ctx.strokeStyle=color;ctx.lineWidth=2;ctx.stroke();
@@ -3519,7 +3625,7 @@ function getSnapZone(x,y){
 }
 
 function tbH(){
-  return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tb-height'))||60;
+  return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tb-height'))||48;
 }
 
 function showOverlay(zone){
@@ -3608,6 +3714,7 @@ w.querySelectorAll('.resizeHandle').forEach(r=>{
   r.addEventListener('mousedown',e=>{
     if(w.classList.contains('maximized')) return;
     e.stopPropagation(); e.preventDefault();
+    document.body.classList.add('win-dragging');
     const dir=Array.from(r.classList).find(c=>c!=='resizeHandle');
     const startX=e.clientX, startY=e.clientY;
     const startL=w.offsetLeft, startT=w.offsetTop;
@@ -3622,7 +3729,11 @@ w.querySelectorAll('.resizeHandle').forEach(r=>{
       w.style.left=nl+'px';w.style.top=nt+'px';
       w.style.width=nw+'px';w.style.height=nh+'px';
     }
-    function onUp(){document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);}
+    function onUp(){
+      document.body.classList.remove('win-dragging');
+      document.removeEventListener('mousemove',onMove);
+      document.removeEventListener('mouseup',onUp);
+    }
     document.addEventListener('mousemove',onMove);
     document.addEventListener('mouseup',onUp);
   });
@@ -3631,12 +3742,12 @@ w.querySelectorAll('.resizeHandle').forEach(r=>{
 
 // ===================== CONTEXT MENUS =====================
 
-// ── Desktop right-click (background) ──
+// ── Desktop right-click ──
 document.addEventListener('contextmenu', e=>{
   e.preventDefault();
   e.stopPropagation();
 
-  // If right-clicking a .app tile inside the Start menu — show app context menu
+  // Right-clicking a .app tile inside the Start menu → app context menu
   const appTile = e.target.closest('.app');
   if(appTile && e.target.closest('#start')){
     closeAllMenus();
@@ -3644,11 +3755,20 @@ document.addEventListener('contextmenu', e=>{
     return;
   }
 
-  // Otherwise show the normal desktop context menu
+  // Right-clicking a taskbar button → handled by the button's own contextmenu listener
+  if(e.target.closest('.taskBtn') && !e.target.closest('.taskBtn--start')) return;
+
+  // Right-clicking inside an open window → let the window handle it (don't override)
+  if(e.target.closest('.window')) return;
+
+  // Everything else → desktop context menu
   closeAllMenus();
   const m = document.getElementById('menu');
-  m.style.display = 'block';
-  positionMenu(m, e.clientX, e.clientY, 200, 220);
+  // Re-trigger animation
+  m.classList.remove('open');
+  void m.offsetWidth;
+  m.classList.add('open');
+  positionMenu(m, e.clientX, e.clientY, 210, 240);
 });
 
 // Global click: close all menus unless click is inside one of them
@@ -3662,10 +3782,9 @@ document.addEventListener('click', e=>{
 
 // Close every menu at once
 function closeAllMenus(){
-  document.getElementById('menu').style.display = 'none';
+  document.getElementById('menu').classList.remove('open');
   document.getElementById('tbMenu').style.display = 'none';
-  const acm = document.getElementById('appCtxMenu');
-  acm.classList.remove('open');
+  document.getElementById('appCtxMenu').classList.remove('open');
 }
 
 // Smart position — flip left/up if menu would overflow the viewport
@@ -3695,22 +3814,24 @@ function registerAppFn(name, fn){
 
 // Register all built-in apps up front
 (function registerBuiltins(){
-  registerAppFn('Camera',         ()=>openCamera());
-  registerAppFn('Minecraft',      ()=>openMinecraft());
-  registerAppFn('Smash Karts',    ()=>openGame(atob('aHR0cHM6Ly9zbWFzaGthcnRzLmlvLw=='),'Smash Karts'));
-  registerAppFn('FNAF 1',         ()=>openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8xLw=='),'FNAF 1'));
-  registerAppFn('FNAF 2',         ()=>openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8yLw=='),'FNAF 2'));
-  registerAppFn('FNAF 3',         ()=>openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8zLw=='),'FNAF 3'));
-  registerAppFn('FNAF 4',         ()=>openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi80Lw=='),'FNAF 4'));
-  registerAppFn('Deadshot',       ()=>openGame(atob('aHR0cHM6Ly9kZWFkc2hvdC5pby8='),'Deadshot'));
-  registerAppFn('FNAE',           ()=>openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvZm5hZS5odG1s'),'FNAE'));
-  registerAppFn('NZP',            ()=>openGame(atob('aHR0cHM6Ly9uenAuZ2F5Lw=='),'NZP'));
-  registerAppFn('Poly Track',     ()=>openPolyTrack());
-  registerAppFn('Task Manager',   ()=>openTaskManager());
-  registerAppFn('Notepad',        ()=>openNotepad());
-  registerAppFn('CMD',            ()=>openCMD());
-  registerAppFn('CMD Command Prompt', ()=>openCMD());
-  registerAppFn('Settings',       ()=>openSettings());
+  registerAppFn('Camera',              ()=>openCamera());
+  registerAppFn('Minecraft',           ()=>openMinecraft());
+  registerAppFn('Smash Karts',         ()=>openGame(atob('aHR0cHM6Ly9zbWFzaGthcnRzLmlvLw=='),'Smash Karts'));
+  registerAppFn('FNAF 1',              ()=>openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8xLw=='),'FNAF 1'));
+  registerAppFn('FNAF 2',              ()=>openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8yLw=='),'FNAF 2'));
+  registerAppFn('FNAF 3',              ()=>openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi8zLw=='),'FNAF 3'));
+  registerAppFn('FNAF 4',              ()=>openGame(atob('aHR0cHM6Ly9pcnY3Ny5naXRodWIuaW8vaGRfZm5hZi80Lw=='),'FNAF 4'));
+  registerAppFn('Deadshot',            ()=>openGame(atob('aHR0cHM6Ly9kZWFkc2hvdC5pby8='),'Deadshot'));
+  registerAppFn('FNAE',                ()=>openGame(atob('aHR0cHM6Ly9mcmVlc2gxMS5naXRodWIuaW8vR2FtZXMvZm5hZS5odG1s'),'FNAE'));
+  registerAppFn('NZP',                 ()=>openGame(atob('aHR0cHM6Ly9uenAuZ2F5Lw=='),'NZP'));
+  registerAppFn('Poly Track',          ()=>openPolyTrack());
+  registerAppFn('Task Manager',        ()=>openTaskManager());
+  registerAppFn('Notepad',             ()=>openNotepad());
+  // All name variants that appear as data-name values across HTML and JS
+  registerAppFn('CMD',                 ()=>openCMD());
+  registerAppFn('CMD Command Prompt',  ()=>openCMD());
+  registerAppFn('Command Prompt',      ()=>openCMD());   // desktop icon data-name
+  registerAppFn('Settings',            ()=>openSettings());
 })();
 
 // Pinned-to-start set (dynamically added names)
@@ -3827,38 +3948,16 @@ document.getElementById('appCtxTaskbar').addEventListener('click', ()=>{
   btn.title = name;
   btn.dataset.pinnedApp = name;
   btn.innerHTML = `<span style="font-size:20px;pointer-events:none">${icon}</span>`;
-  btn.addEventListener('click', ()=> launchApp(name));
 
-  // Right-click pinned taskbar button → unpin menu
-  btn.addEventListener('contextmenu', ev=>{
-    ev.preventDefault(); ev.stopPropagation();
-    closeAllMenus();
-    const tbm = document.getElementById('tbMenu');
-    tbm._unpinBtn  = btn;
-    tbm._unpinName = name;
-    tbm._isPinned  = true;
-    tbm.style.display = 'block';
-    positionMenu(tbm, ev.clientX, ev.clientY - 60, 180, 70);
-    // Show unpin row, hide close row
-    document.getElementById('tbMenuClose').style.display = 'none';
-    let unpinRow = tbm.querySelector('.tbm-unpin');
-    if(!unpinRow){
-      unpinRow = document.createElement('div');
-      unpinRow.className = 'menu-item tbm-unpin';
-      unpinRow.innerHTML = '<span class="menu-icon">📌</span> Unpin from Taskbar';
-      unpinRow.addEventListener('click', ()=>{
-        tbm._unpinBtn?.remove();
-        _taskbarPinned.delete(tbm._unpinName);
-        document.getElementById('tbMenuClose').style.display = '';
-        tbm._isPinned = false;
-        closeAllMenus();
-        showToast(`"${tbm._unpinName}" unpinned`, 'info', '📌', 2000);
-      });
-      tbm.appendChild(unpinRow);
-    } else {
-      unpinRow.style.display = 'flex';
-    }
-  });
+  btn.onclick = ()=> launchApp(name);
+
+  // Register in the global map so finish() can find this button
+  _pinnedBtnMap[name] = btn;
+
+  btn.oncontextmenu = e=>{
+    e.preventDefault(); e.stopPropagation();
+    _showTbMenu(e.clientX, e.clientY, null, name, true);
+  };
 
   document.getElementById('taskIcons').appendChild(btn);
   showToast(`"${name}" pinned to Taskbar`, 'success', icon, 2200);
@@ -3874,13 +3973,125 @@ document.querySelectorAll('.app').forEach(tile=>{
   });
 });
 
-// Restore tbMenuClose visibility whenever tbMenu is used for a real window task
-const _origTbMenuClose = document.getElementById('tbMenuClose');
-_origTbMenuClose.addEventListener('click', ()=>{
-  if(_tbMenuTarget) closeW(_tbMenuTarget);
+// ── tbMenu helper: show the taskbar right-click menu with correct items ──
+// isPinnedBtn = true when right-clicking a pinned (permanently docked) button
+function _showTbMenu(cx, cy, win, appName, isPinnedBtn){
+  const m = document.getElementById('tbMenu');
+  const closeRow  = document.getElementById('tbMenuClose');
+  const sep       = document.getElementById('tbMenuSep');
+  const pinRow    = document.getElementById('tbMenuPin');
+  const unpinRow  = document.getElementById('tbMenuUnpin');
+
+  // "Close window" — always visible when a real window exists
+  closeRow.style.display  = win ? '' : 'none';
+
+  const isCurrentlyPinned = !!_pinnedBtnMap[appName] || _taskbarPinned.has(appName);
+
+  if(appName && APP_FN_MAP[appName]){
+    // App is known — show the appropriate pin action
+    sep.style.display     = '';
+    pinRow.style.display  = isCurrentlyPinned ? 'none' : '';
+    unpinRow.style.display= isCurrentlyPinned ? '' : 'none';
+  } else {
+    // Unknown app — hide pin options
+    sep.style.display     = 'none';
+    pinRow.style.display  = 'none';
+    unpinRow.style.display= 'none';
+  }
+
+  m._tbCtxWin     = win;
+  m._tbCtxName    = appName;
+  m._tbCtxPinned  = isPinnedBtn;
+  m.style.display = 'block';
+
+  // Position above cursor
+  const tbH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tb-height'))||48;
+  const approxH = isCurrentlyPinned || !win ? 72 : 108;
+  const y = Math.min(cy - approxH - 6, window.innerHeight - tbH - approxH - 4);
+  m.style.left = Math.min(cx, window.innerWidth - 200) + 'px';
+  m.style.top  = Math.max(4, y) + 'px';
+}
+
+// ── Wire tbMenu item handlers ──
+// Close window
+document.getElementById('tbMenuClose').addEventListener('click', ()=>{
+  const win = document.getElementById('tbMenu')._tbCtxWin || _tbMenuTarget;
+  if(win) closeW(win);
+  _tbMenuTarget = null;
   document.getElementById('tbMenu').style.display = 'none';
-  document.getElementById('tbMenu')._isPinned = false;
-  document.getElementById('tbMenuClose').style.display = '';
+});
+
+// Pin to Taskbar
+document.getElementById('tbMenuPin').addEventListener('click', ()=>{
+  const m = document.getElementById('tbMenu');
+  const name = m._tbCtxName;
+  m.style.display = 'none';
+  if(!name || !APP_FN_MAP[name]) return;
+
+  if(_taskbarPinned.has(name)){ showToast('Already pinned','warn','📌',1800); return; }
+  _taskbarPinned.add(name);
+
+  const win = m._tbCtxWin;
+  const iconSpan = win?.querySelector('.title-icon');
+  const icon = iconSpan ? iconSpan.textContent.trim() : '📌';
+
+  // If a window task button already exists, upgrade it to permanent
+  if(win && win.task && !_pinnedBtnMap[name]){
+    const btn = win.task;
+    btn.dataset.pinnedApp = name;
+    btn._linkedWin = win;
+    _pinnedBtnMap[name] = btn;
+    // Re-wire contextmenu to show unpin option
+    btn.oncontextmenu = e=>{
+      e.preventDefault(); e.stopPropagation();
+      _tbMenuTarget = win;
+      _showTbMenu(e.clientX, e.clientY, win, name, true);
+    };
+    showToast(`"${name}" pinned to Taskbar`, 'success', icon, 2200);
+    return;
+  }
+
+  // No open window — create a fresh idle pinned button
+  const btn = document.createElement('div');
+  btn.className = 'taskBtn';
+  btn.title = name;
+  btn.dataset.pinnedApp = name;
+  btn.innerHTML = `<span style="font-size:20px;pointer-events:none">${icon}</span>`;
+  btn.onclick = ()=> launchApp(name);
+  btn.oncontextmenu = e=>{
+    e.preventDefault(); e.stopPropagation();
+    _showTbMenu(e.clientX, e.clientY, null, name, true);
+  };
+  _pinnedBtnMap[name] = btn;
+  document.getElementById('taskIcons').appendChild(btn);
+  showToast(`"${name}" pinned to Taskbar`, 'success', icon, 2200);
+});
+
+// Unpin from Taskbar
+document.getElementById('tbMenuUnpin').addEventListener('click', ()=>{
+  const m = document.getElementById('tbMenu');
+  const name = m._tbCtxName;
+  m.style.display = 'none';
+  if(!name) return;
+
+  _taskbarPinned.delete(name);
+  const btn = _pinnedBtnMap[name];
+  delete _pinnedBtnMap[name];
+
+  if(btn){
+    const linkedWin = btn._linkedWin;
+    if(linkedWin && document.contains(linkedWin)){
+      // Window still exists — swap to ephemeral button
+      const iconEl = btn.querySelector('span');
+      const iconTxt = iconEl ? iconEl.textContent.trim() : '🪟';
+      btn.remove();
+      const newBtn = createTask(linkedWin, iconTxt);
+      linkedWin.task = newBtn;
+    } else {
+      btn.remove();
+    }
+  }
+  showToast(`"${name}" unpinned from Taskbar`, 'info', '📌', 2000);
 });
 
 // ===================== FULLSCREEN =====================
