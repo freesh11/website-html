@@ -1680,9 +1680,98 @@ box-shadow:var(--shadow-8);
 .fe-newfile-create:hover{background:var(--accent-fill-hover);}
 .fe-newfile-create:disabled{opacity:.4;cursor:default;}
 
+/* ═══════════════════════════════════════
+   LOCK SCREEN
+   ═══════════════════════════════════════ */
+#lockScreen{
+  position:fixed;inset:0;z-index:99999999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#041728 0%,#0a2547 25%,#0d3b70 50%,#0a2e5c 75%,#061525 100%);
+  backdrop-filter:blur(0px);
+  font-family:var(--font);
+  transition:opacity .4s var(--ease-accelerate), transform .4s var(--ease-accelerate);
+}
+#lockScreen.ls-hiding{opacity:0;transform:scale(1.04);pointer-events:none;}
+.ls-time{
+  font-size:72px;font-weight:200;color:#fff;
+  letter-spacing:-2px;text-shadow:0 2px 24px rgba(0,0,0,.4);
+  margin-bottom:4px;
+}
+.ls-date{
+  font-size:16px;color:rgba(255,255,255,.7);margin-bottom:48px;
+  letter-spacing:.5px;
+}
+.ls-card{
+  background:rgba(255,255,255,0.07);
+  backdrop-filter:blur(40px) saturate(120%);
+  -webkit-backdrop-filter:blur(40px) saturate(120%);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:16px;
+  padding:28px 32px;
+  width:320px;
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+  box-shadow:0 20px 60px rgba(0,0,0,.4);
+  animation:winOpen var(--dur-normal) var(--ease-decelerate) both;
+}
+.ls-avatar{
+  width:72px;height:72px;border-radius:50%;
+  background:var(--accent-fill);
+  display:flex;align-items:center;justify-content:center;
+  font-size:32px;font-weight:700;color:#000;
+  box-shadow:0 4px 16px rgba(0,0,0,.3);
+}
+.ls-username{font-size:18px;font-weight:600;color:#fff;}
+.ls-input-wrap{width:100%;position:relative;}
+.ls-input{
+  width:100%;box-sizing:border-box;
+  background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:var(--radius-control);
+  padding:10px 44px 10px 14px;
+  color:#fff;font-size:14px;font-family:var(--font);
+  outline:none;
+  transition:border-color .15s linear,background .15s linear;
+}
+.ls-input::placeholder{color:rgba(255,255,255,.45);}
+.ls-input:focus{
+  border-color:var(--accent-fill);
+  background:rgba(255,255,255,.15);
+}
+.ls-submit{
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  width:30px;height:30px;border-radius:var(--radius-control);
+  border:none;background:var(--accent-fill);
+  color:#000;font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .12s linear;
+}
+.ls-submit:hover{background:var(--accent-fill-hover);}
+.ls-err{
+  font-size:12px;color:#ff99a4;
+  min-height:14px;text-align:center;width:100%;
+  animation:menuOpen var(--dur-fast) var(--ease-decelerate) both;
+}
+.ls-hint{font-size:11px;color:rgba(255,255,255,.35);text-align:center;}
+
 </style>
 </head>
 <body style="background:linear-gradient(135deg,#041728 0%,#0a2547 25%,#0d3b70 50%,#0a2e5c 75%,#061525 100%)">
+
+<!-- LOCK SCREEN — shown on boot if account exists, hidden by JS after auth -->
+<div id="lockScreen" style="display:none;">
+  <div class="ls-time" id="lsTime">12:00</div>
+  <div class="ls-date" id="lsDate">Monday, January 1</div>
+  <div class="ls-card">
+    <div class="ls-avatar" id="lsAvatar">?</div>
+    <div class="ls-username" id="lsUsername">User</div>
+    <div class="ls-input-wrap">
+      <input class="ls-input" id="lsInput" type="password" placeholder="Password" autocomplete="off" autofocus>
+      <button class="ls-submit" id="lsSubmit" title="Sign in">→</button>
+    </div>
+    <div class="ls-err" id="lsErr"></div>
+    <div class="ls-hint">Press Enter or → to sign in</div>
+  </div>
+</div>
 
 <!-- Click-to-fullscreen hint -->
 <div id="fsHint">⛶ Click anywhere to enter fullscreen<span>Press Esc then click again to exit</span></div>
@@ -2007,6 +2096,11 @@ let procNextId=1;
 let settingsProcId=null, cmdProcId=null;
 let _tbMenuTarget=null;
 
+// Cursor globals — declared here so _gatherSettings / loadSettings can reference them
+// before the Cursor panel code initialises them further down.
+let _cursorId    = localStorage.getItem('_cursorId')    || 'default';
+let _cursorScale = parseFloat(localStorage.getItem('_cursorScale') || '1');
+
 function allocProc(o){return Object.assign({id:procNextId++,win:null,name:'App',mem:100,cpu:10},o);}
 
 // ===================== CLOCK =====================
@@ -2040,69 +2134,284 @@ t.addEventListener('click',()=>{clearTimeout(tid);t.classList.add('out');setTime
 
 // ===================== SETTINGS PERSISTENCE =====================
 const SETTINGS_KEY='desktop_settings_v2';
+function _gatherSettings(){
+  const tb=document.getElementById('taskbar');
+  const WIN11_DEFAULT_BG='linear-gradient(135deg,#041728 0%,#0a2547 25%,#0d3b70 50%,#0a2e5c 75%,#061525 100%)';
+
+  // ── Desktop icons (position + name + emoji) ──
+  const desktopIcons=[];
+  document.querySelectorAll('#desktop .desktop-icon').forEach(el=>{
+    desktopIcons.push({
+      name:  el.dataset.name||'',
+      icon:  el.querySelector('.di-icon')?.textContent||'',
+      label: el.querySelector('.di-label')?.textContent||'',
+      col:   parseInt(el.dataset.diCol)||0,
+      row:   parseInt(el.dataset.diRow)||0,
+    });
+  });
+
+  // ── Pinned-to-Start (dynamic additions only — built-in tiles are always there) ──
+  const pinnedStart = typeof _pinnedSet!=='undefined' ? [..._pinnedSet] : [];
+
+  // ── Pinned-to-Taskbar ──
+  const pinnedTaskbar = typeof _taskbarPinned!=='undefined' ? [..._taskbarPinned] : [];
+
+  // ── Recent apps ──
+  const recent = typeof recentApps!=='undefined'
+    ? recentApps.map(a=>({name:a.name, icon:a.icon}))
+    : [];
+
+  // ── Volume ──
+  const vol = typeof volState!=='undefined' ? volState : 2;
+
+  // ── Camera photos (store all — they're in-session only) ──
+  const photos = (window._camPhotos||[]).map(p=>({
+    dataUrl: p.dataUrl,
+    name:    p.name,
+    timestamp: p.timestamp instanceof Date ? p.timestamp.toISOString() : p.timestamp,
+  }));
+
+  // ── Trash ──
+  const trash = (window._trash||[]).map(t=>({
+    node:      t.node,
+    deletedAt: t.deletedAt,
+    // _parentNode is a live VFS reference — save its path instead
+    parentPath: t._parentPath||null,
+  }));
+
+  // ── VFS user-created files & folders (Desktop + all user-created nodes) ──
+  function serializeVFSNode(node){
+    if(!node._userCreated && !node._isCameraRoll && !node._isDesktop && !node._isTrash) return null;
+    return {
+      name: node.name, type: node.type, ext: node.ext||null,
+      size: node.size||null, desc: node.desc||null,
+      _userCreated: true,
+    };
+  }
+  // Collect user-created files from Desktop VFS folder
+  const desktopVFSFiles = (window._VFS&&window._VFS['Desktop']
+    ? (window._VFS['Desktop'].children||[]).filter(c=>c._userCreated)
+    : []).map(n=>({name:n.name,type:n.type,ext:n.ext,size:n.size,desc:n.desc}));
+
+  return {
+    _type:    'desktop-config',
+    _version: 3,
+    // ── Appearance ──
+    bg:          document.body.style.backgroundImage||document.body.style.background||WIN11_DEFAULT_BG,
+    accent:      getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
+    accentFill:  getComputedStyle(document.documentElement).getPropertyValue('--accent-fill').trim(),
+    taskOpacity: getComputedStyle(document.documentElement).getPropertyValue('--task-opacity').trim(),
+    tbHeight:    getComputedStyle(document.documentElement).getPropertyValue('--tb-height').trim()||'48px',
+    tbMode:      tb.dataset.tbMode||'full',
+    cursorId:    _cursorId||'default',
+    cursorScale: _cursorScale||1,
+    // ── Desktop ──
+    desktopIcons,
+    // ── Start menu ──
+    pinnedStart,
+    // ── Taskbar ──
+    pinnedTaskbar,
+    // ── Activity ──
+    recentApps: recent,
+    volState:   vol,
+    // ── Camera photos ──
+    camPhotos:  photos,
+    // ── Recycle bin ──
+    trash,
+    // ── VFS user files ──
+    desktopVFSFiles,
+  };
+}
+
+function _applySettings(s){
+  if(!s) return;
+  const WIN11_DEFAULT_BG='linear-gradient(135deg,#041728 0%,#0a2547 25%,#0d3b70 50%,#0a2e5c 75%,#061525 100%)';
+
+  // ── Appearance ──
+  if(s.bg) applyBackground(s.bg);
+  if(s.accent){
+    document.documentElement.style.setProperty('--accent', s.accent);
+    document.documentElement.style.setProperty('--accent-fill', s.accentFill||s.accent);
+  }
+  if(s.taskOpacity) setTaskbarOpacity(parseFloat(s.taskOpacity));
+  if(s.tbHeight)    setTaskbarHeight(s.tbHeight);
+  if(s.tbMode)      setTaskbarMode(s.tbMode);
+
+  // ── Cursor ──
+  if(s.cursorId){
+    _cursorId    = s.cursorId;
+    _cursorScale = parseFloat(s.cursorScale)||1;
+    localStorage.setItem('_cursorId',    _cursorId);
+    localStorage.setItem('_cursorScale', _cursorScale);
+    if(typeof applyCursor==='function') applyCursor(_cursorId);
+  }
+
+  // ── Volume ──
+  if(typeof s.volState==='number'){
+    volState = s.volState;
+    const icons=['🔇','🔉','🔊'];
+    const el=document.getElementById('volIcon');
+    if(el) el.textContent=icons[volState];
+  }
+
+  // ── Camera photos ──
+  if(Array.isArray(s.camPhotos) && s.camPhotos.length){
+    window._camPhotos = s.camPhotos.map(p=>({
+      dataUrl:   p.dataUrl,
+      name:      p.name,
+      timestamp: new Date(p.timestamp),
+    }));
+  }
+
+  // ── Trash ──
+  if(Array.isArray(s.trash)){
+    window._trash = s.trash.map(t=>({
+      node:       t.node,
+      deletedAt:  t.deletedAt,
+      _parentNode:window._VFS&&window._VFS['Desktop'], // best-effort restore
+    }));
+  }
+
+  // ── VFS Desktop user files ──
+  if(Array.isArray(s.desktopVFSFiles) && s.desktopVFSFiles.length && window._VFS&&window._VFS['Desktop']){
+    const desktop=window._VFS['Desktop'];
+    s.desktopVFSFiles.forEach(f=>{
+      if(!desktop.children.find(c=>c.name===f.name)){
+        desktop.children.push({...f, modified:new Date(), icon:f.ext?_extIconGlobal(f.ext):'📄', _userCreated:true});
+      }
+    });
+  }
+
+  // ── Recent apps ── (restore after a tick so recentApps is initialised)
+  if(Array.isArray(s.recentApps) && s.recentApps.length){
+    setTimeout(()=>{
+      if(typeof recentApps!=='undefined'){
+        recentApps=s.recentApps.map(a=>({name:a.name,icon:a.icon,onclick:''}));
+        if(typeof renderRecent==='function') renderRecent();
+      }
+    },0);
+  }
+
+  // ── Pinned to Start ──
+  if(Array.isArray(s.pinnedStart) && s.pinnedStart.length){
+    setTimeout(()=>{
+      if(typeof _pinnedSet==='undefined') return;
+      const grid=document.getElementById('pinnedGrid');
+      if(!grid) return;
+      s.pinnedStart.forEach(name=>{
+        if(_pinnedSet.has(name)) return;
+        _pinnedSet.add(name);
+        // Find icon from allAppsGrid
+        const src=document.querySelector(`#allAppsGrid .app[data-name="${CSS.escape(name)}"]`);
+        const icon=src?src.querySelector('span')?.textContent||'🗂️':'🗂️';
+        const tile=document.createElement('div');
+        tile.className='app';tile.dataset.name=name;
+        tile.innerHTML=`<span style="font-size:22px">${icon}</span>${name}`;
+        tile.addEventListener('click',()=>launchApp(name));
+        tile.addEventListener('contextmenu',ev=>{
+          ev.preventDefault();ev.stopPropagation();
+          if(!ev.target.closest('#start')) return;
+          closeAllMenus(true); _suppressNextClick=true;
+          showAppCtxMenu(ev,tile);
+        });
+        grid.appendChild(tile);
+      });
+    },0);
+  }
+
+  // ── Pinned to Taskbar ──
+  if(Array.isArray(s.pinnedTaskbar) && s.pinnedTaskbar.length){
+    setTimeout(()=>{
+      if(typeof _taskbarPinned==='undefined') return;
+      s.pinnedTaskbar.forEach(name=>{
+        if(_taskbarPinned.has(name)||_pinnedBtnMap[name]) return;
+        _taskbarPinned.add(name);
+        const src=document.querySelector(`#allAppsGrid .app[data-name="${CSS.escape(name)}"]`);
+        const icon=src?src.querySelector('span')?.textContent||'🗂️':'🗂️';
+        const btn=document.createElement('div');
+        btn.className='taskBtn';
+        btn.title=name;
+        btn.dataset.pinnedApp=name;
+        btn.innerHTML=`<span style="font-size:19px;pointer-events:none;line-height:1">${icon}</span>`;
+        btn.onclick=()=>launchApp(name);
+        btn.oncontextmenu=e=>{
+          e.preventDefault();e.stopPropagation();
+          _showTbMenu(e.clientX,e.clientY,null,name,true);
+        };
+        document.getElementById('taskIcons').appendChild(btn);
+        _pinnedBtnMap[name]=btn;
+      });
+    },0);
+  }
+
+  // ── Desktop icons ──
+  if(Array.isArray(s.desktopIcons) && s.desktopIcons.length){
+    setTimeout(()=>{
+      const desktop=document.getElementById('desktop');
+      if(!desktop) return;
+      // Remove all existing icons and re-place from save
+      desktop.querySelectorAll('.desktop-icon').forEach(el=>el.remove());
+      if(typeof initExistingIcons==='function'){
+        s.desktopIcons.forEach(ic=>{
+          const el=document.createElement('div');
+          el.className='desktop-icon';
+          el.dataset.name=ic.name;
+          el.dataset.diCol=ic.col;
+          el.dataset.diRow=ic.row;
+          el.innerHTML=`<span class="di-icon">${ic.icon}</span><span class="di-label">${ic.label||ic.name}</span>`;
+          desktop.appendChild(el);
+        });
+        initExistingIcons();
+      }
+    },50);
+  }
+}
+
+// Global icon-from-extension lookup (mirrors the one inside openFileExplorer)
+function _extIconGlobal(ext){
+  const m={exe:'⚙️',dll:'🔧',sys:'🛡️',ini:'📄',cfg:'📄',txt:'📝',log:'📋',
+           ttf:'🅰️',otf:'🅰️',png:'🖼️',jpg:'🖼️',mp3:'🎵',mp4:'🎬',
+           zip:'📦',json:'📋',xml:'📋',bat:'⚙️',cmd:'⚙️',ps1:'🔷',
+           html:'🌐',css:'🎨',js:'📜',py:'🐍',md:'📝',csv:'📊',lnk:'🔗'};
+  return m[(ext||'').toLowerCase()]||'📄';
+}
+
 function saveSettings(){
-try{
-const tb=document.getElementById('taskbar');
-const WIN11_DEFAULT_BG='linear-gradient(135deg,#041728 0%,#0a2547 25%,#0d3b70 50%,#0a2e5c 75%,#061525 100%)';
-const bg=document.body.style.backgroundImage||document.body.style.background||WIN11_DEFAULT_BG;
-const s={
-bg,
-bgImg:document.body.style.backgroundImage||'',
-accent:getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
-taskOpacity:getComputedStyle(document.documentElement).getPropertyValue('--task-opacity').trim(),
-tbHeight:getComputedStyle(document.documentElement).getPropertyValue('--tb-height').trim()||'48px',
-tbMode:tb.dataset.tbMode||'full',
-};
-localStorage.setItem(SETTINGS_KEY,JSON.stringify(s));
-}catch(e){}
+  try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(_gatherSettings())); }catch(e){}
 }
+
 function loadSettings(){
-try{
-const raw=localStorage.getItem(SETTINGS_KEY);
-if(!raw)return;
-const s=JSON.parse(raw);
-applyBackground(s.bg||WIN11_DEFAULT_BG);
-if(s.accent){
-  document.documentElement.style.setProperty('--accent',s.accent);
-  document.documentElement.style.setProperty('--accent-fill',s.accent);
+  try{
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if(!raw) return;
+    const s = JSON.parse(raw);
+    _applySettings(s);
+  }catch(e){}
 }
-if(s.taskOpacity){setTaskbarOpacity(parseFloat(s.taskOpacity));}
-if(s.tbHeight){setTaskbarHeight(s.tbHeight);}
-if(s.tbMode){setTaskbarMode(s.tbMode);}
-}catch(e){}
-}
+
 function exportConfig(){
-try{
-const tb=document.getElementById('taskbar');
-const cfg={
-  _type:'desktop-config',
-  _version:1,
-  bg:document.body.style.backgroundImage||document.body.style.background||WIN11_DEFAULT_BG,
-  accent:getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
-  taskOpacity:getComputedStyle(document.documentElement).getPropertyValue('--task-opacity').trim(),
-  tbHeight:getComputedStyle(document.documentElement).getPropertyValue('--tb-height').trim()||'48px',
-  tbMode:tb.dataset.tbMode||'full',
-};
-const blob=new Blob([JSON.stringify(cfg,null,2)],{type:'application/json'});
-const a=document.createElement('a');
-a.href=URL.createObjectURL(blob);
-a.download='desktop-config.json';
-a.click();
-URL.revokeObjectURL(a.href);
-}catch(e){showToast('Export failed','error','❌',2500);}
+  try{
+    const cfg = _gatherSettings();
+    const blob = new Blob([JSON.stringify(cfg, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'desktop-config.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    showToast('Config exported successfully','success','💾',2500);
+  }catch(e){ showToast('Export failed','error','❌',2500); }
 }
+
 function importConfig(raw){
-try{
-const cfg=JSON.parse(raw);
-if(cfg._type!=='desktop-config') return false;
-if(cfg.bg) applyBackground(cfg.bg);
-if(cfg.accent) document.documentElement.style.setProperty('--accent',cfg.accent);
-if(cfg.taskOpacity) setTaskbarOpacity(parseFloat(cfg.taskOpacity));
-if(cfg.tbHeight) setTaskbarHeight(cfg.tbHeight);
-if(cfg.tbMode) setTaskbarMode(cfg.tbMode);
-saveSettings();
-return true;
-}catch(e){return false;}
+  try{
+    const cfg = JSON.parse(raw);
+    if(cfg._type !== 'desktop-config') return false;
+    _applySettings(cfg);
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({...cfg, _version:3}));
+    return true;
+  }catch(e){ return false; }
 }
 
 function applyBackground(val){
@@ -2173,6 +2482,7 @@ volState=(volState+1)%3;
 const icons=['🔇','🔉','🔊'];
 document.getElementById('volIcon').textContent=icons[volState];
 showToast(volState===0?'Muted':volState===1?'Volume: Low':'Volume: High','info',icons[volState],1800);
+saveSettings();
 }
 
 // ===================== KEYBOARD HINT =====================
@@ -2276,11 +2586,11 @@ if(e.key==='Enter'){
 // ===================== RECENTLY PLAYED =====================
 let recentApps = [];
 function trackRecent(name, icon, onclick){
-  // Remove if already exists, then add to front
   recentApps = recentApps.filter(a=>a.name!==name);
   recentApps.unshift({name, icon, onclick});
   if(recentApps.length>6) recentApps=recentApps.slice(0,6);
   renderRecent();
+  saveSettings();
 }
 function renderRecent(){
   const grid=document.getElementById('recentGrid');
@@ -3041,6 +3351,7 @@ function camCapture(){
   // Notify Photos app if open
   const photoWin=processes.find(x=>x.win&&x.win._photosRefresh);
   if(photoWin) photoWin.win._photosRefresh();
+  saveSettings();
 }
 
 // --- wire up ALL events via addEventListener (no onclick attrs!) ---
@@ -4755,7 +5066,9 @@ navPane.style.cssText = `
 const navItems = [
   {id:'personalization', icon:'🎨', label:'Personalization'},
   {id:'taskbar',         icon:'📌', label:'Taskbar'},
+  {id:'cursor',          icon:'🖱️', label:'Cursor'},
   {id:'keyboard',        icon:'⌨️', label:'Keyboard Shortcuts'},
+  {id:'account',         icon:'👤', label:'Account'},
   {id:'config',          icon:'💾', label:'Config'},
 ];
 
@@ -4978,17 +5291,27 @@ panelKeyboard.innerHTML=`
 // ── Panel: Config
 const panelConfig = document.createElement('div');
 panelConfig.style.cssText='flex-direction:column;gap:16px;flex:1;padding:24px 28px;overflow-y:auto;display:none;';
-panelConfig.innerHTML='<div style="font-size:20px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">Config File</div>';
+panelConfig.innerHTML=`
+  <div style="font-size:20px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">Config File</div>
+  <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;background:var(--ctrl-bg);border:1px solid var(--stroke);border-radius:var(--radius-control);padding:12px 14px;">
+    The config file saves and restores:
+    <span style="display:block;margin-top:6px;color:var(--text-primary);font-size:12px;font-family:var(--font-mono);">
+      background • accent color • taskbar opacity/height/mode<br>
+      cursor style • cursor size • volume • recent apps<br>
+      pinned Start apps • pinned Taskbar apps • desktop icon layout<br>
+      camera photos • recycle bin • VFS user-created files
+    </span>
+  </div>`;
 const cfgSection=document.createElement('div');cfgSection.className='settings-section';
 cfgSection.innerHTML='<div class="settings-label">Backup & Restore</div>';
 const cfgRow=document.createElement('div');cfgRow.className='settings-row';cfgRow.style.cssText='gap:8px;flex-wrap:wrap;';
 const exportBtn=document.createElement('button');
-exportBtn.className='settings-apply-btn';exportBtn.textContent='Export Config';
+exportBtn.className='settings-apply-btn';exportBtn.textContent='⬇ Export Config';
 exportBtn.style.cssText='padding:8px 16px;font-size:12px;';
-exportBtn.addEventListener('click',()=>{exportConfig();showToast('Config exported!','success','💾',2000);});
+exportBtn.addEventListener('click',()=>{ exportConfig(); });
 const importLabel=document.createElement('label');
 importLabel.className='settings-apply-btn';
-importLabel.textContent='Import Config';
+importLabel.textContent='⬆ Import Config';
 importLabel.style.cssText='padding:8px 16px;font-size:12px;cursor:pointer;background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);';
 const importInput=document.createElement('input');
 importInput.type='file';importInput.accept='.json';importInput.style.display='none';
@@ -4997,7 +5320,20 @@ importInput.addEventListener('change',e=>{
   const reader=new FileReader();
   reader.onload=ev=>{
     const ok=importConfig(ev.target.result);
-    showToast(ok?'Config imported!':'Invalid config file',ok?'success':'error',ok?'⬆':'❌',2500);
+    if(ok){
+      showToast('Config imported — settings applied','success','✅',3000);
+      // Re-open settings to reflect all imported values in the UI
+      setTimeout(()=>{
+        const p=processes.find(x=>x.id===settingsProcId);
+        if(p&&p.win){
+          closeW(p.win);
+          settingsProcId=null;
+        }
+        setTimeout(()=>openSettings(),200);
+      }, 400);
+    } else {
+      showToast('Invalid config file — must be a desktop-config.json','error','❌',3000);
+    }
   };
   reader.readAsText(file);
   importInput.value='';
@@ -5008,11 +5344,534 @@ cfgRow.appendChild(importLabel);
 cfgSection.appendChild(cfgRow);
 panelConfig.appendChild(cfgSection);
 
+// ── Profile Code section ──
+const codeSection=document.createElement('div');codeSection.className='settings-section';
+codeSection.innerHTML='<div class="settings-label">Profile Code</div>';
+
+const codeDesc=document.createElement('div');
+codeDesc.style.cssText='font-size:12px;color:var(--text-secondary);line-height:1.6;margin-bottom:8px;';
+codeDesc.innerHTML='Copy this code and paste it on any device to restore <b style="color:var(--text-primary)">your entire profile</b> — account, appearance, pinned apps, photos, and everything else. No files needed.';
+codeSection.appendChild(codeDesc);
+
+// Generate code textarea
+const codeBox=document.createElement('textarea');
+codeBox.readOnly=true;
+codeBox.rows=4;
+codeBox.style.cssText='width:100%;box-sizing:border-box;background:var(--ctrl-bg-input);border:1px solid var(--stroke);border-radius:var(--radius-control);padding:8px 10px;color:var(--accent-fill);font-size:11px;font-family:var(--font-mono);resize:none;outline:none;word-break:break-all;line-height:1.5;cursor:text;';
+codeBox.placeholder='Click "Generate Code" to create your profile code…';
+
+// Encode: JSON → utf8 bytes → base64 with a header prefix
+function _encodeProfileCode(cfg){
+  // Include account data from localStorage too
+  const _acctKey='desktop_account_v1';
+  let acct=null;
+  try{acct=JSON.parse(localStorage.getItem(_acctKey)||'null');}catch(e){}
+  const payload=JSON.stringify({...cfg, _account:acct, _pcVersion:1});
+  // btoa needs latin1 — encode utf8 first
+  const bytes=new TextEncoder().encode(payload);
+  let bin='';
+  bytes.forEach(b=>bin+=String.fromCharCode(b));
+  return 'DESKPROFILE:'+btoa(bin);
+}
+
+function _decodeProfileCode(code){
+  if(!code.startsWith('DESKPROFILE:')) return null;
+  try{
+    const bin=atob(code.slice('DESKPROFILE:'.length));
+    const bytes=new Uint8Array([...bin].map(c=>c.charCodeAt(0)));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }catch(e){return null;}
+}
+
+const codeGenBtn=document.createElement('button');
+codeGenBtn.className='settings-apply-btn';
+codeGenBtn.textContent='Generate Code';
+codeGenBtn.style.cssText='padding:6px 14px;font-size:12px;margin-top:8px;';
+codeGenBtn.addEventListener('click',()=>{
+  const cfg=_gatherSettings();
+  codeBox.value=_encodeProfileCode(cfg);
+  codeBox.select();
+  showToast('Profile code generated','info','🔑',2000);
+});
+
+const codeCopyBtn=document.createElement('button');
+codeCopyBtn.className='settings-apply-btn';
+codeCopyBtn.textContent='📋 Copy';
+codeCopyBtn.style.cssText='padding:6px 14px;font-size:12px;margin-top:8px;background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);';
+codeCopyBtn.addEventListener('click',()=>{
+  if(!codeBox.value){showToast('Generate a code first','warn','⚠️',2000);return;}
+  navigator.clipboard.writeText(codeBox.value).then(()=>{
+    showToast('Profile code copied to clipboard!','success','📋',2500);
+    codeCopyBtn.textContent='✅ Copied';
+    setTimeout(()=>codeCopyBtn.textContent='📋 Copy',2000);
+  }).catch(()=>{
+    codeBox.select(); document.execCommand('copy');
+    showToast('Copied!','success','📋',2000);
+  });
+});
+
+const codeRow1=document.createElement('div');
+codeRow1.style.cssText='display:flex;gap:8px;flex-wrap:wrap;';
+codeRow1.append(codeGenBtn,codeCopyBtn);
+
+// Import from code
+const codeSep=document.createElement('hr');codeSep.className='settings-divider';codeSep.style.margin='14px 0 10px';
+
+const codeImportLabel=document.createElement('div');
+codeImportLabel.style.cssText='font-size:var(--text-caption);color:var(--text-tertiary);margin-bottom:6px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;';
+codeImportLabel.textContent='Import from code';
+
+const codeImportBox=document.createElement('textarea');
+codeImportBox.rows=3;
+codeImportBox.placeholder='Paste your profile code here (starts with DESKPROFILE:)…';
+codeImportBox.style.cssText='width:100%;box-sizing:border-box;background:var(--ctrl-bg-input);border:1px solid var(--stroke);border-bottom:2px solid var(--accent-fill);border-radius:var(--radius-control);padding:8px 10px;color:var(--text-primary);font-size:11px;font-family:var(--font-mono);resize:none;outline:none;word-break:break-all;line-height:1.5;';
+
+const codeImportBtn=document.createElement('button');
+codeImportBtn.className='settings-apply-btn';
+codeImportBtn.textContent='Apply Profile Code';
+codeImportBtn.style.cssText='padding:6px 16px;font-size:12px;margin-top:8px;';
+codeImportBtn.addEventListener('click',()=>{
+  const raw=codeImportBox.value.trim();
+  if(!raw){showToast('Paste a profile code first','warn','⚠️',2000);return;}
+  const cfg=_decodeProfileCode(raw);
+  if(!cfg||cfg._type!=='desktop-config'){
+    showToast('Invalid profile code','error','❌',3000);return;
+  }
+  // Restore account separately
+  if(cfg._account){
+    try{localStorage.setItem('desktop_account_v1',JSON.stringify(cfg._account));}catch(e){}
+  } else {
+    localStorage.removeItem('desktop_account_v1');
+  }
+  const ok=importConfig(JSON.stringify(cfg));
+  if(ok){
+    showToast('Profile applied — reloading settings…','success','✅',3000);
+    setTimeout(()=>{
+      const p=processes.find(x=>x.id===settingsProcId);
+      if(p&&p.win){closeW(p.win);settingsProcId=null;}
+      setTimeout(()=>openSettings(),200);
+    },400);
+  } else {
+    showToast('Failed to apply profile code','error','❌',3000);
+  }
+});
+
+codeSection.appendChild(codeBox);
+codeSection.appendChild(codeRow1);
+codeSection.appendChild(codeSep);
+codeSection.appendChild(codeImportLabel);
+codeSection.appendChild(codeImportBox);
+codeSection.appendChild(codeImportBtn);
+panelConfig.appendChild(document.createElement('hr').cloneNode());
+panelConfig.lastChild.className='settings-divider';
+panelConfig.appendChild(codeSection);
+
+// ── Panel: Cursor
+// All cursors are pure SVG data-URLs — no network requests, no loading delay.
+// Applied instantly via a single CSS custom property on :root.
+const CURSOR_PRESETS = [
+  {
+    id: 'default',
+    label: 'Windows Default',
+    desc: 'Classic Win11 arrow',
+    preview: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M6 2 L6 26 L11 21 L16 30 L19 29 L14 20 L21 20 Z" fill="white" stroke="#222" stroke-width="1.5" stroke-linejoin="round"/></svg>`,
+    css: 'default',
+  },
+  {
+    id: 'win11',
+    label: 'Win11 Arrow',
+    desc: 'Rounded, high-DPI style',
+    preview: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M5 2 L5 25 L10 20 L15 29 L18 27.5 L13 19 L20 19 Z" fill="white" stroke="black" stroke-width="1.2" stroke-linejoin="round"/><path d="M5 2 L5 25 L10 20 L15 29 L18 27.5 L13 19 L20 19 Z" fill="white"/></svg>`,
+    svgCursor: `<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M4 2 L4 19 L8 15 L11 22 L13.5 21 L10 14.5 L15 14.5 Z' fill='white' stroke='%23111' stroke-width='1' stroke-linejoin='round'/></svg>`,
+    hotspot: '4 2',
+  },
+  {
+    id: 'precision',
+    label: 'Precision',
+    desc: 'Crosshair for accuracy',
+    preview: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="8" fill="none" stroke="white" stroke-width="1.5"/><circle cx="16" cy="16" r="1.5" fill="white"/><line x1="16" y1="2" x2="16" y2="9" stroke="white" stroke-width="1.5"/><line x1="16" y1="23" x2="16" y2="30" stroke="white" stroke-width="1.5"/><line x1="2" y1="16" x2="9" y2="16" stroke="white" stroke-width="1.5"/><line x1="23" y1="16" x2="30" y2="16" stroke="white" stroke-width="1.5"/></svg>`,
+    svgCursor: `<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><circle cx='12' cy='12' r='6' fill='none' stroke='white' stroke-width='1.2'/><circle cx='12' cy='12' r='1.2' fill='white'/><line x1='12' y1='2' x2='12' y2='7' stroke='white' stroke-width='1.2'/><line x1='12' y1='17' x2='12' y2='22' stroke='white' stroke-width='1.2'/><line x1='2' y1='12' x2='7' y2='12' stroke='white' stroke-width='1.2'/><line x1='17' y1='12' x2='22' y2='12' stroke='white' stroke-width='1.2'/></svg>`,
+    hotspot: '12 12',
+  },
+  {
+    id: 'dot',
+    label: 'Dot',
+    desc: 'Minimal single dot',
+    preview: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="4" fill="white"/><circle cx="16" cy="16" r="4" fill="none" stroke="#444" stroke-width="1"/></svg>`,
+    svgCursor: `<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><circle cx='8' cy='8' r='3.5' fill='white' stroke='%23333' stroke-width='1'/></svg>`,
+    hotspot: '8 8',
+  },
+  {
+    id: 'circle',
+    label: 'Circle Outline',
+    desc: 'Hollow ring cursor',
+    preview: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="9" fill="none" stroke="white" stroke-width="2"/><circle cx="16" cy="16" r="1.5" fill="white"/></svg>`,
+    svgCursor: `<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'><circle cx='10' cy='10' r='7' fill='none' stroke='white' stroke-width='2'/><circle cx='10' cy='10' r='1.5' fill='white'/></svg>`,
+    hotspot: '10 10',
+  },
+  {
+    id: 'hand',
+    label: 'Pointer Hand',
+    desc: 'Always show pointer hand',
+    preview: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M14 4 C14 3 15 2 16 2 C17 2 18 3 18 4 L18 16 L20 14 C20.5 13 22 13 22.5 14 C23 15 23 16 22 17 L20 20 C19 22 17 24 16 24 L12 24 C10 24 8 22 8 20 L8 14 L8 12 C8 11 9 10 10 10 C11 10 12 11 12 12 L12 14 C12 13 13 12 14 12 Z" fill="white" stroke="#222" stroke-width="1" stroke-linejoin="round"/></svg>`,
+    css: 'pointer',
+  },
+  {
+    id: 'text',
+    label: 'Text Beam',
+    desc: 'Always show text cursor',
+    preview: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><line x1="16" y1="4" x2="16" y2="28" stroke="white" stroke-width="2"/><line x1="12" y1="4" x2="20" y2="4" stroke="white" stroke-width="2"/><line x1="12" y1="28" x2="20" y2="28" stroke="white" stroke-width="2"/></svg>`,
+    css: 'text',
+  },
+  {
+    id: 'accent',
+    label: 'Accent Arrow',
+    desc: 'Arrow tinted with accent color',
+    preview: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M5 2 L5 25 L10 20 L15 29 L18 27.5 L13 19 L20 19 Z" fill="#76B9ED" stroke="#003366" stroke-width="1.2" stroke-linejoin="round"/></svg>`,
+    svgCursor: `<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M4 2 L4 19 L8 15 L11 22 L13.5 21 L10 14.5 L15 14.5 Z' fill='%2376B9ED' stroke='%23003366' stroke-width='1' stroke-linejoin='round'/></svg>`,
+    hotspot: '4 2',
+    accentLinked: true,
+  },
+  {
+    id: 'large',
+    label: 'Large Arrow',
+    desc: 'Bigger default for visibility',
+    preview: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M3 1 L3 28 L10 21 L16 31 L20 29 L14 19 L23 19 Z" fill="white" stroke="#222" stroke-width="1.5" stroke-linejoin="round"/></svg>`,
+    svgCursor: `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M3 1 L3 28 L10 21 L16 31 L20 29 L14 19 L23 19 Z' fill='white' stroke='%23111' stroke-width='1.2' stroke-linejoin='round'/></svg>`,
+    hotspot: '3 1',
+  },
+  {
+    id: 'none',
+    label: 'Hidden',
+    desc: 'Invisible cursor',
+    preview: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect x="4" y="4" width="24" height="24" rx="4" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-dasharray="4 3"/><text x="16" y="21" text-anchor="middle" font-size="14" fill="rgba(255,255,255,0.4)">∅</text></svg>`,
+    css: 'none',
+  },
+];
+
+// _cursorId and _cursorScale are declared at the top of the script near other globals.
+
+function _buildCursorDataUrl(preset){
+  // Returns the cursor CSS value string — either a named keyword or a data-URL svg
+  if(preset.css) return preset.css;
+  let svg = preset.svgCursor;
+  // For accent-linked cursors, swap in the current accent colour
+  if(preset.accentLinked){
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent-fill').trim() || '#76B9ED';
+    const col = accent.startsWith('#') ? accent.slice(1) : accent.replace(/[^0-9a-fA-F]/g,'');
+    svg = svg.replace(/%2376B9ED/g, '%23'+col).replace(/76B9ED/g, col);
+  }
+  // Scale the SVG dimensions by _cursorScale without touching anything else
+  if(_cursorScale !== 1){
+    svg = svg.replace(/width='(\d+)'/, (_,w)=>`width='${Math.round(+w*_cursorScale)}'`);
+    svg = svg.replace(/height='(\d+)'/, (_,h)=>`height='${Math.round(+h*_cursorScale)}'`);
+    // Scale hotspot too
+    const [hx,hy] = (preset.hotspot||'0 0').split(' ').map(Number);
+    const scaledHotspot = `${Math.round(hx*_cursorScale)} ${Math.round(hy*_cursorScale)}`;
+    const url = `url("data:image/svg+xml,${svg}") ${scaledHotspot}, auto`;
+    return url;
+  }
+  const url = `url("data:image/svg+xml,${svg}") ${preset.hotspot||'0 0'}, auto`;
+  return url;
+}
+
+function applyCursor(id){
+  _cursorId = id;
+  localStorage.setItem('_cursorId', id);
+  const preset = CURSOR_PRESETS.find(p=>p.id===id) || CURSOR_PRESETS[0];
+  const val = _buildCursorDataUrl(preset);
+  // Apply to :root so all elements inherit — no pointer-events change, zero latency
+  document.documentElement.style.setProperty('cursor', val, 'important');
+  // Also set on * via a <style> injection for full coverage
+  let styleEl = document.getElementById('_cursor_override');
+  if(!styleEl){ styleEl=document.createElement('style'); styleEl.id='_cursor_override'; document.head.appendChild(styleEl); }
+  if(id==='default'){
+    styleEl.textContent=''; // remove override entirely — let browser default handle everything
+    document.documentElement.style.removeProperty('cursor');
+  } else {
+    // Use !important on * but preserve pointer/text/grab on interactive elements
+    const base = val;
+    styleEl.textContent = `
+      *:not(input):not(textarea):not([contenteditable]):not(.ctrl-btn):not(.taskBtn):not(.app):not(.fe-item):not(.fe-list-row):not(.desktop-icon):not(button):not(a):not(select) {
+        cursor: ${base} !important;
+      }
+    `;
+  }
+}
+
+// Restore saved cursor on load
+if(_cursorId !== 'default') applyCursor(_cursorId);
+
+// ── Build cursor panel
+const panelCursor = document.createElement('div');
+panelCursor.style.cssText='flex-direction:column;gap:20px;flex:1;padding:24px 28px;overflow-y:auto;display:none;';
+panelCursor.innerHTML='<div style="font-size:20px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">Cursor</div>';
+
+const cursorSection = document.createElement('div');
+cursorSection.className='settings-section';
+cursorSection.innerHTML='<div class="settings-label">Choose a cursor style</div>';
+
+const cursorGrid = document.createElement('div');
+cursorGrid.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:8px;';
+
+CURSOR_PRESETS.forEach(preset=>{
+  const card = document.createElement('div');
+  const isActive = _cursorId === preset.id;
+  card.style.cssText=`
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    padding:14px 10px 10px;
+    border-radius:var(--radius-overlay);
+    border:2px solid ${isActive?'var(--accent-fill)':'var(--stroke)'};
+    background:${isActive?'rgba(96,205,255,0.08)':'var(--ctrl-bg)'};
+    cursor:pointer;
+    transition:border-color var(--dur-faster) linear,background var(--dur-faster) linear;
+    position:relative;
+  `;
+
+  const previewWrap = document.createElement('div');
+  previewWrap.style.cssText='width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);border-radius:var(--radius-control);';
+  previewWrap.innerHTML = preset.preview;
+
+  const nameEl = document.createElement('div');
+  nameEl.style.cssText='font-size:11px;font-weight:600;color:var(--text-primary);text-align:center;line-height:1.2;';
+  nameEl.textContent = preset.label;
+
+  const descEl = document.createElement('div');
+  descEl.style.cssText='font-size:10px;color:var(--text-tertiary);text-align:center;line-height:1.3;';
+  descEl.textContent = preset.desc;
+
+  if(isActive){
+    const tick = document.createElement('div');
+    tick.style.cssText='position:absolute;top:6px;right:6px;width:16px;height:16px;border-radius:50%;background:var(--accent-fill);display:flex;align-items:center;justify-content:center;font-size:9px;color:#000;font-weight:bold;';
+    tick.textContent='✓';
+    card.appendChild(tick);
+  }
+
+  card.appendChild(previewWrap);
+  card.appendChild(nameEl);
+  card.appendChild(descEl);
+
+  card.addEventListener('mouseenter',()=>{
+    if(_cursorId!==preset.id) card.style.borderColor='var(--accent-fill)';
+  });
+  card.addEventListener('mouseleave',()=>{
+    if(_cursorId!==preset.id) card.style.borderColor='var(--stroke)';
+  });
+
+  card.addEventListener('click',()=>{
+    applyCursor(preset.id);
+    // Refresh all cards
+    cursorGrid.querySelectorAll('[data-cursor-id]').forEach(c=>{
+      const cid=c.dataset.cursorId;
+      const active=cid===preset.id;
+      c.style.borderColor=active?'var(--accent-fill)':'var(--stroke)';
+      c.style.background=active?'rgba(96,205,255,0.08)':'var(--ctrl-bg)';
+      // Toggle tick
+      const existingTick=c.querySelector('.cursor-tick');
+      if(active && !existingTick){
+        const tick=document.createElement('div');
+        tick.className='cursor-tick';
+        tick.style.cssText='position:absolute;top:6px;right:6px;width:16px;height:16px;border-radius:50%;background:var(--accent-fill);display:flex;align-items:center;justify-content:center;font-size:9px;color:#000;font-weight:bold;';
+        tick.textContent='✓';
+        c.appendChild(tick);
+      } else if(!active && existingTick){
+        existingTick.remove();
+      }
+    });
+    showToast('Cursor: '+preset.label,'info','🖱️',1600);
+  });
+
+  card.dataset.cursorId = preset.id;
+  // Add existing tick class to initial active
+  if(isActive){ const t=card.querySelector('div[style*="position:absolute"]'); if(t) t.className='cursor-tick'; }
+  cursorGrid.appendChild(card);
+});
+
+cursorSection.appendChild(cursorGrid);
+
+// Size modifier row
+const sizeSection = document.createElement('div');
+sizeSection.className='settings-section';
+sizeSection.innerHTML='<div class="settings-label">Cursor Size</div>';
+const sizeRow = document.createElement('div');
+sizeRow.className='settings-row';sizeRow.style.cssText='gap:8px;flex-wrap:wrap;';
+const _sizes=[{label:'Normal',scale:1},{label:'Large',scale:1.4},{label:'Extra Large',scale:1.8}];
+_sizes.forEach(s=>{
+  const b=document.createElement('button');
+  b.className='settings-apply-btn';
+  b.textContent=s.label;
+  const active=Math.abs(_cursorScale-s.scale)<0.05;
+  b.style.cssText=`padding:5px 14px;font-size:12px;${active?'':'background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);'}`;
+  b.addEventListener('click',()=>{
+    _cursorScale=s.scale;
+    localStorage.setItem('_cursorScale',s.scale);
+    // Re-apply the current cursor at the new scale — no layout changes
+    applyCursor(_cursorId);
+    sizeRow.querySelectorAll('button').forEach(x=>{x.style.background='var(--ctrl-bg)';x.style.color='var(--text-primary)';x.style.borderColor='var(--stroke)';});
+    b.style.background='var(--accent-fill)';b.style.color='#000';b.style.borderColor='var(--accent-fill)';
+    showToast('Cursor size: '+s.label,'info','🖱️',1600);
+  });
+  if(active){b.style.background='var(--accent-fill)';b.style.color='#000';b.style.borderColor='var(--accent-fill)';}
+  sizeRow.appendChild(b);
+});
+sizeSection.appendChild(sizeRow);
+
+// Reset row
+const resetSection = document.createElement('div');
+resetSection.className='settings-section';
+const resetBtn = document.createElement('button');
+resetBtn.className='settings-apply-btn';
+resetBtn.textContent='Reset to Default';
+resetBtn.style.cssText='padding:6px 16px;font-size:12px;background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);';
+resetBtn.addEventListener('click',()=>{
+  applyCursor('default');
+  cursorGrid.querySelectorAll('[data-cursor-id]').forEach(c=>{
+    c.style.borderColor=c.dataset.cursorId==='default'?'var(--accent-fill)':'var(--stroke)';
+    c.style.background=c.dataset.cursorId==='default'?'rgba(96,205,255,0.08)':'var(--ctrl-bg)';
+    const t=c.querySelector('.cursor-tick');if(t)t.remove();
+    if(c.dataset.cursorId==='default'){const tick=document.createElement('div');tick.className='cursor-tick';tick.style.cssText='position:absolute;top:6px;right:6px;width:16px;height:16px;border-radius:50%;background:var(--accent-fill);display:flex;align-items:center;justify-content:center;font-size:9px;color:#000;font-weight:bold;';tick.textContent='✓';c.appendChild(tick);}
+  });
+  showToast('Cursor reset to default','info','🖱️',1600);
+});
+resetSection.appendChild(resetBtn);
+
+panelCursor.appendChild(cursorSection);
+const hrC=document.createElement('hr');hrC.className='settings-divider';panelCursor.appendChild(hrC);
+panelCursor.appendChild(sizeSection);
+const hrC2=document.createElement('hr');hrC2.className='settings-divider';panelCursor.appendChild(hrC2);
+panelCursor.appendChild(resetSection);
+
+// ── Panel: Account
+const panelAccount = document.createElement('div');
+panelAccount.style.cssText='flex-direction:column;gap:20px;flex:1;padding:24px 28px;overflow-y:auto;display:none;';
+
+// Read current account from localStorage
+const _acctKey = 'desktop_account_v1';
+function _loadAccount(){ try{ return JSON.parse(localStorage.getItem(_acctKey)||'null'); }catch(e){ return null; } }
+function _saveAccount(obj){ try{ localStorage.setItem(_acctKey, JSON.stringify(obj)); }catch(e){} }
+let _acct = _loadAccount();
+
+function _hashPass(raw){
+  // Simple deterministic hash (SHA-256 not available synchronously without SubtleCrypto;
+  // use a fast djb2-style hash — good enough for a local OS sim)
+  let h = 5381;
+  for(let i=0;i<raw.length;i++) h = ((h<<5)+h) ^ raw.charCodeAt(i);
+  return (h>>>0).toString(16).padStart(8,'0') + raw.length.toString(16);
+}
+
+function rebuildAccountPanel(){
+  panelAccount.innerHTML='<div style="font-size:20px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">Account</div>';
+
+  const _acctNow = _loadAccount();
+
+  // ── Current status card ──
+  const statusCard = document.createElement('div');
+  statusCard.style.cssText='display:flex;align-items:center;gap:16px;background:var(--ctrl-bg);border:1px solid var(--stroke);border-radius:var(--radius-overlay);padding:16px;';
+  const avatarEl = document.createElement('div');
+  avatarEl.style.cssText='width:52px;height:52px;border-radius:50%;background:var(--accent-fill);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;color:#000;font-weight:700;';
+  avatarEl.textContent = _acctNow ? (_acctNow.username[0]||'?').toUpperCase() : '?';
+  const statusText = document.createElement('div');
+  statusText.innerHTML = _acctNow
+    ? `<div style="font-size:15px;font-weight:600;color:var(--text-primary);">${_acctNow.username}</div>
+       <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">Local account · Lock screen enabled</div>`
+    : `<div style="font-size:14px;font-weight:600;color:var(--text-primary);">No account set</div>
+       <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">Sign in on next launch is disabled</div>`;
+  statusCard.appendChild(avatarEl);
+  statusCard.appendChild(statusText);
+  panelAccount.appendChild(statusCard);
+
+  // ── Form ──
+  function makeField(label, type, placeholder, val=''){
+    const wrap=document.createElement('div');
+    wrap.style.cssText='display:flex;flex-direction:column;gap:5px;';
+    const lbl=document.createElement('label');
+    lbl.style.cssText='font-size:var(--text-caption);color:var(--text-tertiary);';
+    lbl.textContent=label;
+    const inp=document.createElement('input');
+    inp.type=type; inp.value=val; inp.placeholder=placeholder;
+    inp.autocomplete='off'; inp.spellcheck=false;
+    inp.style.cssText='background:var(--ctrl-bg-input);border:1px solid var(--stroke);border-bottom:2px solid var(--accent-fill);border-radius:var(--radius-control);padding:7px 10px;color:var(--text-primary);font-size:var(--text-body);font-family:var(--font);outline:none;width:100%;box-sizing:border-box;';
+    wrap.appendChild(lbl); wrap.appendChild(inp);
+    return {wrap, inp};
+  }
+
+  const hr=document.createElement('hr');hr.className='settings-divider';panelAccount.appendChild(hr);
+
+  const formSec=document.createElement('div');formSec.className='settings-section';
+  const formLabel=document.createElement('div');formLabel.className='settings-label';
+  formLabel.textContent=_acctNow?'Change account details':'Create account';
+  formSec.appendChild(formLabel);
+
+  const {wrap:unWrap, inp:unInp}=makeField('Username','text','Enter username',_acctNow?_acctNow.username:'');
+  const {wrap:pwWrap, inp:pwInp}=makeField('New password','password','Enter password');
+  const {wrap:pw2Wrap, inp:pw2Inp}=makeField('Confirm password','password','Repeat password');
+
+  const errMsg=document.createElement('div');
+  errMsg.style.cssText='font-size:12px;color:#ff99a4;min-height:16px;';
+
+  const btnRow=document.createElement('div');
+  btnRow.style.cssText='display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;';
+
+  const saveBtn=document.createElement('button');
+  saveBtn.className='settings-apply-btn';
+  saveBtn.textContent=_acctNow?'Save changes':'Create account';
+  saveBtn.style.cssText='padding:6px 16px;font-size:12px;';
+
+  saveBtn.addEventListener('click',()=>{
+    const user=unInp.value.trim();
+    const pw=pwInp.value;
+    const pw2=pw2Inp.value;
+    if(!user){ errMsg.textContent='Username cannot be empty.'; return; }
+    if(user.length<2){ errMsg.textContent='Username must be at least 2 characters.'; return; }
+    if(!pw){ errMsg.textContent='Password cannot be empty.'; return; }
+    if(pw.length<4){ errMsg.textContent='Password must be at least 4 characters.'; return; }
+    if(pw!==pw2){ errMsg.textContent='Passwords do not match.'; return; }
+    errMsg.textContent='';
+    const newAcct={ username:user, hash:_hashPass(pw) };
+    _saveAccount(newAcct);
+    saveSettings();
+    showToast(`Account "${user}" saved — lock screen enabled`,'success','👤',3000);
+    rebuildAccountPanel();
+  });
+
+  btnRow.appendChild(saveBtn);
+
+  if(_acctNow){
+    const removeBtn=document.createElement('button');
+    removeBtn.className='settings-apply-btn';
+    removeBtn.textContent='Remove account';
+    removeBtn.style.cssText='padding:6px 16px;font-size:12px;background:rgba(255,99,132,.12);color:#ff99a4;border-color:rgba(255,99,132,.3);';
+    removeBtn.addEventListener('click',()=>{
+      localStorage.removeItem(_acctKey);
+      saveSettings();
+      showToast('Account removed — lock screen disabled','info','👤',2500);
+      rebuildAccountPanel();
+    });
+    btnRow.appendChild(removeBtn);
+  }
+
+  formSec.appendChild(unWrap);
+  formSec.appendChild(pwWrap);
+  formSec.appendChild(pw2Wrap);
+  formSec.appendChild(errMsg);
+  formSec.appendChild(btnRow);
+  panelAccount.appendChild(formSec);
+
+  // ── Lock screen preview tip ──
+  const tip=document.createElement('div');
+  tip.style.cssText='font-size:12px;color:var(--text-tertiary);background:var(--bg-card);border:1px solid var(--stroke);border-radius:var(--radius-control);padding:10px 12px;line-height:1.6;';
+  tip.innerHTML='💡 When an account is set, a <b style="color:var(--text-primary)">lock screen</b> will appear on every page load. The userbox in the Start menu bottom-left will also show your username.';
+  panelAccount.appendChild(tip);
+}
+rebuildAccountPanel();
+
 // ── Wire panels
 const panels = {
   personalization: panelPersonalization,
   taskbar: panelTaskbar,
+  cursor: panelCursor,
   keyboard: panelKeyboard,
+  account: panelAccount,
   config: panelConfig,
 };
 
@@ -5786,6 +6645,7 @@ document.getElementById('appCtxPin').addEventListener('click', ()=>{
   });
   document.getElementById('pinnedGrid').appendChild(tile);
   showToast(`"${name}" pinned to Start`, 'success', icon, 2200);
+  saveSettings();
 });
 
 // ── Unpin from Start ──
@@ -5800,6 +6660,7 @@ document.getElementById('appCtxUnpin').addEventListener('click', ()=>{
     tile.style.display = 'none';
   }
   showToast(`"${name}" unpinned`, 'info', '📌', 2000);
+  saveSettings();
 });
 
 // ── Add to Desktop ──
@@ -5816,6 +6677,7 @@ document.getElementById('appCtxDesktop').addEventListener('click', ()=>{
 
   window.addDesktopIcon(name, icon, name);
   showToast(`"${name}" added to Desktop`, 'success', icon, 2200);
+  saveSettings();
 });
 
 // ── Pin to Taskbar ──
@@ -5848,6 +6710,7 @@ document.getElementById('appCtxTaskbar').addEventListener('click', ()=>{
 
   document.getElementById('taskIcons').appendChild(btn);
   showToast(`"${name}" pinned to Taskbar`, 'success', icon, 2200);
+  saveSettings();
 });
 
 // ── Wire existing .app tiles at boot ──
@@ -6104,6 +6967,7 @@ function nearestFreeCell(c, r, exclude){
 }
 
 // Place icon at grid cell, updating occupied map
+let _placeIconSaveTimer=null;
 function placeIcon(icon, c, r){
   // Remove from old cell
   occupied.forEach((el, k) => { if(el === icon) occupied.delete(k); });
@@ -6113,6 +6977,9 @@ function placeIcon(icon, c, r){
   icon.dataset.diCol = c;
   icon.dataset.diRow = r;
   occupied.set(cellKey(c, r), icon);
+  // Debounce: save after drag settles (avoid saving on every pixel move)
+  clearTimeout(_placeIconSaveTimer);
+  _placeIconSaveTimer = setTimeout(saveSettings, 600);
 }
 
 // Init all existing icons from data-di-col/data-di-row attributes
@@ -6490,8 +7357,87 @@ document.addEventListener('mouseup',()=>document.body.classList.remove('win-drag
 window.addEventListener('blur',()=>document.body.classList.remove('win-dragging'));
 document.body.style.background = 'linear-gradient(135deg,#041728 0%,#0a2547 25%,#0d3b70 50%,#0a2e5c 75%,#061525 100%)';
 loadSettings();
-setTimeout(()=>{ showToast('Welcome back','success','🖥️',2800); }, 600);
 _updateFsBtn();
+
+// ── Lock screen ──
+(function(){
+  const _acctKey='desktop_account_v1';
+  let _acctData=null;
+  try{ _acctData=JSON.parse(localStorage.getItem(_acctKey)||'null'); }catch(e){}
+
+  function _hashPass(raw){
+    let h=5381;
+    for(let i=0;i<raw.length;i++) h=((h<<5)+h)^raw.charCodeAt(i);
+    return (h>>>0).toString(16).padStart(8,'0')+raw.length.toString(16);
+  }
+
+  // Update userbox in Start menu with username
+  if(_acctData){
+    const userBox=document.querySelector('.userBox');
+    if(userBox){
+      const txtNode=[...userBox.childNodes].find(n=>n.nodeType===3&&n.textContent.trim());
+      if(txtNode) txtNode.textContent=' '+_acctData.username;
+      else userBox.append(' '+_acctData.username);
+    }
+  }
+
+  if(!_acctData){
+    // No account — boot normally
+    setTimeout(()=>showToast('Welcome back','success','🖥️',2800), 600);
+    return;
+  }
+
+  // Show lock screen
+  const ls=document.getElementById('lockScreen');
+  ls.style.display='flex';
+  document.getElementById('lsAvatar').textContent=(_acctData.username[0]||'?').toUpperCase();
+  document.getElementById('lsUsername').textContent=_acctData.username;
+
+  // Clock on lock screen
+  function lsClock(){
+    const now=new Date();
+    let h=now.getHours(),m=now.getMinutes();
+    const ampm=h>=12?'PM':'AM'; h=h%12||12;
+    document.getElementById('lsTime').textContent=`${h}:${String(m).padStart(2,'0')} ${ampm}`;
+    const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    document.getElementById('lsDate').textContent=`${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
+  }
+  lsClock();
+  const lsClockTimer=setInterval(lsClock,1000);
+
+  setTimeout(()=>document.getElementById('lsInput').focus(),100);
+
+  function tryUnlock(){
+    const inp=document.getElementById('lsInput');
+    const errEl=document.getElementById('lsErr');
+    const val=inp.value;
+    if(!val){ errEl.textContent='Please enter your password.'; return; }
+    if(_hashPass(val)===_acctData.hash){
+      // Correct — animate out
+      clearInterval(lsClockTimer);
+      ls.classList.add('ls-hiding');
+      setTimeout(()=>{
+        ls.style.display='none';
+        ls.classList.remove('ls-hiding');
+        showToast(`Welcome back, ${_acctData.username}!`,'success','👋',3000);
+      },420);
+    } else {
+      inp.value='';
+      errEl.textContent='Incorrect password. Try again.';
+      // Shake animation
+      inp.style.animation='none'; void inp.offsetWidth;
+      inp.style.animation='menuOpen .15s ease both';
+      setTimeout(()=>{ inp.style.animation=''; errEl.textContent=''; },2500);
+      inp.focus();
+    }
+  }
+
+  document.getElementById('lsSubmit').addEventListener('click',tryUnlock);
+  document.getElementById('lsInput').addEventListener('keydown',e=>{
+    if(e.key==='Enter') tryUnlock();
+  });
+})();
 
 // ── Taskbar autohide peek ──
 (function(){
