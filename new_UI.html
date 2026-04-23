@@ -1751,26 +1751,49 @@ box-shadow:var(--shadow-8);
   min-height:14px;text-align:center;width:100%;
   animation:menuOpen var(--dur-fast) var(--ease-decelerate) both;
 }
-.ls-hint{font-size:11px;color:rgba(255,255,255,.35);text-align:center;}
+.ls-hint{
+  position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+  font-size:12px;color:rgba(255,255,255,.4);text-align:center;
+  white-space:nowrap;pointer-events:none;
+  transition:opacity .4s;
+}
+.ls-guest{
+  width:100%;padding:9px 0;
+  border-radius:var(--radius-control);
+  border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.06);
+  color:rgba(255,255,255,.75);
+  font-size:13px;font-family:var(--font);
+  cursor:pointer;
+  transition:background .12s linear,color .12s linear;
+}
+.ls-guest:hover{background:rgba(255,255,255,.14);color:#fff;}
 
 </style>
 </head>
 <body style="background:linear-gradient(135deg,#041728 0%,#0a2547 25%,#0d3b70 50%,#0a2e5c 75%,#061525 100%)">
 
-<!-- LOCK SCREEN — shown on boot if account exists, hidden by JS after auth -->
-<div id="lockScreen" style="display:none;">
+<!-- LOCK SCREEN — always shown on boot, dismissed after auth or guest -->
+<div id="lockScreen">
   <div class="ls-time" id="lsTime">12:00</div>
   <div class="ls-date" id="lsDate">Monday, January 1</div>
   <div class="ls-card">
     <div class="ls-avatar" id="lsAvatar">?</div>
-    <div class="ls-username" id="lsUsername">User</div>
+    <div class="ls-username" id="lsUsername">Sign In</div>
+    <input class="ls-input" id="lsUserInp" type="text" placeholder="Username" autocomplete="off" spellcheck="false" style="display:none;">
     <div class="ls-input-wrap">
-      <input class="ls-input" id="lsInput" type="password" placeholder="Password" autocomplete="off" autofocus>
+      <input class="ls-input" id="lsInput" type="password" placeholder="Password" autocomplete="off">
       <button class="ls-submit" id="lsSubmit" title="Sign in">→</button>
     </div>
     <div class="ls-err" id="lsErr"></div>
-    <div class="ls-hint">Press Enter or → to sign in</div>
+    <div class="ls-sep" id="lsSep" style="width:100%;display:flex;align-items:center;gap:8px;">
+      <div style="flex:1;height:1px;background:rgba(255,255,255,.15);"></div>
+      <span style="font-size:11px;color:rgba(255,255,255,.3);">or</span>
+      <div style="flex:1;height:1px;background:rgba(255,255,255,.15);"></div>
+    </div>
+    <button class="ls-guest" id="lsGuest">Continue as Guest</button>
   </div>
+  <div class="ls-hint" id="lsHint">Click anywhere to enter fullscreen</div>
 </div>
 
 <!-- Click-to-fullscreen hint -->
@@ -2346,24 +2369,30 @@ function _applySettings(s){
 
   // ── Desktop icons ──
   if(Array.isArray(s.desktopIcons) && s.desktopIcons.length){
-    setTimeout(()=>{
+    const doRestore = ()=>{
       const desktop=document.getElementById('desktop');
       if(!desktop) return;
-      // Remove all existing icons and re-place from save
+      // These are exposed from inside the initDesktopIcons IIFE
+      const occ   = window._desktopOccupied;
+      const init  = window._desktopInitIcons;
+      if(!occ || !init) return; // IIFE not ready yet — shouldn't happen but safe guard
+      // Remove all existing icons and clear the occupied grid map
       desktop.querySelectorAll('.desktop-icon').forEach(el=>el.remove());
-      if(typeof initExistingIcons==='function'){
-        s.desktopIcons.forEach(ic=>{
-          const el=document.createElement('div');
-          el.className='desktop-icon';
-          el.dataset.name=ic.name;
-          el.dataset.diCol=ic.col;
-          el.dataset.diRow=ic.row;
-          el.innerHTML=`<span class="di-icon">${ic.icon}</span><span class="di-label">${ic.label||ic.name}</span>`;
-          desktop.appendChild(el);
-        });
-        initExistingIcons();
-      }
-    },50);
+      occ.clear();
+      // Re-create icons from saved layout with correct col/row attributes
+      s.desktopIcons.forEach(ic=>{
+        const el=document.createElement('div');
+        el.className='desktop-icon';
+        el.dataset.name=ic.name;
+        el.dataset.diCol=String(ic.col??0);
+        el.dataset.diRow=String(ic.row??0);
+        el.innerHTML=`<span class="di-icon">${ic.icon||'📄'}</span><span class="di-label">${ic.label||ic.name}</span>`;
+        desktop.appendChild(el);
+      });
+      // Wire all icons — this calls placeIcon + wireIcon for each
+      init();
+    };
+    setTimeout(doRestore, 0);
   }
 }
 
@@ -5884,13 +5913,23 @@ function rebuildAccountPanel(){
       errMsg.textContent='';
       _saveAccount({username:res.username,hash:_hashPass(pw)});
       if(res.config){
-        try{_applySettings(res.config);localStorage.setItem(SETTINGS_KEY,JSON.stringify({...res.config,_version:3}));}catch(e){}
+        try{localStorage.setItem(SETTINGS_KEY,JSON.stringify({...res.config,_version:3}));}catch(e){}
         showToast(`Signed in as ${res.username} — config loaded`,'success','✅',3500);
       } else {
         showToast(`Signed in as ${res.username}`,'success','👤',2800);
         _pushConfigToServer(res.username,_hashPass(pw));
       }
-      setTimeout(()=>{const p=processes.find(x=>x.id===settingsProcId);if(p&&p.win){closeW(p.win);settingsProcId=null;}setTimeout(()=>openSettings(),200);},600);
+      // Close settings first, THEN apply so icons restore onto a visible desktop
+      setTimeout(()=>{
+        const p=processes.find(x=>x.id===settingsProcId);
+        if(p&&p.win){closeW(p.win);settingsProcId=null;}
+        setTimeout(()=>{
+          if(res.config && typeof _applySettings==='function'){
+            try{_applySettings(res.config);}catch(e){}
+          }
+          openSettings();
+        },250);
+      },600);
     });
     signinFormSec.append(siUnWrap,siPwWrap,errMsg,siBtn);
 
@@ -5939,10 +5978,17 @@ function rebuildAccountPanel(){
       const res=await _authFetch('GET','/auth/load-config',{username:_acctNow.username,hash:_acctNow.hash});
       setLoading(pullBtn,false,'⬇️ Pull config from server');
       if(!res.ok||!res.config){showToast(res.error||'No config on server','warn','⚠️',3000);return;}
-      _applySettings(res.config);
       localStorage.setItem(SETTINGS_KEY,JSON.stringify({...res.config,_version:3}));
-      showToast('Config loaded — reloading settings…','success','✅',3000);
-      setTimeout(()=>{const p=processes.find(x=>x.id===settingsProcId);if(p&&p.win){closeW(p.win);settingsProcId=null;}setTimeout(()=>openSettings(),200);},500);
+      showToast('Config loaded — applying…','success','✅',3000);
+      // Close settings, apply to live desktop, then reopen settings
+      setTimeout(()=>{
+        const p=processes.find(x=>x.id===settingsProcId);
+        if(p&&p.win){closeW(p.win);settingsProcId=null;}
+        setTimeout(()=>{
+          try{_applySettings(res.config);}catch(e){}
+          openSettings();
+        },250);
+      },500);
     });
 
     const signOutBtn=document.createElement('button');signOutBtn.className='settings-apply-btn';signOutBtn.textContent='Sign Out';signOutBtn.style.cssText='padding:6px 16px;font-size:12px;background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);';
@@ -5954,8 +6000,11 @@ function rebuildAccountPanel(){
       const res=await _authFetch('POST','/auth/delete',{username:_acctNow.username,hash:_acctNow.hash});
       setLoading(delBtn,false,'🗑 Delete account');
       if(!res.ok){showToast(res.error||'Delete failed','error','❌',3000);return;}
-      localStorage.removeItem(_acctKey);
-      showToast('Account deleted','warn','🗑',2500);
+      // Wipe ALL local data so the username can be re-registered cleanly
+      localStorage.clear();
+      window._camPhotos=[];
+      window._trash=[];
+      showToast('Account deleted — all local data cleared','warn','🗑',3000);
       rebuildAccountPanel();
     });
 
@@ -7394,6 +7443,12 @@ window.addDesktopIcon = function(name, icon, launchName){
 // Initialise existing icons
 initExistingIcons();
 
+// Expose internals so _applySettings can restore desktop icons cleanly
+window._desktopOccupied        = occupied;
+window._desktopInitIcons       = initExistingIcons;
+window._desktopWireIcon        = wireIcon;
+window._desktopPlaceIcon       = placeIcon;
+
 })(); // end initDesktopIcons
 
 // ── Desktop icon delete helper ──
@@ -7465,11 +7520,11 @@ document.body.style.background = 'linear-gradient(135deg,#041728 0%,#0a2547 25%,
 loadSettings();
 _updateFsBtn();
 
-// ── Lock screen ──
+// ── Lock screen — always shown, first click enters fullscreen ──
 (function(){
-  const _acctKey='desktop_account_v1';
-  let _acctData=null;
-  try{ _acctData=JSON.parse(localStorage.getItem(_acctKey)||'null'); }catch(e){}
+  const _acctKey = 'desktop_account_v1';
+  let _acctData = null;
+  try{ _acctData = JSON.parse(localStorage.getItem(_acctKey)||'null'); }catch(e){}
 
   function _hashPass(raw){
     let h=5381;
@@ -7477,71 +7532,140 @@ _updateFsBtn();
     return (h>>>0).toString(16).padStart(8,'0')+raw.length.toString(16);
   }
 
-  // Update userbox in Start menu with username
+  const ls       = document.getElementById('lockScreen');
+  const lsTime   = document.getElementById('lsTime');
+  const lsDate   = document.getElementById('lsDate');
+  const lsAvatar = document.getElementById('lsAvatar');
+  const lsUsernameEl = document.getElementById('lsUsername');
+  const lsUserInp = document.getElementById('lsUserInp');
+  const lsInput  = document.getElementById('lsInput');
+  const lsSubmit = document.getElementById('lsSubmit');
+  const lsErr    = document.getElementById('lsErr');
+  const lsGuest  = document.getElementById('lsGuest');
+  const lsHint   = document.getElementById('lsHint');
+
+  // ── Clock ──
+  function lsClock(){
+    const now=new Date();
+    let h=now.getHours(),m=now.getMinutes();
+    const ampm=h>=12?'PM':'AM'; h=h%12||12;
+    lsTime.textContent=`${h}:${String(m).padStart(2,'0')} ${ampm}`;
+    const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    lsDate.textContent=`${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
+  }
+  lsClock();
+  const lsClockTimer = setInterval(lsClock, 1000);
+
+  // ── Configure fields based on whether an account exists ──
   if(_acctData){
-    const userBox=document.querySelector('.userBox');
+    // Known account — show avatar + username, password only
+    lsAvatar.textContent = (_acctData.username[0]||'?').toUpperCase();
+    lsUsernameEl.textContent = _acctData.username;
+    lsUserInp.style.display = 'none';
+    // Update Start menu userbox
+    const userBox = document.querySelector('.userBox');
     if(userBox){
       const txtNode=[...userBox.childNodes].find(n=>n.nodeType===3&&n.textContent.trim());
       if(txtNode) txtNode.textContent=' '+_acctData.username;
       else userBox.append(' '+_acctData.username);
     }
+  } else {
+    // No account — show both username and password fields
+    lsAvatar.textContent = '?';
+    lsUsernameEl.textContent = 'Sign In';
+    lsUserInp.style.display = 'block';
   }
 
-  if(!_acctData){
-    // No account — boot normally
-    setTimeout(()=>showToast('Welcome back','success','🖥️',2800), 600);
-    return;
+  // ── Fullscreen on first interaction ──
+  let _fsTriggered = false;
+  function requestFS(){
+    if(_fsTriggered) return;
+    _fsTriggered = true;
+    lsHint.style.opacity = '0';
+    const el = document.documentElement;
+    try{
+      if(el.requestFullscreen) el.requestFullscreen();
+      else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    }catch(e){}
+  }
+  ls.addEventListener('click', requestFS, {once:false});
+
+  // ── Dismiss lock screen ──
+  function dismissLS(welcomeMsg){
+    clearInterval(lsClockTimer);
+    ls.removeEventListener('click', requestFS);
+    ls.classList.add('ls-hiding');
+    setTimeout(()=>{
+      ls.style.display = 'none';
+      ls.classList.remove('ls-hiding');
+      if(welcomeMsg) showToast(welcomeMsg, 'success', '👋', 3000);
+      else showToast('Welcome back', 'success', '🖥️', 2800);
+    }, 420);
   }
 
-  // Show lock screen
-  const ls=document.getElementById('lockScreen');
-  ls.style.display='flex';
-  document.getElementById('lsAvatar').textContent=(_acctData.username[0]||'?').toUpperCase();
-  document.getElementById('lsUsername').textContent=_acctData.username;
-
-  // Clock on lock screen
-  function lsClock(){
-    const now=new Date();
-    let h=now.getHours(),m=now.getMinutes();
-    const ampm=h>=12?'PM':'AM'; h=h%12||12;
-    document.getElementById('lsTime').textContent=`${h}:${String(m).padStart(2,'0')} ${ampm}`;
-    const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
-    document.getElementById('lsDate').textContent=`${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
-  }
-  lsClock();
-  const lsClockTimer=setInterval(lsClock,1000);
-
-  setTimeout(()=>document.getElementById('lsInput').focus(),100);
-
+  // ── Sign in logic ──
   function tryUnlock(){
-    const inp=document.getElementById('lsInput');
-    const errEl=document.getElementById('lsErr');
-    const val=inp.value;
-    if(!val){ errEl.textContent='Please enter your password.'; return; }
-    if(_hashPass(val)===_acctData.hash){
-      // Correct — animate out
-      clearInterval(lsClockTimer);
-      ls.classList.add('ls-hiding');
-      setTimeout(()=>{
-        ls.style.display='none';
-        ls.classList.remove('ls-hiding');
-        showToast(`Welcome back, ${_acctData.username}!`,'success','👋',3000);
-      },420);
+    lsErr.textContent = '';
+    const pw = lsInput.value;
+    if(!pw){ lsErr.textContent = 'Please enter your password.'; return; }
+
+    if(_acctData){
+      // Verify against saved hash
+      if(_hashPass(pw) === _acctData.hash){
+        dismissLS(`Welcome back, ${_acctData.username}!`);
+      } else {
+        lsInput.value = '';
+        lsErr.textContent = 'Incorrect password. Try again.';
+        lsInput.style.animation='none'; void lsInput.offsetWidth;
+        lsInput.style.animation='menuOpen .15s ease both';
+        setTimeout(()=>{ lsInput.style.animation=''; lsErr.textContent=''; }, 2500);
+        lsInput.focus();
+      }
     } else {
-      inp.value='';
-      errEl.textContent='Incorrect password. Try again.';
-      // Shake animation
-      inp.style.animation='none'; void inp.offsetWidth;
-      inp.style.animation='menuOpen .15s ease both';
-      setTimeout(()=>{ inp.style.animation=''; errEl.textContent=''; },2500);
-      inp.focus();
+      // No saved account — try signing in via server
+      const user = lsUserInp.value.trim();
+      if(!user){ lsErr.textContent = 'Enter a username.'; return; }
+      lsSubmit.disabled = true; lsSubmit.textContent = '…';
+      const hash = _hashPass(pw);
+      fetch(`${typeof _DEFAULT_PROXY!=='undefined'?_DEFAULT_PROXY:'https://proxybackend-83xn.onrender.com'}/auth/login`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({username: user, hash})
+      }).then(r=>r.json()).then(res=>{
+        lsSubmit.disabled = false; lsSubmit.textContent = '→';
+        if(!res.ok){ lsErr.textContent = res.error||'Invalid credentials.'; return; }
+        // Save locally so lock screen shows on next load
+        try{ localStorage.setItem(_acctKey, JSON.stringify({username:res.username, hash})); }catch(e){}
+        // Persist config to localStorage now (will be applied on next load via loadSettings)
+        if(res.config){
+          try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify({...res.config,_version:3})); }catch(e){}
+        }
+        // Update userbox
+        const userBox = document.querySelector('.userBox');
+        if(userBox){ const t=[...userBox.childNodes].find(n=>n.nodeType===3&&n.textContent.trim()); if(t) t.textContent=' '+res.username; else userBox.append(' '+res.username); }
+        // Dismiss first, THEN apply settings so icons restore onto a visible desktop
+        dismissLS(`Welcome back, ${res.username}!`);
+        if(res.config && typeof _applySettings==='function'){
+          setTimeout(()=>{
+            try{ _applySettings(res.config); }catch(e){}
+          }, 500); // after the 420ms dismiss animation
+        }
+      }).catch(()=>{
+        lsSubmit.disabled = false; lsSubmit.textContent = '→';
+        lsErr.textContent = 'Cannot reach server. Try again.';
+      });
     }
   }
 
-  document.getElementById('lsSubmit').addEventListener('click',tryUnlock);
-  document.getElementById('lsInput').addEventListener('keydown',e=>{
-    if(e.key==='Enter') tryUnlock();
+  lsSubmit.addEventListener('click', tryUnlock);
+  lsInput.addEventListener('keydown', e=>{ if(e.key==='Enter') tryUnlock(); });
+  lsUserInp.addEventListener('keydown', e=>{ if(e.key==='Enter') lsInput.focus(); });
+
+  // ── Guest ──
+  lsGuest.addEventListener('click', ()=>{
+    dismissLS(null);
+    setTimeout(()=>showToast('Signed in as Guest','info','👤',2500), 500);
   });
 })();
 
