@@ -1932,11 +1932,33 @@ box-shadow:var(--shadow-8);
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="opacity:.7"><circle cx="8" cy="5" r="3.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
   User
 </div>
-<div class="powerBox" title="Power" onclick="showToast('Goodbye!','warn','⏻',500);setTimeout(()=>document.body.style.opacity='0',600)">
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="opacity:.7"><path d="M7 1v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M10.2 3.3A5.5 5.5 0 1 1 3.8 3.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-  Power
+<div class="powerBox" id="powerBtn" title="Power options">
+  <svg width="16" height="16" viewBox="0 0 14 14" fill="none"><path d="M7 1v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M10.2 3.3A5.5 5.5 0 1 1 3.8 3.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
 </div>
 </div>
+</div>
+
+<!-- POWER MENU -->
+<div id="powerMenu" style="
+  position:fixed;display:none;flex-direction:column;
+  background:rgba(44,44,44,0.96);
+  backdrop-filter:blur(60px) saturate(125%);
+  -webkit-backdrop-filter:blur(60px) saturate(125%);
+  border:1px solid var(--stroke-flyout);
+  border-radius:var(--radius-overlay);
+  padding:4px;min-width:180px;
+  z-index:999999;box-shadow:var(--shadow-28);
+">
+  <div class="menu-item" id="pwrLock">
+    <span class="menu-icon">🔒</span> Lock screen
+  </div>
+  <div class="menu-item" id="pwrRestart">
+    <span class="menu-icon">🔄</span> Restart
+  </div>
+  <hr style="border:none;border-top:1px solid var(--stroke-divider);margin:3px 8px;">
+  <div class="menu-item" id="pwrClose" style="color:rgba(255,153,164,0.9)">
+    <span class="menu-icon" style="color:rgba(255,153,164,0.9)">⏻</span> Shut down
+  </div>
 </div>
 
 <!-- TASKBAR -->
@@ -6205,7 +6227,330 @@ input.addEventListener('keydown',(e)=>{
     openNotepad(args.join(' '));o='Notepad opened.';
   } else if(cmd==='exit'){
     closeW(win);return;
-  } else {
+  } else if(cmd==='dev'){
+    // ── Hidden devtools window ──
+    (function(){
+      const dw = createWindow('DevTools', 760, 520, '🛠️');
+      const p2 = allocProc({name:'DevTools', mem:12, cpu:0.2});
+      processes.push(p2); p2.win = dw;
+
+      const root = document.createElement('div');
+      root.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow:hidden;background:#0d1117;color:#c9d1d9;font-family:"Cascadia Code","Consolas",monospace;font-size:12px;';
+
+      // Tab bar
+      const tabBar = document.createElement('div');
+      tabBar.style.cssText = 'display:flex;background:#161b22;border-bottom:1px solid #30363d;flex-shrink:0;';
+      const RENDER_SERVICE_ID = 'srv-d7k10128qa3s7398abs0';
+      const RENDER_BASE = (_DEFAULT_PROXY||'https://proxybackend-83xn.onrender.com') + '/render-api';
+
+      async function renderAPI(path, method='GET', body=null){
+        const opts = {
+          method,
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        };
+        if(body) opts.body = JSON.stringify(body);
+        const r = await fetch(RENDER_BASE + path, opts);
+        return r.json();
+      }
+
+      const tabs = ['Session','Memory','Storage','Network','Processes','Render'];
+      let activeTab = 0;
+      const panels = {};
+      const tabEls = {};
+
+      function makeTab(label, i){
+        const t = document.createElement('div');
+        t.textContent = label;
+        t.style.cssText = 'padding:8px 16px;cursor:pointer;font-size:11px;border-bottom:2px solid transparent;color:#8b949e;transition:.12s;';
+        t.addEventListener('click', ()=>{ setTab(i); });
+        tabBar.appendChild(t);
+        tabEls[i] = t;
+      }
+      tabs.forEach(makeTab);
+
+      const contentArea = document.createElement('div');
+      contentArea.style.cssText = 'flex:1;overflow:auto;padding:14px;';
+
+      function setTab(i){
+        activeTab = i;
+        tabs.forEach((_,j)=>{
+          tabEls[j].style.borderBottomColor = j===i ? '#58a6ff' : 'transparent';
+          tabEls[j].style.color = j===i ? '#c9d1d9' : '#8b949e';
+        });
+        renderTab(i);
+      }
+
+      function row(k, v, color='#c9d1d9'){
+        return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #21262d;">
+          <span style="color:#8b949e;">${k}</span>
+          <span style="color:${color};font-weight:600;">${v}</span>
+        </div>`;
+      }
+
+      function section(title, html){
+        return `<div style="margin-bottom:16px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#58a6ff;margin-bottom:8px;">${title}</div>
+          ${html}
+        </div>`;
+      }
+
+      function renderTab(i){
+        let html = '';
+
+        if(i === 0){
+          // Session info
+          const acct = (()=>{ try{return JSON.parse(localStorage.getItem('desktop_account_v1')||'null');}catch(e){return null;}})();
+          const now = new Date();
+          html += section('Identity',
+            row('Username', acct ? acct.username : 'Guest') +
+            row('Server', typeof _DEFAULT_PROXY!=='undefined' ? _DEFAULT_PROXY : 'N/A') +
+            row('Session start', window._sessionStart ? new Date(window._sessionStart).toLocaleTimeString() : 'N/A')
+          );
+          html += section('Browser',
+            row('User agent', navigator.userAgent.slice(0,60)+'…') +
+            row('Platform', navigator.platform||'unknown') +
+            row('Language', navigator.language) +
+            row('Cores', navigator.hardwareConcurrency||'?') +
+            row('Device RAM', navigator.deviceMemory ? navigator.deviceMemory+' GB' : 'N/A') +
+            row('Screen', screen.width+'×'+screen.height+' @ '+screen.colorDepth+'bit') +
+            row('Viewport', window.innerWidth+'×'+window.innerHeight) +
+            row('Pixel ratio', window.devicePixelRatio||1) +
+            row('Online', navigator.onLine ? 'Yes' : 'No', navigator.onLine?'#3fb950':'#f85149') +
+            row('Fullscreen', !!document.fullscreenElement ? 'Yes' : 'No')
+          );
+          html += section('Time',
+            row('Local time', now.toLocaleTimeString()) +
+            row('UTC offset', 'UTC'+(now.getTimezoneOffset()>0?'-':'+')+Math.abs(now.getTimezoneOffset()/60)) +
+            row('Timezone', Intl.DateTimeFormat().resolvedOptions().timeZone)
+          );
+
+        } else if(i === 1){
+          // Memory
+          if(performance.memory){
+            const used  = (performance.memory.usedJSHeapSize  /1048576).toFixed(2);
+            const total = (performance.memory.totalJSHeapSize /1048576).toFixed(2);
+            const limit = (performance.memory.jsHeapSizeLimit /1048576).toFixed(0);
+            const pct   = (performance.memory.usedJSHeapSize/performance.memory.jsHeapSizeLimit*100).toFixed(1);
+            html += section('JS Heap',
+              row('Used', used+' MB', parseFloat(pct)>80?'#f85149':parseFloat(pct)>50?'#e3b341':'#3fb950') +
+              row('Allocated', total+' MB') +
+              row('Limit', limit+' MB') +
+              row('Usage', pct+'%', parseFloat(pct)>80?'#f85149':'#3fb950')
+            );
+            // Bar
+            html += `<div style="background:#21262d;border-radius:4px;height:10px;overflow:hidden;margin-bottom:16px;">
+              <div style="height:100%;width:${pct}%;background:${parseFloat(pct)>80?'#f85149':parseFloat(pct)>50?'#e3b341':'#3fb950'};transition:.4s;"></div>
+            </div>`;
+          } else {
+            html += '<div style="color:#8b949e;">Memory API not available in this browser.</div>';
+          }
+          html += section('Open Windows', row('Count', windows.length));
+          html += section('Processes', row('Count', processes.length));
+
+        } else if(i === 2){
+          // Storage
+          let lsSize = 0;
+          try{ Object.keys(localStorage).forEach(k=>{ lsSize += (localStorage.getItem(k)||'').length + k.length; }); }catch(e){}
+          const lsKB = (lsSize/1024).toFixed(2);
+          html += section('localStorage',
+            row('Keys', Object.keys(localStorage).length) +
+            row('Total size', lsKB+' KB', parseFloat(lsKB)>4000?'#f85149':'#3fb950') +
+            row('Limit (est)', '5 MB')
+          );
+          // Key list
+          let keyRows = '';
+          try{
+            Object.keys(localStorage).slice(0,20).forEach(k=>{
+              const v = localStorage.getItem(k)||'';
+              const sz = ((k.length+v.length)/1024).toFixed(1);
+              keyRows += row(k.slice(0,32), sz+' KB');
+            });
+          }catch(e){}
+          if(keyRows) html += section('Keys', keyRows);
+
+          // Camera photos
+          html += section('Camera Roll',
+            row('Photos', (window._camPhotos||[]).length) +
+            row('Stored in config', Math.min((window._camPhotos||[]).length,5)+' (cap: 5)')
+          );
+          // Trash
+          html += section('Recycle Bin', row('Items', (window._trash||[]).length));
+
+        } else if(i === 3){
+          // Network / server ping
+          html += `<div style="color:#8b949e;margin-bottom:12px;">Click to test server connectivity.</div>`;
+          html += `<button id="devPingBtn" style="padding:6px 14px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#c9d1d9;font-family:inherit;font-size:12px;cursor:pointer;margin-bottom:14px;">Ping server</button>`;
+          html += `<div id="devPingResult" style="color:#8b949e;min-height:20px;"></div>`;
+          html += section('Connection',
+            row('Server URL', typeof _DEFAULT_PROXY!=='undefined' ? _DEFAULT_PROXY : 'not set') +
+            row('Online', navigator.onLine?'Yes':'No', navigator.onLine?'#3fb950':'#f85149') +
+            row('Connection type', (navigator.connection&&navigator.connection.effectiveType)||'unknown') +
+            row('Downlink', (navigator.connection&&navigator.connection.downlink)?navigator.connection.downlink+' Mbps':'N/A') +
+            row('RTT', (navigator.connection&&navigator.connection.rtt)?navigator.connection.rtt+' ms':'N/A')
+          );
+
+        } else if(i === 4){
+          // Processes
+          html += section('Running Processes',
+            processes.map(p=>
+              row(p.name, `${p.cpu.toFixed(1)}% CPU · ${p.mem} MB`)
+            ).join('')||'<div style="color:#8b949e;">No processes</div>'
+          );
+          html += section('Open Windows',
+            windows.map(w=>{
+              const title = w.querySelector('.title-text')?.textContent||'Window';
+              const z = w.style.zIndex||'?';
+              return row(title, 'z-index '+z);
+            }).join('')||'<div style="color:#8b949e;">No open windows</div>'
+          );
+
+        } else if(i === 5){
+          // Render service manager — async, renders placeholder then fills in
+          html = `
+            <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;">
+              <button id="rndrRefresh"  style="padding:5px 12px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#c9d1d9;font-family:inherit;font-size:11px;cursor:pointer;">↻ Refresh</button>
+              <button id="rndrDeploy"   style="padding:5px 12px;border-radius:4px;border:1px solid #238636;background:rgba(35,134,54,.15);color:#3fb950;font-family:inherit;font-size:11px;cursor:pointer;">⚡ Deploy</button>
+              <button id="rndrRestart"  style="padding:5px 12px;border-radius:4px;border:1px solid #9e6a03;background:rgba(158,106,3,.15);color:#e3b341;font-family:inherit;font-size:11px;cursor:pointer;">🔄 Restart</button>
+              <button id="rndrSuspend"  style="padding:5px 12px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:11px;cursor:pointer;">⏸ Suspend</button>
+              <button id="rndrResume"   style="padding:5px 12px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:11px;cursor:pointer;">▶ Resume</button>
+            </div>
+            <div id="rndrStatus" style="color:#8b949e;font-size:11px;margin-bottom:12px;">Loading…</div>
+            <div id="rndrService"></div>
+            <div id="rndrDeploys"></div>
+          `;
+          contentArea.innerHTML = html;
+
+          const statusEl  = contentArea.querySelector('#rndrStatus');
+          const serviceEl = contentArea.querySelector('#rndrService');
+          const deploysEl = contentArea.querySelector('#rndrDeploys');
+
+          function statusColor(s){
+            if(!s) return '#8b949e';
+            s = s.toLowerCase();
+            if(s==='live'||s==='available') return '#3fb950';
+            if(s==='deploying'||s==='building'||s==='update_in_progress') return '#e3b341';
+            if(s==='suspended'||s==='deactivated') return '#8b949e';
+            return '#f85149';
+          }
+
+          async function loadRender(){
+            statusEl.textContent = 'Fetching…';
+            try{
+              // Service details
+              const svc = await renderAPI('/services/'+RENDER_SERVICE_ID);
+              const s = svc.service || svc;
+              const status = s.suspended==='suspended' ? 'suspended' : (s.serviceDetails?.status||s.status||'unknown');
+              serviceEl.innerHTML = section('Service',
+                row('Name',    s.name||'—') +
+                row('Status',  status, statusColor(status)) +
+                row('Type',    s.type||'—') +
+                row('Region',  s.serviceDetails?.region||'—') +
+                row('Plan',    s.serviceDetails?.plan||s.plan||'—') +
+                row('URL',     s.serviceDetails?.url||'—') +
+                row('Branch',  s.serviceDetails?.branch||'—') +
+                row('Created', s.createdAt ? new Date(s.createdAt).toLocaleString() : '—') +
+                row('Updated', s.updatedAt ? new Date(s.updatedAt).toLocaleString() : '—')
+              );
+
+              // Recent deploys
+              const deps = await renderAPI('/services/'+RENDER_SERVICE_ID+'/deploys?limit=5');
+              const list = Array.isArray(deps) ? deps : (deps.deploys||[]);
+              deploysEl.innerHTML = section('Recent Deploys',
+                list.length ? list.map(d=>{
+                  const dep = d.deploy||d;
+                  const ds = dep.status||'unknown';
+                  const ts = dep.createdAt ? new Date(dep.createdAt).toLocaleString() : '—';
+                  const commit = dep.commit?.message ? dep.commit.message.slice(0,40) : (dep.trigger||'manual');
+                  return row(ts+' — '+commit, ds, statusColor(ds));
+                }).join('') : '<div style="color:#8b949e;">No deploys found</div>'
+              );
+
+              statusEl.textContent = 'Last refreshed: '+new Date().toLocaleTimeString();
+            }catch(e){
+              statusEl.innerHTML = '<span style="color:#f85149;">Error: '+e.message+'</span>';
+            }
+          }
+
+          // Button actions
+          contentArea.querySelector('#rndrRefresh').addEventListener('click', loadRender);
+
+          contentArea.querySelector('#rndrDeploy').addEventListener('click', async ()=>{
+            if(!confirm('Trigger a new deploy?')) return;
+            try{
+              await renderAPI('/services/'+RENDER_SERVICE_ID+'/deploys','POST',{clearCache:'do_not_clear'});
+              statusEl.innerHTML = '<span style="color:#3fb950;">Deploy triggered!</span>';
+              setTimeout(loadRender, 3000);
+            }catch(e){ statusEl.innerHTML='<span style="color:#f85149;">'+e.message+'</span>'; }
+          });
+
+          contentArea.querySelector('#rndrRestart').addEventListener('click', async ()=>{
+            if(!confirm('Restart the service?')) return;
+            try{
+              await renderAPI('/services/'+RENDER_SERVICE_ID+'/restart','POST');
+              statusEl.innerHTML = '<span style="color:#e3b341;">Restarting…</span>';
+              setTimeout(loadRender, 5000);
+            }catch(e){ statusEl.innerHTML='<span style="color:#f85149;">'+e.message+'</span>'; }
+          });
+
+          contentArea.querySelector('#rndrSuspend').addEventListener('click', async ()=>{
+            if(!confirm('Suspend the service? It will go offline.')) return;
+            try{
+              await renderAPI('/services/'+RENDER_SERVICE_ID+'/suspend','POST');
+              statusEl.innerHTML = '<span style="color:#8b949e;">Suspending…</span>';
+              setTimeout(loadRender, 3000);
+            }catch(e){ statusEl.innerHTML='<span style="color:#f85149;">'+e.message+'</span>'; }
+          });
+
+          contentArea.querySelector('#rndrResume').addEventListener('click', async ()=>{
+            try{
+              await renderAPI('/services/'+RENDER_SERVICE_ID+'/resume','POST');
+              statusEl.innerHTML = '<span style="color:#3fb950;">Resuming…</span>';
+              setTimeout(loadRender, 5000);
+            }catch(e){ statusEl.innerHTML='<span style="color:#f85149;">'+e.message+'</span>'; }
+          });
+
+          loadRender();
+          return; // skip the contentArea.innerHTML = html below
+        }
+
+        contentArea.innerHTML = html;
+
+        // Wire ping button if on network tab
+        if(i===3){
+          const btn = contentArea.querySelector('#devPingBtn');
+          const result = contentArea.querySelector('#devPingResult');
+          if(btn&&result){
+            btn.addEventListener('click', async ()=>{
+              btn.disabled=true; btn.textContent='Pinging…';
+              const t0=Date.now();
+              try{
+                const r = await fetch((typeof _DEFAULT_PROXY!=='undefined'?_DEFAULT_PROXY:'https://proxybackend-83xn.onrender.com'), {method:'GET', cache:'no-store'});
+                result.innerHTML = `<span style="color:#3fb950;">✓ ${r.status} OK in ${Date.now()-t0}ms</span>`;
+              }catch(e){
+                result.innerHTML = `<span style="color:#f85149;">✗ Failed — ${e.message}</span>`;
+              }
+              btn.disabled=false; btn.textContent='Ping server';
+            });
+          }
+        }
+      }
+
+      // Auto-refresh every 2s — skip Render tab (has its own manual refresh)
+      const refreshTimer = setInterval(()=>{ if(dw.style.display!=='none' && activeTab !== 5) renderTab(activeTab); }, 2000);
+      dw._tmCleanup = ()=>clearInterval(refreshTimer);
+
+      root.appendChild(tabBar);
+      root.appendChild(contentArea);
+      dw.appendChild(root);
+
+      // Record session start
+      if(!window._sessionStart) window._sessionStart = Date.now();
+
+      finish(dw, '🛠️', p2);
+      setTab(0);
+    })();
+    appendCmd(raw, null);
+    return;
     o='\''+cmd.replace(/</g,'&lt;')+'\' is not recognized as a command. Type <b>help</b>.';
   }
 
@@ -6678,11 +7023,82 @@ function closeAllMenus(keepStart=false){
   document.getElementById('tbMenu').style.display = 'none';
   document.getElementById('appCtxMenu').classList.remove('open');
   document.getElementById('diCtxMenu').classList.remove('open');
+  document.getElementById('powerMenu').style.display = 'none';
   if(!keepStart){
     start.classList.remove('active');
     document.body.classList.remove('ui-overlay-open');
   }
 }
+
+// ── Power menu ──
+(function(){
+  const btn  = document.getElementById('powerBtn');
+  const menu = document.getElementById('powerMenu');
+
+  btn.addEventListener('click', e=>{
+    e.stopPropagation();
+    const isOpen = menu.style.display === 'flex';
+    closeAllMenus(true); // keep start open while we position
+    if(isOpen) return;
+    // Position above the button, aligned to its left edge
+    const r = btn.getBoundingClientRect();
+    const menuH = 130; // approx
+    menu.style.left = r.left + 'px';
+    menu.style.top  = (r.top - menuH - 8) + 'px';
+    menu.style.display = 'flex';
+    menu.style.animation = 'menuOpen var(--dur-fast) var(--ease-decelerate) both';
+  });
+
+  // Lock screen — show the lock screen overlay again
+  document.getElementById('pwrLock').addEventListener('click', ()=>{
+    closeAllMenus();
+    start.classList.remove('active');
+    const ls = document.getElementById('lockScreen');
+    if(!ls) return;
+    // Re-configure lock screen for current account
+    const _acctKey = 'desktop_account_v1';
+    let acct = null;
+    try{ acct = JSON.parse(localStorage.getItem(_acctKey)||'null'); }catch(e){}
+    document.getElementById('lsAvatar').textContent = acct ? (acct.username[0]||'?').toUpperCase() : '?';
+    document.getElementById('lsUsername').textContent = acct ? acct.username : 'Sign In';
+    document.getElementById('lsUserInp').style.display = acct ? 'none' : 'block';
+    document.getElementById('lsInput').value = '';
+    document.getElementById('lsErr').textContent = '';
+    document.getElementById('lsHint').style.opacity = '1';
+    document.getElementById('lsHint').textContent = 'Enter your password to unlock';
+    ls.classList.remove('ls-hiding');
+    ls.style.display = 'flex';
+    setTimeout(()=>document.getElementById('lsInput').focus(), 100);
+  });
+
+  // Restart — reload the page
+  document.getElementById('pwrRestart').addEventListener('click', ()=>{
+    closeAllMenus();
+    showToast('Restarting…','info','🔄',800);
+    setTimeout(()=>location.reload(), 900);
+  });
+
+  // Shut down — fade out and blank (simulates VM power off)
+  document.getElementById('pwrClose').addEventListener('click', ()=>{
+    closeAllMenus();
+    showToast('Shutting down…','warn','⏻',600);
+    setTimeout(()=>{
+      document.body.style.transition = 'opacity 0.6s ease';
+      document.body.style.opacity = '0';
+      setTimeout(()=>{
+        document.body.innerHTML = `
+          <div style="
+            position:fixed;inset:0;background:#000;
+            display:flex;align-items:center;justify-content:center;
+            font-family:system-ui;color:rgba(255,255,255,0.15);font-size:14px;
+          ">No signal</div>`;
+      }, 650);
+    }, 700);
+  });
+
+  // Close menu on outside click
+  document.addEventListener('click', ()=>{ menu.style.display='none'; }, true);
+})();
 
 // Smart position — flip left/up if menu would overflow the viewport
 function positionMenu(el, cx, cy, approxW, approxH){
