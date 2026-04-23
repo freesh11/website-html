@@ -2164,8 +2164,8 @@ function _gatherSettings(){
   // ── Volume ──
   const vol = typeof volState!=='undefined' ? volState : 2;
 
-  // ── Camera photos (store all — they're in-session only) ──
-  const photos = (window._camPhotos||[]).map(p=>({
+  // ── Camera photos — 5 most recent only to keep config size sane ──
+  const photos = (window._camPhotos||[]).slice(0,5).map(p=>({
     dataUrl: p.dataUrl,
     name:    p.name,
     timestamp: p.timestamp instanceof Date ? p.timestamp.toISOString() : p.timestamp,
@@ -2376,9 +2376,43 @@ function _extIconGlobal(ext){
   return m[(ext||'').toLowerCase()]||'📄';
 }
 
+// ── saveSettings: debounced so rapid changes (icon drag etc.) don't spam writes ──
+let _saveTimer = null;
 function saveSettings(){
-  try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(_gatherSettings())); }catch(e){}
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(_doSave, 300);
 }
+function _doSave(){
+  try{
+    const cfg = _gatherSettings();
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(cfg)); // overwrites old — same key
+  }catch(e){}
+}
+
+// ── Autosave every 5 seconds ──
+// Writes to localStorage always; pushes to server only if signed in.
+// Uses a dirty flag so we only push when something actually changed.
+let _lastSaveHash = '';
+function _quickHash(str){
+  let h=0;
+  for(let i=0;i<Math.min(str.length,2000);i++) h=(Math.imul(31,h)+str.charCodeAt(i))|0;
+  return h.toString(36);
+}
+setInterval(()=>{
+  try{
+    const cfg = _gatherSettings();
+    const json = JSON.stringify(cfg);
+    const hash = _quickHash(json);
+    if(hash === _lastSaveHash) return; // nothing changed — skip
+    _lastSaveHash = hash;
+    localStorage.setItem(SETTINGS_KEY, json); // overwrite
+    // Push to server if signed in
+    const acct = _loadAccount ? _loadAccount() : null;
+    if(acct && typeof _pushConfigToServer === 'function'){
+      _pushConfigToServer(acct.username, acct.hash).catch(()=>{});
+    }
+  }catch(e){}
+}, 5000);
 
 function loadSettings(){
   try{
@@ -5072,7 +5106,7 @@ const navItems = [
   {id:'config',          icon:'💾', label:'Config'},
 ];
 
-let activeNav = 'personalization';
+let activeNav = 'account';
 
 function makeNavItem(item){
   const el = document.createElement('div');
@@ -5747,16 +5781,40 @@ panelAccount.style.cssText='flex-direction:column;gap:20px;flex:1;padding:24px 2
 
 // Read current account from localStorage
 const _acctKey = 'desktop_account_v1';
+const _proxyKey = 'desktop_proxy_url';
+const _DEFAULT_PROXY = 'https://proxybackend-83xn.onrender.com';
 function _loadAccount(){ try{ return JSON.parse(localStorage.getItem(_acctKey)||'null'); }catch(e){ return null; } }
 function _saveAccount(obj){ try{ localStorage.setItem(_acctKey, JSON.stringify(obj)); }catch(e){} }
-let _acct = _loadAccount();
+function _loadProxyUrl(){ return localStorage.getItem(_proxyKey)||_DEFAULT_PROXY; }
+function _saveProxyUrl(url){ localStorage.setItem(_proxyKey, url||_DEFAULT_PROXY); }
 
 function _hashPass(raw){
-  // Simple deterministic hash (SHA-256 not available synchronously without SubtleCrypto;
-  // use a fast djb2-style hash — good enough for a local OS sim)
   let h = 5381;
   for(let i=0;i<raw.length;i++) h = ((h<<5)+h) ^ raw.charCodeAt(i);
   return (h>>>0).toString(16).padStart(8,'0') + raw.length.toString(16);
+}
+
+async function _authFetch(method, endpoint, body){
+  const base = _loadProxyUrl().replace(/\/+$/, '');
+  if(!base) return {ok:false, error:'No proxy URL set'};
+  try{
+    const isGet = method === 'GET';
+    const url = isGet ? base + endpoint + '?' + new URLSearchParams(body) : base + endpoint;
+    const r = await fetch(url, {
+      method,
+      headers: {'Content-Type':'application/json'},
+      body: isGet ? undefined : JSON.stringify(body),
+    });
+    return await r.json();
+  }catch(e){
+    return {ok:false, error:'Cannot reach server: '+e.message};
+  }
+}
+
+async function _pushConfigToServer(username, hash){
+  const config = _gatherSettings();
+  const res = await _authFetch('POST', '/auth/save-config', {username, hash, config});
+  return res && res.ok;
 }
 
 function rebuildAccountPanel(){
@@ -5764,104 +5822,152 @@ function rebuildAccountPanel(){
 
   const _acctNow = _loadAccount();
 
-  // ── Current status card ──
-  const statusCard = document.createElement('div');
+  // ── Status card ──
+  const statusCard=document.createElement('div');
   statusCard.style.cssText='display:flex;align-items:center;gap:16px;background:var(--ctrl-bg);border:1px solid var(--stroke);border-radius:var(--radius-overlay);padding:16px;';
-  const avatarEl = document.createElement('div');
+  const avatarEl=document.createElement('div');
   avatarEl.style.cssText='width:52px;height:52px;border-radius:50%;background:var(--accent-fill);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;color:#000;font-weight:700;';
-  avatarEl.textContent = _acctNow ? (_acctNow.username[0]||'?').toUpperCase() : '?';
-  const statusText = document.createElement('div');
-  statusText.innerHTML = _acctNow
-    ? `<div style="font-size:15px;font-weight:600;color:var(--text-primary);">${_acctNow.username}</div>
-       <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">Local account · Lock screen enabled</div>`
-    : `<div style="font-size:14px;font-weight:600;color:var(--text-primary);">No account set</div>
-       <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">Sign in on next launch is disabled</div>`;
-  statusCard.appendChild(avatarEl);
-  statusCard.appendChild(statusText);
+  avatarEl.textContent=_acctNow?(_acctNow.username[0]||'?').toUpperCase():'?';
+  const statusText=document.createElement('div');statusText.style.cssText='min-width:0;';
+  statusText.innerHTML=_acctNow
+    ?`<div style="font-size:15px;font-weight:600;color:var(--text-primary);">${_acctNow.username}</div>
+      <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">Cloud account · Config syncs to server</div>`
+    :`<div style="font-size:14px;font-weight:600;color:var(--text-primary);">Not signed in</div>
+      <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">Sign in to sync your config across any device</div>`;
+  statusCard.append(avatarEl,statusText);
   panelAccount.appendChild(statusCard);
 
-  // ── Form ──
-  function makeField(label, type, placeholder, val=''){
-    const wrap=document.createElement('div');
-    wrap.style.cssText='display:flex;flex-direction:column;gap:5px;';
-    const lbl=document.createElement('label');
-    lbl.style.cssText='font-size:var(--text-caption);color:var(--text-tertiary);';
-    lbl.textContent=label;
+  const hr1=document.createElement('hr');hr1.className='settings-divider';panelAccount.appendChild(hr1);
+
+  function makeField(label,type,placeholder,val=''){
+    const wrap=document.createElement('div');wrap.style.cssText='display:flex;flex-direction:column;gap:5px;';
+    const lbl=document.createElement('label');lbl.style.cssText='font-size:var(--text-caption);color:var(--text-tertiary);';lbl.textContent=label;
     const inp=document.createElement('input');
-    inp.type=type; inp.value=val; inp.placeholder=placeholder;
-    inp.autocomplete='off'; inp.spellcheck=false;
+    inp.type=type;inp.value=val;inp.placeholder=placeholder;inp.autocomplete='off';inp.spellcheck=false;
     inp.style.cssText='background:var(--ctrl-bg-input);border:1px solid var(--stroke);border-bottom:2px solid var(--accent-fill);border-radius:var(--radius-control);padding:7px 10px;color:var(--text-primary);font-size:var(--text-body);font-family:var(--font);outline:none;width:100%;box-sizing:border-box;';
-    wrap.appendChild(lbl); wrap.appendChild(inp);
-    return {wrap, inp};
+    wrap.append(lbl,inp);return{wrap,inp};
   }
+  function setLoading(btn,loading,label){btn.disabled=loading;btn.textContent=loading?'…':label;}
 
-  const hr=document.createElement('hr');hr.className='settings-divider';panelAccount.appendChild(hr);
+  const errMsg=document.createElement('div');errMsg.style.cssText='font-size:12px;color:#ff99a4;min-height:16px;';
 
-  const formSec=document.createElement('div');formSec.className='settings-section';
-  const formLabel=document.createElement('div');formLabel.className='settings-label';
-  formLabel.textContent=_acctNow?'Change account details':'Create account';
-  formSec.appendChild(formLabel);
+  if(!_acctNow){
+    // ── Sign In / Register tabs ──
+    const tabBar=document.createElement('div');tabBar.style.cssText='display:flex;gap:4px;margin-bottom:14px;';
+    const signinFormSec=document.createElement('div');signinFormSec.className='settings-section';signinFormSec.innerHTML='<div class="settings-label">Sign In</div>';
+    const registerFormSec=document.createElement('div');registerFormSec.className='settings-section';registerFormSec.innerHTML='<div class="settings-label">Create Account</div>';registerFormSec.style.display='none';
+    const tabSignin=document.createElement('button');tabSignin.className='settings-apply-btn';tabSignin.textContent='Sign In';tabSignin.style.cssText='padding:5px 14px;font-size:12px;';
+    const tabRegister=document.createElement('button');tabRegister.className='settings-apply-btn';tabRegister.textContent='Register';tabRegister.style.cssText='padding:5px 14px;font-size:12px;background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);';
+    tabBar.append(tabSignin,tabRegister);
+    tabSignin.addEventListener('click',()=>{
+      signinFormSec.style.display='';registerFormSec.style.display='none';errMsg.textContent='';
+      tabSignin.style.cssText='padding:5px 14px;font-size:12px;';
+      tabRegister.style.cssText='padding:5px 14px;font-size:12px;background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);';
+    });
+    tabRegister.addEventListener('click',()=>{
+      signinFormSec.style.display='none';registerFormSec.style.display='';errMsg.textContent='';
+      tabRegister.style.cssText='padding:5px 14px;font-size:12px;';
+      tabSignin.style.cssText='padding:5px 14px;font-size:12px;background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);';
+    });
 
-  const {wrap:unWrap, inp:unInp}=makeField('Username','text','Enter username',_acctNow?_acctNow.username:'');
-  const {wrap:pwWrap, inp:pwInp}=makeField('New password','password','Enter password');
-  const {wrap:pw2Wrap, inp:pw2Inp}=makeField('Confirm password','password','Repeat password');
+    // Sign-in form
+    const {wrap:siUnWrap,inp:siUnInp}=makeField('Username','text','Your username');
+    const {wrap:siPwWrap,inp:siPwInp}=makeField('Password','password','Your password');
+    const siBtn=document.createElement('button');siBtn.className='settings-apply-btn';siBtn.textContent='Sign In';siBtn.style.cssText='padding:6px 16px;font-size:12px;margin-top:4px;';
+    siBtn.addEventListener('click',async()=>{
+      const user=siUnInp.value.trim(),pw=siPwInp.value;
+      if(!user||!pw){errMsg.textContent='Enter username and password.';return;}
+      setLoading(siBtn,true,'Sign In');
+      const res=await _authFetch('POST','/auth/login',{username:user,hash:_hashPass(pw)});
+      setLoading(siBtn,false,'Sign In');
+      if(!res.ok){errMsg.textContent=res.error||'Sign in failed.';return;}
+      errMsg.textContent='';
+      _saveAccount({username:res.username,hash:_hashPass(pw)});
+      if(res.config){
+        try{_applySettings(res.config);localStorage.setItem(SETTINGS_KEY,JSON.stringify({...res.config,_version:3}));}catch(e){}
+        showToast(`Signed in as ${res.username} — config loaded`,'success','✅',3500);
+      } else {
+        showToast(`Signed in as ${res.username}`,'success','👤',2800);
+        _pushConfigToServer(res.username,_hashPass(pw));
+      }
+      setTimeout(()=>{const p=processes.find(x=>x.id===settingsProcId);if(p&&p.win){closeW(p.win);settingsProcId=null;}setTimeout(()=>openSettings(),200);},600);
+    });
+    signinFormSec.append(siUnWrap,siPwWrap,errMsg,siBtn);
 
-  const errMsg=document.createElement('div');
-  errMsg.style.cssText='font-size:12px;color:#ff99a4;min-height:16px;';
+    // Register form
+    const {wrap:rUnWrap,inp:rUnInp}=makeField('Username','text','Choose a username');
+    const {wrap:rPwWrap,inp:rPwInp}=makeField('Password','password','Choose a password');
+    const {wrap:rPw2Wrap,inp:rPw2Inp}=makeField('Confirm password','password','Repeat password');
+    const rBtn=document.createElement('button');rBtn.className='settings-apply-btn';rBtn.textContent='Create Account';rBtn.style.cssText='padding:6px 16px;font-size:12px;margin-top:4px;';
+    rBtn.addEventListener('click',async()=>{
+      const user=rUnInp.value.trim(),pw=rPwInp.value,pw2=rPw2Inp.value;
+      if(!user){errMsg.textContent='Username cannot be empty.';return;}
+      if(user.length<2){errMsg.textContent='Username must be ≥ 2 characters.';return;}
+      if(!pw||pw.length<4){errMsg.textContent='Password must be ≥ 4 characters.';return;}
+      if(pw!==pw2){errMsg.textContent='Passwords do not match.';return;}
+      setLoading(rBtn,true,'Create Account');
+      const res=await _authFetch('POST','/auth/register',{username:user,hash:_hashPass(pw)});
+      setLoading(rBtn,false,'Create Account');
+      if(!res.ok){errMsg.textContent=res.error||'Registration failed.';return;}
+      errMsg.textContent='';
+      _saveAccount({username:res.username,hash:_hashPass(pw)});
+      _pushConfigToServer(res.username,_hashPass(pw));
+      showToast(`Account "${res.username}" created!`,'success','👤',3000);
+      setTimeout(()=>{const p=processes.find(x=>x.id===settingsProcId);if(p&&p.win){closeW(p.win);settingsProcId=null;}setTimeout(()=>openSettings(),200);},600);
+    });
+    registerFormSec.append(rUnWrap,rPwWrap,rPw2Wrap,errMsg,rBtn);
 
-  const btnRow=document.createElement('div');
-  btnRow.style.cssText='display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;';
+    const formWrap=document.createElement('div');formWrap.style.cssText='display:flex;flex-direction:column;gap:10px;';
+    formWrap.append(tabBar,signinFormSec,registerFormSec);
+    panelAccount.appendChild(formWrap);
 
-  const saveBtn=document.createElement('button');
-  saveBtn.className='settings-apply-btn';
-  saveBtn.textContent=_acctNow?'Save changes':'Create account';
-  saveBtn.style.cssText='padding:6px 16px;font-size:12px;';
+  } else {
+    // ── Signed-in actions ──
+    const signedSec=document.createElement('div');signedSec.className='settings-section';
 
-  saveBtn.addEventListener('click',()=>{
-    const user=unInp.value.trim();
-    const pw=pwInp.value;
-    const pw2=pw2Inp.value;
-    if(!user){ errMsg.textContent='Username cannot be empty.'; return; }
-    if(user.length<2){ errMsg.textContent='Username must be at least 2 characters.'; return; }
-    if(!pw){ errMsg.textContent='Password cannot be empty.'; return; }
-    if(pw.length<4){ errMsg.textContent='Password must be at least 4 characters.'; return; }
-    if(pw!==pw2){ errMsg.textContent='Passwords do not match.'; return; }
-    errMsg.textContent='';
-    const newAcct={ username:user, hash:_hashPass(pw) };
-    _saveAccount(newAcct);
-    saveSettings();
-    showToast(`Account "${user}" saved — lock screen enabled`,'success','👤',3000);
-    rebuildAccountPanel();
-  });
+    const pushBtn=document.createElement('button');pushBtn.className='settings-apply-btn';pushBtn.textContent='☁️ Push config to server';pushBtn.style.cssText='padding:6px 16px;font-size:12px;';
+    pushBtn.addEventListener('click',async()=>{
+      setLoading(pushBtn,true,'☁️ Push config to server');
+      const ok=await _pushConfigToServer(_acctNow.username,_acctNow.hash);
+      setLoading(pushBtn,false,'☁️ Push config to server');
+      showToast(ok?'Config saved to server':'Push failed — check server URL',ok?'success':'error',ok?'☁️':'❌',2500);
+    });
 
-  btnRow.appendChild(saveBtn);
+    const pullBtn=document.createElement('button');pullBtn.className='settings-apply-btn';pullBtn.textContent='⬇️ Pull config from server';pullBtn.style.cssText='padding:6px 16px;font-size:12px;background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);';
+    pullBtn.addEventListener('click',async()=>{
+      setLoading(pullBtn,true,'⬇️ Pull config from server');
+      const res=await _authFetch('GET','/auth/load-config',{username:_acctNow.username,hash:_acctNow.hash});
+      setLoading(pullBtn,false,'⬇️ Pull config from server');
+      if(!res.ok||!res.config){showToast(res.error||'No config on server','warn','⚠️',3000);return;}
+      _applySettings(res.config);
+      localStorage.setItem(SETTINGS_KEY,JSON.stringify({...res.config,_version:3}));
+      showToast('Config loaded — reloading settings…','success','✅',3000);
+      setTimeout(()=>{const p=processes.find(x=>x.id===settingsProcId);if(p&&p.win){closeW(p.win);settingsProcId=null;}setTimeout(()=>openSettings(),200);},500);
+    });
 
-  if(_acctNow){
-    const removeBtn=document.createElement('button');
-    removeBtn.className='settings-apply-btn';
-    removeBtn.textContent='Remove account';
-    removeBtn.style.cssText='padding:6px 16px;font-size:12px;background:rgba(255,99,132,.12);color:#ff99a4;border-color:rgba(255,99,132,.3);';
-    removeBtn.addEventListener('click',()=>{
+    const signOutBtn=document.createElement('button');signOutBtn.className='settings-apply-btn';signOutBtn.textContent='Sign Out';signOutBtn.style.cssText='padding:6px 16px;font-size:12px;background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);';
+    signOutBtn.addEventListener('click',()=>{localStorage.removeItem(_acctKey);showToast('Signed out','info','👤',2000);rebuildAccountPanel();});
+
+    const delBtn=document.createElement('button');delBtn.className='settings-apply-btn';delBtn.textContent='🗑 Delete account';delBtn.style.cssText='padding:6px 16px;font-size:12px;background:rgba(255,99,132,.12);color:#ff99a4;border-color:rgba(255,99,132,.3);';
+    delBtn.addEventListener('click',async()=>{
+      setLoading(delBtn,true,'🗑 Delete account');
+      const res=await _authFetch('POST','/auth/delete',{username:_acctNow.username,hash:_acctNow.hash});
+      setLoading(delBtn,false,'🗑 Delete account');
+      if(!res.ok){showToast(res.error||'Delete failed','error','❌',3000);return;}
       localStorage.removeItem(_acctKey);
-      saveSettings();
-      showToast('Account removed — lock screen disabled','info','👤',2500);
+      showToast('Account deleted','warn','🗑',2500);
       rebuildAccountPanel();
     });
-    btnRow.appendChild(removeBtn);
+
+    const btnRow=document.createElement('div');btnRow.style.cssText='display:flex;gap:8px;flex-wrap:wrap;';
+    btnRow.append(pushBtn,pullBtn,signOutBtn,delBtn);
+    signedSec.append(errMsg,btnRow);
+    panelAccount.appendChild(signedSec);
+
+    const tip=document.createElement('div');tip.style.cssText='font-size:12px;color:var(--text-tertiary);background:var(--bg-card);border:1px solid var(--stroke);border-radius:var(--radius-control);padding:10px 12px;line-height:1.6;margin-top:8px;';
+    tip.innerHTML='💡 <b style="color:var(--text-primary)">Push</b> saves your full config to the server. <b style="color:var(--text-primary)">Pull</b> loads it on any device. Sign in anywhere to get your setup back.';
+    panelAccount.appendChild(tip);
   }
-
-  formSec.appendChild(unWrap);
-  formSec.appendChild(pwWrap);
-  formSec.appendChild(pw2Wrap);
-  formSec.appendChild(errMsg);
-  formSec.appendChild(btnRow);
-  panelAccount.appendChild(formSec);
-
-  // ── Lock screen preview tip ──
-  const tip=document.createElement('div');
-  tip.style.cssText='font-size:12px;color:var(--text-tertiary);background:var(--bg-card);border:1px solid var(--stroke);border-radius:var(--radius-control);padding:10px 12px;line-height:1.6;';
-  tip.innerHTML='💡 When an account is set, a <b style="color:var(--text-primary)">lock screen</b> will appear on every page load. The userbox in the Start menu bottom-left will also show your username.';
-  panelAccount.appendChild(tip);
 }
 rebuildAccountPanel();
 
@@ -5878,7 +5984,7 @@ const panels = {
 Object.values(panels).forEach(p=>root.appendChild(p));
 
 // Activate initial nav
-setActiveNav('personalization');
+setActiveNav('account');
 
 settingsShell.appendChild(navPane);
 settingsShell.appendChild(root);
