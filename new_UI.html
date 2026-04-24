@@ -6228,329 +6228,114 @@ input.addEventListener('keydown',(e)=>{
   } else if(cmd==='exit'){
     closeW(win);return;
   } else if(cmd==='dev'){
-    // ── Hidden devtools window ──
-    (function(){
-      const dw = createWindow('DevTools', 760, 520, '🛠️');
-      const p2 = allocProc({name:'DevTools', mem:12, cpu:0.2});
-      processes.push(p2); p2.win = dw;
-
-      const root = document.createElement('div');
-      root.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow:hidden;background:#0d1117;color:#c9d1d9;font-family:"Cascadia Code","Consolas",monospace;font-size:12px;';
-
-      // Tab bar
-      const tabBar = document.createElement('div');
-      tabBar.style.cssText = 'display:flex;background:#161b22;border-bottom:1px solid #30363d;flex-shrink:0;';
-      const RENDER_SERVICE_ID = 'srv-d7k10128qa3s7398abs0';
-      const RENDER_BASE = (_DEFAULT_PROXY||'https://proxybackend-83xn.onrender.com') + '/render-api';
-
-      async function renderAPI(path, method='GET', body=null){
-        const opts = {
-          method,
-          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-        };
-        if(body) opts.body = JSON.stringify(body);
-        const r = await fetch(RENDER_BASE + path, opts);
-        return r.json();
-      }
-
-      const tabs = ['Session','Memory','Storage','Network','Processes','Render'];
-      let activeTab = 0;
-      const panels = {};
-      const tabEls = {};
-
-      function makeTab(label, i){
-        const t = document.createElement('div');
-        t.textContent = label;
-        t.style.cssText = 'padding:8px 16px;cursor:pointer;font-size:11px;border-bottom:2px solid transparent;color:#8b949e;transition:.12s;';
-        t.addEventListener('click', ()=>{ setTab(i); });
+    (function openDevTools(){
+      const existing=processes.find(p=>p.name==='DevTools');
+      if(existing&&existing.win){existing.win.style.display='flex';bring(existing.win);return;}
+      const dw=createWindow('DevTools',820,560,'🛠️');
+      const p2=allocProc({name:'DevTools',mem:12,cpu:0.2});
+      processes.push(p2);
+      const SVCID='srv-d7k10128qa3s7398abs0';
+      const PROXY='https://proxybackend-83xn.onrender.com';
+      const TABS=['Session','Memory','Storage','Network','Processes','Render'];
+      let curTab=0,refreshTimer=null;
+      const shell=document.createElement('div');
+      shell.style.cssText='position:absolute;inset:0;top:32px;display:flex;flex-direction:column;background:#0d1117;color:#c9d1d9;font-family:Consolas,monospace;font-size:12px;overflow:hidden;';
+      const tabBar=document.createElement('div');
+      tabBar.style.cssText='display:flex;background:#161b22;border-bottom:1px solid #30363d;flex-shrink:0;';
+      const body=document.createElement('div');
+      body.style.cssText='flex:1;overflow:auto;padding:14px;min-height:0;';
+      const tabEls=TABS.map((label,i)=>{
+        const t=document.createElement('div');
+        t.textContent=label;
+        t.style.cssText='padding:8px 14px;cursor:pointer;font-size:11px;color:#8b949e;border-bottom:2px solid transparent;white-space:nowrap;';
+        t.onclick=()=>switchTab(i);
         tabBar.appendChild(t);
-        tabEls[i] = t;
-      }
-      tabs.forEach(makeTab);
-
-      const contentArea = document.createElement('div');
-      contentArea.style.cssText = 'flex:1;overflow:auto;padding:14px;';
-
-      function setTab(i){
-        activeTab = i;
-        tabs.forEach((_,j)=>{
-          tabEls[j].style.borderBottomColor = j===i ? '#58a6ff' : 'transparent';
-          tabEls[j].style.color = j===i ? '#c9d1d9' : '#8b949e';
+        return t;
+      });
+      function switchTab(i){
+        curTab=i;
+        tabEls.forEach((t,j)=>{
+          t.style.color=j===i?'#e6edf3':'#8b949e';
+          t.style.borderBottomColor=j===i?'#58a6ff':'transparent';
         });
         renderTab(i);
       }
-
-      function row(k, v, color='#c9d1d9'){
-        return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #21262d;">
-          <span style="color:#8b949e;">${k}</span>
-          <span style="color:${color};font-weight:600;">${v}</span>
-        </div>`;
-      }
-
-      function section(title, html){
-        return `<div style="margin-bottom:16px;">
-          <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#58a6ff;margin-bottom:8px;">${title}</div>
-          ${html}
-        </div>`;
-      }
-
+      function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+      function row(k,v,col){col=col||'#e6edf3';return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #21262d;"><span style="color:#8b949e;margin-right:12px;">'+esc(k)+'</span><span style="color:'+col+';font-weight:600;text-align:right;">'+esc(String(v))+'</span></div>';}
+      function sec(t,c){return '<div style="margin-bottom:16px;"><div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#58a6ff;margin-bottom:8px;">'+esc(t)+'</div>'+c+'</div>';}
+      function svcColor(s){if(!s)return'#8b949e';s=s.toLowerCase();if(s==='live'||s==='available')return'#3fb950';if(s.includes('deploy')||s.includes('build')||s.includes('progress'))return'#e3b341';if(s==='suspended')return'#8b949e';return'#f85149';}
       function renderTab(i){
-        let html = '';
-
-        if(i === 0){
-          // Session info
-          const acct = (()=>{ try{return JSON.parse(localStorage.getItem('desktop_account_v1')||'null');}catch(e){return null;}})();
-          const now = new Date();
-          html += section('Identity',
-            row('Username', acct ? acct.username : 'Guest') +
-            row('Server', typeof _DEFAULT_PROXY!=='undefined' ? _DEFAULT_PROXY : 'N/A') +
-            row('Session start', window._sessionStart ? new Date(window._sessionStart).toLocaleTimeString() : 'N/A')
-          );
-          html += section('Browser',
-            row('User agent', navigator.userAgent.slice(0,60)+'…') +
-            row('Platform', navigator.platform||'unknown') +
-            row('Language', navigator.language) +
-            row('Cores', navigator.hardwareConcurrency||'?') +
-            row('Device RAM', navigator.deviceMemory ? navigator.deviceMemory+' GB' : 'N/A') +
-            row('Screen', screen.width+'×'+screen.height+' @ '+screen.colorDepth+'bit') +
-            row('Viewport', window.innerWidth+'×'+window.innerHeight) +
-            row('Pixel ratio', window.devicePixelRatio||1) +
-            row('Online', navigator.onLine ? 'Yes' : 'No', navigator.onLine?'#3fb950':'#f85149') +
-            row('Fullscreen', !!document.fullscreenElement ? 'Yes' : 'No')
-          );
-          html += section('Time',
-            row('Local time', now.toLocaleTimeString()) +
-            row('UTC offset', 'UTC'+(now.getTimezoneOffset()>0?'-':'+')+Math.abs(now.getTimezoneOffset()/60)) +
-            row('Timezone', Intl.DateTimeFormat().resolvedOptions().timeZone)
-          );
-
-        } else if(i === 1){
-          // Memory
-          if(performance.memory){
-            const used  = (performance.memory.usedJSHeapSize  /1048576).toFixed(2);
-            const total = (performance.memory.totalJSHeapSize /1048576).toFixed(2);
-            const limit = (performance.memory.jsHeapSizeLimit /1048576).toFixed(0);
-            const pct   = (performance.memory.usedJSHeapSize/performance.memory.jsHeapSizeLimit*100).toFixed(1);
-            html += section('JS Heap',
-              row('Used', used+' MB', parseFloat(pct)>80?'#f85149':parseFloat(pct)>50?'#e3b341':'#3fb950') +
-              row('Allocated', total+' MB') +
-              row('Limit', limit+' MB') +
-              row('Usage', pct+'%', parseFloat(pct)>80?'#f85149':'#3fb950')
-            );
-            // Bar
-            html += `<div style="background:#21262d;border-radius:4px;height:10px;overflow:hidden;margin-bottom:16px;">
-              <div style="height:100%;width:${pct}%;background:${parseFloat(pct)>80?'#f85149':parseFloat(pct)>50?'#e3b341':'#3fb950'};transition:.4s;"></div>
-            </div>`;
-          } else {
-            html += '<div style="color:#8b949e;">Memory API not available in this browser.</div>';
-          }
-          html += section('Open Windows', row('Count', windows.length));
-          html += section('Processes', row('Count', processes.length));
-
-        } else if(i === 2){
-          // Storage
-          let lsSize = 0;
-          try{ Object.keys(localStorage).forEach(k=>{ lsSize += (localStorage.getItem(k)||'').length + k.length; }); }catch(e){}
-          const lsKB = (lsSize/1024).toFixed(2);
-          html += section('localStorage',
-            row('Keys', Object.keys(localStorage).length) +
-            row('Total size', lsKB+' KB', parseFloat(lsKB)>4000?'#f85149':'#3fb950') +
-            row('Limit (est)', '5 MB')
-          );
-          // Key list
-          let keyRows = '';
-          try{
-            Object.keys(localStorage).slice(0,20).forEach(k=>{
-              const v = localStorage.getItem(k)||'';
-              const sz = ((k.length+v.length)/1024).toFixed(1);
-              keyRows += row(k.slice(0,32), sz+' KB');
-            });
-          }catch(e){}
-          if(keyRows) html += section('Keys', keyRows);
-
-          // Camera photos
-          html += section('Camera Roll',
-            row('Photos', (window._camPhotos||[]).length) +
-            row('Stored in config', Math.min((window._camPhotos||[]).length,5)+' (cap: 5)')
-          );
-          // Trash
-          html += section('Recycle Bin', row('Items', (window._trash||[]).length));
-
-        } else if(i === 3){
-          // Network / server ping
-          html += `<div style="color:#8b949e;margin-bottom:12px;">Click to test server connectivity.</div>`;
-          html += `<button id="devPingBtn" style="padding:6px 14px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#c9d1d9;font-family:inherit;font-size:12px;cursor:pointer;margin-bottom:14px;">Ping server</button>`;
-          html += `<div id="devPingResult" style="color:#8b949e;min-height:20px;"></div>`;
-          html += section('Connection',
-            row('Server URL', typeof _DEFAULT_PROXY!=='undefined' ? _DEFAULT_PROXY : 'not set') +
-            row('Online', navigator.onLine?'Yes':'No', navigator.onLine?'#3fb950':'#f85149') +
-            row('Connection type', (navigator.connection&&navigator.connection.effectiveType)||'unknown') +
-            row('Downlink', (navigator.connection&&navigator.connection.downlink)?navigator.connection.downlink+' Mbps':'N/A') +
-            row('RTT', (navigator.connection&&navigator.connection.rtt)?navigator.connection.rtt+' ms':'N/A')
-          );
-
-        } else if(i === 4){
-          // Processes
-          html += section('Running Processes',
-            processes.map(p=>
-              row(p.name, `${p.cpu.toFixed(1)}% CPU · ${p.mem} MB`)
-            ).join('')||'<div style="color:#8b949e;">No processes</div>'
-          );
-          html += section('Open Windows',
-            windows.map(w=>{
-              const title = w.querySelector('.title-text')?.textContent||'Window';
-              const z = w.style.zIndex||'?';
-              return row(title, 'z-index '+z);
-            }).join('')||'<div style="color:#8b949e;">No open windows</div>'
-          );
-
-        } else if(i === 5){
-          // Render service manager — async, renders placeholder then fills in
-          html = `
-            <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;">
-              <button id="rndrRefresh"  style="padding:5px 12px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#c9d1d9;font-family:inherit;font-size:11px;cursor:pointer;">↻ Refresh</button>
-              <button id="rndrDeploy"   style="padding:5px 12px;border-radius:4px;border:1px solid #238636;background:rgba(35,134,54,.15);color:#3fb950;font-family:inherit;font-size:11px;cursor:pointer;">⚡ Deploy</button>
-              <button id="rndrRestart"  style="padding:5px 12px;border-radius:4px;border:1px solid #9e6a03;background:rgba(158,106,3,.15);color:#e3b341;font-family:inherit;font-size:11px;cursor:pointer;">🔄 Restart</button>
-              <button id="rndrSuspend"  style="padding:5px 12px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:11px;cursor:pointer;">⏸ Suspend</button>
-              <button id="rndrResume"   style="padding:5px 12px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:11px;cursor:pointer;">▶ Resume</button>
-            </div>
-            <div id="rndrStatus" style="color:#8b949e;font-size:11px;margin-bottom:12px;">Loading…</div>
-            <div id="rndrService"></div>
-            <div id="rndrDeploys"></div>
-          `;
-          contentArea.innerHTML = html;
-
-          const statusEl  = contentArea.querySelector('#rndrStatus');
-          const serviceEl = contentArea.querySelector('#rndrService');
-          const deploysEl = contentArea.querySelector('#rndrDeploys');
-
-          function statusColor(s){
-            if(!s) return '#8b949e';
-            s = s.toLowerCase();
-            if(s==='live'||s==='available') return '#3fb950';
-            if(s==='deploying'||s==='building'||s==='update_in_progress') return '#e3b341';
-            if(s==='suspended'||s==='deactivated') return '#8b949e';
-            return '#f85149';
-          }
-
-          async function loadRender(){
-            statusEl.textContent = 'Fetching…';
+        if(i===0){
+          const acct=(()=>{try{return JSON.parse(localStorage.getItem('desktop_account_v1')||'null');}catch(e){return null;}})();
+          const now=new Date();
+          body.innerHTML=sec('Identity',row('Username',acct?acct.username:'Guest')+row('Server',PROXY)+row('Uptime',window._sessionStart?Math.round((Date.now()-window._sessionStart)/1000)+'s':'N/A'))+sec('Browser',row('Platform',navigator.platform||'?')+row('Language',navigator.language)+row('Cores',navigator.hardwareConcurrency||'?')+row('RAM',navigator.deviceMemory?navigator.deviceMemory+' GB':'N/A')+row('Screen',screen.width+'×'+screen.height)+row('Viewport',window.innerWidth+'×'+window.innerHeight)+row('Online',navigator.onLine?'Yes':'No',navigator.onLine?'#3fb950':'#f85149')+row('Fullscreen',document.fullscreenElement?'Yes':'No'))+sec('Time',row('Local',now.toLocaleTimeString())+row('Timezone',Intl.DateTimeFormat().resolvedOptions().timeZone));
+        } else if(i===1){
+          let h='';
+          if(performance.memory){const u=(performance.memory.usedJSHeapSize/1048576).toFixed(2),tot=(performance.memory.totalJSHeapSize/1048576).toFixed(2),lim=(performance.memory.jsHeapSizeLimit/1048576).toFixed(0),pct=(performance.memory.usedJSHeapSize/performance.memory.jsHeapSizeLimit*100).toFixed(1),col=parseFloat(pct)>80?'#f85149':parseFloat(pct)>50?'#e3b341':'#3fb950';h+=sec('JS Heap',row('Used',u+' MB',col)+row('Allocated',tot+' MB')+row('Limit',lim+' MB')+row('Usage',pct+'%',col));h+='<div style="background:#21262d;border-radius:4px;height:8px;overflow:hidden;margin-bottom:16px;"><div style="height:100%;width:'+pct+'%;background:'+col+';"></div></div>';}else{h+='<div style="color:#8b949e;">Memory API unavailable</div>';}
+          h+=sec('Runtime',row('Windows',windows.length)+row('Processes',processes.length)+row('Icons',document.querySelectorAll('#desktop .desktop-icon').length)+row('Photos',(window._camPhotos||[]).length));
+          body.innerHTML=h;
+        } else if(i===2){
+          let lsSize=0,lsKeys=0;try{lsKeys=Object.keys(localStorage).length;Object.keys(localStorage).forEach(k=>{lsSize+=k.length+(localStorage.getItem(k)||'').length;});}catch(e){}
+          const lsKB=(lsSize/1024).toFixed(2);
+          let h=sec('localStorage',row('Keys',lsKeys)+row('Size',lsKB+' KB',parseFloat(lsKB)>4000?'#f85149':'#3fb950')+row('Limit','5120 KB'));
+          let kr='';try{Object.keys(localStorage).slice(0,12).forEach(k=>{const sz=((k.length+(localStorage.getItem(k)||'').length)/1024).toFixed(1);kr+=row(k.length>28?k.slice(0,28)+'…':k,sz+' KB');});}catch(e){}
+          if(kr)h+=sec('Keys',kr);
+          h+=sec('App',row('Photos',(window._camPhotos||[]).length)+row('Trash',(window._trash||[]).length));
+          body.innerHTML=h;
+        } else if(i===3){
+          body.innerHTML=sec('Connection',row('Online',navigator.onLine?'Yes':'No',navigator.onLine?'#3fb950':'#f85149')+row('Type',(navigator.connection&&navigator.connection.effectiveType)||'?')+row('RTT',(navigator.connection&&navigator.connection.rtt!=null)?navigator.connection.rtt+' ms':'N/A')+row('Server',PROXY))+'<div style="margin-top:8px;"><button id="pingBtn" style="padding:5px 12px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#c9d1d9;font-family:inherit;font-size:11px;cursor:pointer;">⚡ Ping</button> <span id="pingRes" style="color:#8b949e;font-size:11px;"></span></div>';
+          body.querySelector('#pingBtn').onclick=async function(){this.disabled=true;this.textContent='…';const r=document.getElementById('pingRes'),t0=Date.now();try{const res=await fetch(PROXY+'?_='+t0,{method:'HEAD',cache:'no-store'});r.style.color='#3fb950';r.textContent='✓ '+res.status+' in '+(Date.now()-t0)+'ms';}catch(e){r.style.color='#f85149';r.textContent='✗ '+e.message;}this.disabled=false;this.textContent='⚡ Ping';};
+        } else if(i===4){
+          body.innerHTML=sec('Processes',processes.map(p=>row(p.name,p.cpu.toFixed(1)+'% · '+p.mem+' MB')).join('')||'<div style="color:#8b949e;">None</div>')+sec('Windows',windows.map(w=>{const t=w.querySelector('.title-text');return row(t?t.textContent:'?','z:'+w.style.zIndex);}).join('')||'<div style="color:#8b949e;">None</div>');
+        } else if(i===5){
+          body.innerHTML='<div style="color:#8b949e;padding:8px 0;">Loading…</div>';
+          (async()=>{
             try{
-              // Service details
-              const svc = await renderAPI('/services/'+RENDER_SERVICE_ID);
-              const s = svc.service || svc;
-              const status = s.suspended==='suspended' ? 'suspended' : (s.serviceDetails?.status||s.status||'unknown');
-              serviceEl.innerHTML = section('Service',
-                row('Name',    s.name||'—') +
-                row('Status',  status, statusColor(status)) +
-                row('Type',    s.type||'—') +
-                row('Region',  s.serviceDetails?.region||'—') +
-                row('Plan',    s.serviceDetails?.plan||s.plan||'—') +
-                row('URL',     s.serviceDetails?.url||'—') +
-                row('Branch',  s.serviceDetails?.branch||'—') +
-                row('Created', s.createdAt ? new Date(s.createdAt).toLocaleString() : '—') +
-                row('Updated', s.updatedAt ? new Date(s.updatedAt).toLocaleString() : '—')
-              );
-
-              // Recent deploys
-              const deps = await renderAPI('/services/'+RENDER_SERVICE_ID+'/deploys?limit=5');
-              const list = Array.isArray(deps) ? deps : (deps.deploys||[]);
-              deploysEl.innerHTML = section('Recent Deploys',
-                list.length ? list.map(d=>{
-                  const dep = d.deploy||d;
-                  const ds = dep.status||'unknown';
-                  const ts = dep.createdAt ? new Date(dep.createdAt).toLocaleString() : '—';
-                  const commit = dep.commit?.message ? dep.commit.message.slice(0,40) : (dep.trigger||'manual');
-                  return row(ts+' — '+commit, ds, statusColor(ds));
-                }).join('') : '<div style="color:#8b949e;">No deploys found</div>'
-              );
-
-              statusEl.textContent = 'Last refreshed: '+new Date().toLocaleTimeString();
-            }catch(e){
-              statusEl.innerHTML = '<span style="color:#f85149;">Error: '+e.message+'</span>';
-            }
-          }
-
-          // Button actions
-          contentArea.querySelector('#rndrRefresh').addEventListener('click', loadRender);
-
-          contentArea.querySelector('#rndrDeploy').addEventListener('click', async ()=>{
-            if(!confirm('Trigger a new deploy?')) return;
-            try{
-              await renderAPI('/services/'+RENDER_SERVICE_ID+'/deploys','POST',{clearCache:'do_not_clear'});
-              statusEl.innerHTML = '<span style="color:#3fb950;">Deploy triggered!</span>';
-              setTimeout(loadRender, 3000);
-            }catch(e){ statusEl.innerHTML='<span style="color:#f85149;">'+e.message+'</span>'; }
-          });
-
-          contentArea.querySelector('#rndrRestart').addEventListener('click', async ()=>{
-            if(!confirm('Restart the service?')) return;
-            try{
-              await renderAPI('/services/'+RENDER_SERVICE_ID+'/restart','POST');
-              statusEl.innerHTML = '<span style="color:#e3b341;">Restarting…</span>';
-              setTimeout(loadRender, 5000);
-            }catch(e){ statusEl.innerHTML='<span style="color:#f85149;">'+e.message+'</span>'; }
-          });
-
-          contentArea.querySelector('#rndrSuspend').addEventListener('click', async ()=>{
-            if(!confirm('Suspend the service? It will go offline.')) return;
-            try{
-              await renderAPI('/services/'+RENDER_SERVICE_ID+'/suspend','POST');
-              statusEl.innerHTML = '<span style="color:#8b949e;">Suspending…</span>';
-              setTimeout(loadRender, 3000);
-            }catch(e){ statusEl.innerHTML='<span style="color:#f85149;">'+e.message+'</span>'; }
-          });
-
-          contentArea.querySelector('#rndrResume').addEventListener('click', async ()=>{
-            try{
-              await renderAPI('/services/'+RENDER_SERVICE_ID+'/resume','POST');
-              statusEl.innerHTML = '<span style="color:#3fb950;">Resuming…</span>';
-              setTimeout(loadRender, 5000);
-            }catch(e){ statusEl.innerHTML='<span style="color:#f85149;">'+e.message+'</span>'; }
-          });
-
-          loadRender();
-          return; // skip the contentArea.innerHTML = html below
-        }
-
-        contentArea.innerHTML = html;
-
-        // Wire ping button if on network tab
-        if(i===3){
-          const btn = contentArea.querySelector('#devPingBtn');
-          const result = contentArea.querySelector('#devPingResult');
-          if(btn&&result){
-            btn.addEventListener('click', async ()=>{
-              btn.disabled=true; btn.textContent='Pinging…';
-              const t0=Date.now();
-              try{
-                const r = await fetch((typeof _DEFAULT_PROXY!=='undefined'?_DEFAULT_PROXY:'https://proxybackend-83xn.onrender.com'), {method:'GET', cache:'no-store'});
-                result.innerHTML = `<span style="color:#3fb950;">✓ ${r.status} OK in ${Date.now()-t0}ms</span>`;
-              }catch(e){
-                result.innerHTML = `<span style="color:#f85149;">✗ Failed — ${e.message}</span>`;
+              const [svcR,depR]=await Promise.all([fetch(PROXY+'/render-api/services/'+SVCID).then(r=>r.json()),fetch(PROXY+'/render-api/services/'+SVCID+'/deploys?limit=5').then(r=>r.json())]);
+              const s=svcR.service||svcR;
+              const status=s.suspended==='suspended'?'suspended':(s.serviceDetails&&s.serviceDetails.status)||s.status||'unknown';
+              const depList=Array.isArray(depR)?depR:(depR.deploys||[]);
+              let h='<div style="margin-bottom:10px;">'
+                +'<button id="rd" style="padding:5px 11px;border-radius:4px;border:1px solid #238636;background:#21262d;color:#3fb950;font-family:inherit;font-size:11px;cursor:pointer;margin-right:6px;">⚡ Deploy</button>'
+                +'<button id="rr" style="padding:5px 11px;border-radius:4px;border:1px solid #9e6a03;background:#21262d;color:#e3b341;font-family:inherit;font-size:11px;cursor:pointer;margin-right:6px;">🔄 Restart</button>'
+                +'<button id="rs" style="padding:5px 11px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:11px;cursor:pointer;margin-right:6px;">⏸ Suspend</button>'
+                +'<button id="rv" style="padding:5px 11px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:11px;cursor:pointer;margin-right:6px;">▶ Resume</button>'
+                +'<button id="rf" style="padding:5px 11px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:11px;cursor:pointer;">↻</button>'
+                +'</div>'
+                +'<div id="rmsg" style="min-height:16px;font-size:11px;margin-bottom:6px;"></div>';
+              h+=sec('Service',row('Name',s.name||'—')+row('Status',status,svcColor(status))+row('Region',(s.serviceDetails&&s.serviceDetails.region)||'—')+row('Plan',(s.serviceDetails&&s.serviceDetails.plan)||'—')+row('Branch',(s.serviceDetails&&s.serviceDetails.branch)||'—')+row('Updated',s.updatedAt?new Date(s.updatedAt).toLocaleString():'—'));
+              h+=sec('Deploys',depList.length?depList.map(d=>{const dd=d.deploy||d;return row(new Date(dd.createdAt||0).toLocaleTimeString()+' — '+(dd.commit&&dd.commit.message?dd.commit.message.slice(0,35):dd.trigger||'manual'),dd.status||'?',svcColor(dd.status));}).join(''):'<div style="color:#8b949e;">None</div>');
+              body.innerHTML=h;
+              const msg=body.querySelector('#rmsg');
+              async function act(path,method,confirm_msg){
+                if(confirm_msg&&!window.confirm(confirm_msg))return;
+                msg.style.color='#e3b341';msg.textContent='Working…';
+                try{await fetch(PROXY+'/render-api'+path,{method,headers:{'Content-Type':'application/json'},body:method==='POST'?'{}':undefined});msg.style.color='#3fb950';msg.textContent='Done ✓';setTimeout(()=>renderTab(5),3000);}
+                catch(e){msg.style.color='#f85149';msg.textContent='Error: '+e.message;}
               }
-              btn.disabled=false; btn.textContent='Ping server';
-            });
-          }
+              body.querySelector('#rd').onclick=()=>act('/services/'+SVCID+'/deploys','POST','Trigger a new deploy?');
+              body.querySelector('#rr').onclick=()=>act('/services/'+SVCID+'/restart','POST','Restart the service?');
+              body.querySelector('#rs').onclick=()=>act('/services/'+SVCID+'/suspend','POST','Suspend the service?');
+              body.querySelector('#rv').onclick=()=>act('/services/'+SVCID+'/resume','POST');
+              body.querySelector('#rf').onclick=()=>renderTab(5);
+            }catch(e){body.innerHTML='<div style="color:#f85149;">Error: '+esc(e.message)+'</div>';}
+          })();
         }
       }
-
-      // Auto-refresh every 2s — skip Render tab (has its own manual refresh)
-      const refreshTimer = setInterval(()=>{ if(dw.style.display!=='none' && activeTab !== 5) renderTab(activeTab); }, 2000);
-      dw._tmCleanup = ()=>clearInterval(refreshTimer);
-
-      root.appendChild(tabBar);
-      root.appendChild(contentArea);
-      dw.appendChild(root);
-
-      // Record session start
-      if(!window._sessionStart) window._sessionStart = Date.now();
-
-      finish(dw, '🛠️', p2);
-      setTab(0);
+      shell.appendChild(tabBar);
+      shell.appendChild(body);
+      dw.appendChild(shell);
+      finish(dw,'🛠️',p2);
+      dw.style.display='flex';
+      bring(dw);
+      if(!window._sessionStart)window._sessionStart=Date.now();
+      refreshTimer=setInterval(()=>{if(dw.style.display!=='none'&&curTab!==5)renderTab(curTab);},2000);
+      dw._tmCleanup=()=>clearInterval(refreshTimer);
+      switchTab(0);
     })();
-    appendCmd(raw, null);
+    appendCmd(raw,null);
     return;
+  } else {
     o='\''+cmd.replace(/</g,'&lt;')+'\' is not recognized as a command. Type <b>help</b>.';
   }
 
