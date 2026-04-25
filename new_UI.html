@@ -363,41 +363,80 @@ position:absolute;right:0;top:0;bottom:0;
 display:flex;align-items:center;padding-right:4px;gap:2px;
 }
 
-/* ── DOCK MODE layout — Win11 centered pill ── */
+/* ── DOCK MODE layout — floating centered pill ── */
 #taskbar.dock-mode{
-width:auto!important;
-left:50%!important;
-transform:translateX(-50%);
-border-radius:var(--radius-overlay) var(--radius-overlay) 0 0;
-bottom:0;
-padding:0 8px;
-gap:6px;
-border:1px solid var(--stroke-surface);
-border-bottom:none;
-justify-content:center;
-align-items:center;
-}
-#taskbar.dock-mode #taskIcons{
-display:flex;gap:4px;align-items:center;
-background:var(--ctrl-bg);
-border-radius:var(--radius-control);
-padding:4px 6px;
-}
-#taskbar.dock-mode #taskRight{
-position:static;
-display:flex;align-items:center;gap:2px;
-background:var(--ctrl-bg);
-border-radius:var(--radius-control);
-padding:4px 8px;
-}
-/* Separator between dock pills */
-#taskbar.dock-mode .dock-sep{
-width:1px;height:28px;
-background:var(--stroke-divider);
-flex-shrink:0;
+  width:auto!important;
+  left:50%!important;
+  transform:translateX(-50%);
+  bottom:0;
+  /* Pill shape — flat bottom flush with screen edge, rounded top */
+  border-radius:12px 12px 0 0;
+  padding:0 10px;
+  gap:0;
+  /* Stronger acrylic — dock should feel elevated */
+  border:1px solid rgba(255,255,255,0.10);
+  border-bottom:none;
+  box-shadow:0 -2px 32px rgba(0,0,0,0.32), 0 0 0 0.5px rgba(255,255,255,0.06);
+  justify-content:center;
+  align-items:center;
+  /* Slightly taller pill */
+  height:calc(var(--tb-height) + 4px);
 }
 
-/* ── TASK BUTTONS (shared) ── */
+/* Single unified row — no inner pills */
+#taskbar.dock-mode #taskIcons{
+  display:flex;gap:2px;align-items:center;
+  background:none;
+  border-radius:0;
+  padding:0 2px;
+}
+#taskbar.dock-mode #taskRight{
+  position:static;
+  display:flex;align-items:center;gap:2px;
+  background:none;
+  border-radius:0;
+  padding:0 4px 0 2px;
+}
+
+/* Separator — slim vertical line between icons area and tray */
+#taskbar.dock-mode .dock-sep{
+  width:1px;
+  height:22px;
+  background:rgba(255,255,255,0.12);
+  flex-shrink:0;
+  margin:0 6px;
+}
+
+/* Task buttons in dock — slightly larger, more breathing room */
+#taskbar.dock-mode .taskBtn{
+  width:38px;
+  border-radius:8px;
+}
+
+/* Clock in dock — tighter, smaller */
+#taskbar.dock-mode #taskClock{
+  padding:0 6px;
+}
+#taskbar.dock-mode #clockTime{
+  font-size:11px;
+}
+#taskbar.dock-mode #clockDate{
+  font-size:9.5px;
+}
+
+/* Tray icons in dock */
+#taskbar.dock-mode .tray-icon{
+  padding:0 4px;
+  font-size:12px;
+}
+
+/* Active indicator in dock — centered dot, bit bigger */
+#taskbar.dock-mode .taskBtn::after{
+  bottom:-1px;
+}
+
+/* Hide show-desktop in dock */
+#taskbar.dock-mode #showDesktop{display:none;}
 .taskBtn{
 width:var(--tb-icon);height:var(--tb-icon);
 display:flex;align-items:center;justify-content:center;
@@ -2238,6 +2277,89 @@ t.addEventListener('click',()=>{clearTimeout(tid);t.classList.add('out');setTime
 
 // ===================== SETTINGS PERSISTENCE =====================
 const SETTINGS_KEY='desktop_settings_v2';
+const SETTINGS_KEY_GZ='desktop_settings_gz'; // compressed version
+
+// ── Compression helpers (CompressionStream — Chrome 80+, all Chromebooks) ──
+async function _compress(str){
+  try{
+    const enc = new TextEncoder().encode(str);
+    const cs  = new CompressionStream('gzip');
+    const writer = cs.writable.getWriter();
+    writer.write(enc);
+    writer.close();
+    const chunks = [];
+    const reader = cs.readable.getReader();
+    while(true){
+      const {done,value} = await reader.read();
+      if(done) break;
+      chunks.push(value);
+    }
+    // Convert Uint8Array chunks to base64
+    const merged = new Uint8Array(chunks.reduce((a,b)=>a+b.length,0));
+    let off=0; chunks.forEach(c=>{merged.set(c,off);off+=c.length;});
+    // btoa needs a binary string
+    let bin=''; for(let i=0;i<merged.length;i++) bin+=String.fromCharCode(merged[i]);
+    return btoa(bin);
+  }catch(e){ return null; }
+}
+
+async function _decompress(b64){
+  try{
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    const ds = new DecompressionStream('gzip');
+    const writer = ds.writable.getWriter();
+    writer.write(bytes);
+    writer.close();
+    const chunks=[];
+    const reader = ds.readable.getReader();
+    while(true){
+      const {done,value} = await reader.read();
+      if(done) break;
+      chunks.push(value);
+    }
+    const merged = new Uint8Array(chunks.reduce((a,b)=>a+b.length,0));
+    let off=0; chunks.forEach(c=>{merged.set(c,off);off+=c.length;});
+    return new TextDecoder().decode(merged);
+  }catch(e){ return null; }
+}
+
+// Whether the browser supports CompressionStream
+const _hasCompression = typeof CompressionStream !== 'undefined';
+
+// Save config — compressed if supported, plain JSON fallback
+async function _saveSettingsCompressed(cfg){
+  const json = JSON.stringify(cfg);
+  // Always keep plain fallback for backwards compat
+  try{ localStorage.setItem(SETTINGS_KEY, json); }catch(e){}
+  if(_hasCompression){
+    const gz = await _compress(json);
+    if(gz){
+      try{
+        localStorage.setItem(SETTINGS_KEY_GZ, gz);
+        // Measure savings
+        const saving = Math.round((1 - gz.length/json.length)*100);
+        if(saving>5) console.log(`[settings] compressed ${json.length}B → ${gz.length}B (${saving}% smaller)`);
+      }catch(e){}
+    }
+  }
+}
+
+// Load config — try compressed first, fall back to plain
+async function _loadSettingsCompressed(){
+  if(_hasCompression){
+    const gz = localStorage.getItem(SETTINGS_KEY_GZ);
+    if(gz){
+      const json = await _decompress(gz);
+      if(json){ try{ return JSON.parse(json); }catch(e){} }
+    }
+  }
+  // Fall back to plain
+  const raw = localStorage.getItem(SETTINGS_KEY);
+  if(!raw) return null;
+  try{ return JSON.parse(raw); }catch(e){ return null; }
+}
 function _gatherSettings(){
   const tb=document.getElementById('taskbar');
   const WIN11_DEFAULT_BG='linear-gradient(135deg,#041728 0%,#0a2547 25%,#0d3b70 50%,#0a2e5c 75%,#061525 100%)';
@@ -2495,7 +2617,7 @@ function _extIconGlobal(ext){
   return m[(ext||'').toLowerCase()]||'📄';
 }
 
-// ── saveSettings: debounced so rapid changes (icon drag etc.) don't spam writes ──
+// ── saveSettings: debounced ──
 let _saveTimer = null;
 function saveSettings(){
   clearTimeout(_saveTimer);
@@ -2504,7 +2626,7 @@ function saveSettings(){
 function _doSave(){
   try{
     const cfg = _gatherSettings();
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(cfg)); // overwrites old — same key
+    _saveSettingsCompressed(cfg); // async, non-blocking
   }catch(e){}
 }
 
@@ -2518,32 +2640,35 @@ function _quickHash(str){
   return h.toString(36);
 }
 setInterval(()=>{
-  // On perf-lite, only run every 3rd tick (≈15s)
-  if(window._perfLite){
-    _autosaveTick++;
-    if(_autosaveTick % 3 !== 0) return;
-  }
+  if(window._perfLite){ _autosaveTick++; if(_autosaveTick%3!==0) return; }
   try{
     const cfg = _gatherSettings();
     const json = JSON.stringify(cfg);
     const hash = _quickHash(json);
     if(hash === _lastSaveHash) return;
     _lastSaveHash = hash;
-    localStorage.setItem(SETTINGS_KEY, json);
+    // Save locally (compressed)
+    _saveSettingsCompressed(cfg);
+    // Push to server — strip photos (too large, stay local only)
     const acct = _loadAccount ? _loadAccount() : null;
     if(acct && typeof _pushConfigToServer === 'function'){
-      _pushConfigToServer(acct.username, acct.hash).catch(()=>{});
+      const serverCfg = {...cfg, camPhotos:[]};
+      _pushConfigToServer(acct.username, acct.hash, serverCfg).catch(()=>{});
     }
   }catch(e){}
 }, 5000);
 
 function loadSettings(){
-  try{
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if(!raw) return;
-    const s = JSON.parse(raw);
-    _applySettings(s);
-  }catch(e){}
+  // Try compressed first, async — fall back to plain sync
+  _loadSettingsCompressed().then(s=>{
+    if(s) _applySettings(s);
+  }).catch(()=>{
+    // Sync fallback
+    try{
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      if(raw) _applySettings(JSON.parse(raw));
+    }catch(e){}
+  });
 }
 
 function exportConfig(){
@@ -2605,28 +2730,35 @@ saveSettings();
 function setTaskbarMode(mode){
 const tb=document.getElementById('taskbar');
 tb.dataset.tbMode=mode;
-// Remove any existing dock separator
 tb.querySelectorAll('.dock-sep').forEach(s=>s.remove());
 const opacity=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--task-opacity').trim()||'0.08');
+const alpha=Math.min(0.97, 0.72 + opacity);
 if(mode==='dock'){
-tb.classList.add('dock-mode');
-const sep=document.createElement('div');
-sep.className='dock-sep';
-const taskRight=document.getElementById('taskRight');
-tb.insertBefore(sep,taskRight);
-const alpha=Math.min(0.97, 0.72 + opacity);
-tb.style.background='rgba(32,32,32,'+alpha+')';
+  tb.classList.add('dock-mode');
+  // Insert separator between taskIcons and taskRight
+  const sep=document.createElement('div');
+  sep.className='dock-sep';
+  const taskRight=document.getElementById('taskRight');
+  tb.insertBefore(sep,taskRight);
+  // Clear any full-width overrides
+  tb.style.width='';
+  tb.style.left='';
+  tb.style.transform='';
+  tb.style.padding='';
+  tb.style.gap='';
+  tb.style.border='';
+  tb.style.borderRadius='';
+  tb.style.background=`rgba(28,28,28,${alpha})`;
 } else {
-tb.classList.remove('dock-mode');
-tb.style.width='';
-tb.style.left='';
-tb.style.transform='';
-tb.style.borderRadius='';
-tb.style.padding='';
-tb.style.gap='';
-tb.style.border='';
-const alpha=Math.min(0.97, 0.72 + opacity);
-tb.style.background='rgba(32,32,32,'+alpha+')';
+  tb.classList.remove('dock-mode');
+  tb.style.width='';
+  tb.style.left='';
+  tb.style.transform='';
+  tb.style.borderRadius='';
+  tb.style.padding='';
+  tb.style.gap='';
+  tb.style.border='';
+  tb.style.background=`rgba(32,32,32,${alpha})`;
 }
 saveSettings();
 }
@@ -6052,8 +6184,13 @@ async function _authFetch(method, endpoint, body){
   }
 }
 
-async function _pushConfigToServer(username, hash){
-  const config = _gatherSettings();
+async function _pushConfigToServer(username, hash, cfgOverride){
+  const config = cfgOverride || (()=>{
+    const c = _gatherSettings();
+    // Never send photos to server — too large, stay local only
+    c.camPhotos = [];
+    return c;
+  })();
   const res = await _authFetch('POST', '/auth/save-config', {username, hash, config});
   return res && res.ok;
 }
@@ -6319,8 +6456,8 @@ function rebuildAccountPanel(){
         try{ cfg = JSON.parse(cfg); } catch(e){ showToast('Config data is corrupted','error','❌',3000); return; }
       }
 
-      // Save to localStorage
-      try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify({...cfg, _version:3})); } catch(e){}
+      // Save to localStorage (compressed)
+      _saveSettingsCompressed({...cfg, _version:3});
 
       // Apply live — no reload needed
       try{ _applySettings(cfg); } catch(e){ console.error('applySettings error:', e); }
