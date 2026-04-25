@@ -111,9 +111,42 @@
   --tb-icon:40px;
   --titlebar-height:32px;
   --caption-btn-w:46px;
+  /* ── Performance ── */
+  --blur-acrylic: 60px;     /* reduced to 24px on perf-lite */
+  --blur-titlebar: 20px;
+  --blur-menu: 60px;
+  --shadow-window: var(--shadow-64);
 }
 
-/* Segoe UI Variable — available on Win11, fallback gracefully */
+/* ── Perf-lite mode (Chromebook / low-memory devices) ── */
+/* Applied via JS: document.documentElement.classList.add('perf-lite') */
+.perf-lite {
+  --blur-acrylic: 24px;
+  --blur-titlebar: 0px;
+  --blur-menu: 20px;
+  --shadow-window: var(--shadow-16);
+  --dur-faster: 50ms;
+  --dur-fast: 100ms;
+  --dur-normal: 150ms;
+}
+/* In perf-lite, skip backdrop-filter on menus entirely — use solid bg */
+.perf-lite #start,
+.perf-lite #tbMenu,
+.perf-lite #appCtxMenu,
+.perf-lite #diCtxMenu,
+.perf-lite #winCtxMenu {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(28,28,28,0.98) !important;
+}
+/* Windows get contain for layout isolation */
+.window {
+  contain: layout style;
+}
+/* Taskbar and start menu get paint containment */
+#taskbar, #start {
+  contain: layout style paint;
+}
 @font-face {
   font-family: "Segoe UI Variable";
   src: local("Segoe UI Variable Text"),
@@ -141,25 +174,20 @@
   border-radius:var(--radius-control);
   cursor:default;
   text-align:center;
-  /* smooth snap-back after drop */
-  transition:box-shadow var(--dur-faster) linear,
-             background var(--dur-faster) linear,
-             outline var(--dur-faster) linear;
+  transition:background var(--dur-faster) linear, outline var(--dur-faster) linear;
   z-index:1;
   touch-action:none;
 }
 .desktop-icon:hover { background:rgba(255,255,255,0.08); }
-/* selected state — Win11 blue highlight */
 .desktop-icon.di-selected {
   background:rgba(96,205,255,0.18);
   outline:1px solid rgba(96,205,255,0.5);
 }
-/* while being dragged */
 .desktop-icon.di-dragging {
-  opacity:0.5;
+  opacity:0.3;
   z-index:8000;
   cursor:grabbing !important;
-  transition:none;
+  transition:none !important;
 }
 /* ghost clone that follows the cursor */
 .di-ghost {
@@ -169,9 +197,11 @@
   display:flex;flex-direction:column;align-items:center;gap:4px;
   width:80px;padding:6px 4px 8px;
   text-align:center;
-  opacity:0.85;
+  opacity:0.9;
   filter:drop-shadow(0 4px 12px rgba(0,0,0,0.5));
   cursor:grabbing;
+  transform-origin:50% 60%;
+  will-change:transform,left,top;
 }
 .di-ghost .di-icon  { font-size:32px;line-height:1; }
 .di-ghost .di-label {
@@ -180,15 +210,14 @@
   text-shadow:0 1px 4px rgba(0,0,0,0.9);
   line-height:1.3;word-break:break-word;max-width:72px;
 }
-/* drop-target cell highlight */
+/* drop-target cell highlight — position driven by JS spring */
 .di-drop-target {
   position:absolute;
   border-radius:var(--radius-control);
   background:rgba(96,205,255,0.12);
-  outline:1px dashed rgba(96,205,255,0.4);
+  outline:1.5px solid rgba(96,205,255,0.5);
   pointer-events:none;
   z-index:0;
-  transition:left var(--dur-faster) linear, top var(--dur-faster) linear;
 }
 /* rubber-band selection rectangle */
 #diSelRect {
@@ -216,8 +245,8 @@
   display:none;
   flex-direction:column;gap:6px;
   background:rgba(44,44,44,0.96);
-  backdrop-filter:blur(60px) saturate(125%);
-  -webkit-backdrop-filter:blur(60px) saturate(125%);
+  backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
+  -webkit-backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
   border:1px solid var(--stroke-flyout);
   border-radius:var(--radius-overlay);
   padding:12px;
@@ -312,8 +341,8 @@ body{
 position:absolute;bottom:0;left:0;width:100%;height:var(--tb-height);
 /* Acrylic: blur + saturate + semi-transparent tint — Win11 taskbar recipe */
 background:rgba(32,32,32,calc(0.72 + var(--task-opacity)));
-backdrop-filter:blur(60px) saturate(125%);
--webkit-backdrop-filter:blur(60px) saturate(125%);
+backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
+-webkit-backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
 border-top:1px solid var(--stroke-surface);
 display:flex;align-items:center;justify-content:center;z-index:9999;
 transition:background var(--dur-fast) var(--ease-standard),
@@ -412,6 +441,35 @@ border-radius:var(--radius-small);
 background:var(--accent-fill);
 }
 
+/* ── Taskbar group badge — shows window count when >1 ── */
+.taskBtn .tb-group-badge{
+  position:absolute;
+  top:4px; right:4px;
+  min-width:14px; height:14px;
+  border-radius:7px;
+  background:var(--accent-fill);
+  color:#000;
+  font-size:9px;
+  font-weight:700;
+  font-family:var(--font);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:0 3px;
+  line-height:1;
+  pointer-events:none;
+  box-shadow:0 0 0 1.5px var(--bg-base);
+}
+.taskBtn.tb-grouped .tb-group-badge{
+  display:flex;
+}
+/* Multi-window indicator: two stacked dots instead of one */
+.taskBtn.tb-grouped::after{
+  width:20px;
+  background:var(--accent-fill);
+  box-shadow: -6px 0 0 var(--accent-fill);
+}
+
 /* ── TRAY ICONS (shared) ── */
 .tray-icon{
 width:32px;height:var(--tb-icon);
@@ -496,8 +554,8 @@ z-index:999999;pointer-events:none;
 }
 .toast{
 background:rgba(44,44,44,0.96);
-backdrop-filter:blur(60px) saturate(125%);
--webkit-backdrop-filter:blur(60px) saturate(125%);
+backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
+-webkit-backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
 border:1px solid var(--stroke-surface);
 border-radius:var(--radius-overlay);
 padding:12px 14px;font-size:var(--text-caption);
@@ -626,8 +684,8 @@ transform:translateX(-50%) translateY(16px);
 width:min(640px, 96vw);max-height:min(680px, 80vh);
 /* Acrylic recipe */
 background:rgba(32,32,32,0.85);
-backdrop-filter:blur(60px) saturate(125%);
--webkit-backdrop-filter:blur(60px) saturate(125%);
+backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
+-webkit-backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
 border:1px solid var(--stroke-surface);
 border-radius:var(--radius-overlay);
 padding:16px 22px 14px;
@@ -735,7 +793,7 @@ transition:box-shadow var(--dur-faster) linear,
 @keyframes winRestore {from{opacity:0;transform:scale(0.94) translateY(14px)} to{opacity:1;transform:scale(1) translateY(0)}}
 /* Focused window: brighter top stroke */
 .window:focus-within{
-  box-shadow:var(--shadow-64),0 0 0 1px rgba(255,255,255,0.14);
+  box-shadow:var(--shadow-window),0 0 0 1px rgba(255,255,255,0.14);
 }
 .window.maximized{
 left:0!important;top:0!important;width:100vw!important;
@@ -747,8 +805,8 @@ height:calc(100vh - var(--tb-height))!important;border-radius:0;border:none;
 .titlebar{
 height:var(--titlebar-height);
 background:rgba(32,32,32,0.98);
-backdrop-filter:blur(20px) saturate(1.4);
--webkit-backdrop-filter:blur(20px) saturate(1.4);
+backdrop-filter:blur(var(--blur-titlebar)) saturate(1.4);
+-webkit-backdrop-filter:blur(var(--blur-titlebar)) saturate(1.4);
 display:flex;justify-content:space-between;
 align-items:center;padding:0 0 0 14px;cursor:grab;flex-shrink:0;
 user-select:none;
@@ -821,8 +879,8 @@ iframe{flex:1;border:none;background:#000}
 #menu{
 position:absolute;display:none;
 background:rgba(44,44,44,0.92);
-backdrop-filter:blur(60px) saturate(125%);
--webkit-backdrop-filter:blur(60px) saturate(125%);
+backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
+-webkit-backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
 border:1px solid var(--stroke-flyout);
 border-radius:var(--radius-overlay);
 min-width:200px;z-index:999999;overflow:hidden;
@@ -835,6 +893,7 @@ display:block;
 animation:menuOpen var(--dur-fast) var(--ease-decelerate) both;
 }
 @keyframes menuOpen{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 #menu .menu-item{
 padding:0 11px;height:32px;cursor:pointer;
 font-size:var(--text-body);
@@ -853,8 +912,8 @@ transition:background var(--dur-faster) linear;
 #tbMenu{
 position:absolute;display:none;
 background:rgba(44,44,44,0.92);
-backdrop-filter:blur(60px) saturate(125%);
--webkit-backdrop-filter:blur(60px) saturate(125%);
+backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
+-webkit-backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
 border:1px solid var(--stroke-flyout);
 border-radius:var(--radius-overlay);
 min-width:160px;z-index:9999999;overflow:hidden;
@@ -1149,8 +1208,8 @@ transition:background var(--dur-faster) linear;
 #kbHint{
 position:absolute;bottom:calc(var(--tb-height) + 8px);left:50%;transform:translateX(-50%);
 background:rgba(44,44,44,0.96);
-backdrop-filter:blur(60px) saturate(125%);
--webkit-backdrop-filter:blur(60px) saturate(125%);
+backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
+-webkit-backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
 border:1px solid var(--stroke-flyout);
 border-radius:var(--radius-control);
 padding:6px 12px;
@@ -1172,8 +1231,8 @@ box-shadow:var(--shadow-8);
   top: 50%;left: 50%;
   transform: translate(-50%,-50%);
   background:rgba(44,44,44,0.92);
-  backdrop-filter:blur(60px) saturate(125%);
-  -webkit-backdrop-filter:blur(60px) saturate(125%);
+  backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
+  -webkit-backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
   border: 1px solid var(--stroke-flyout);
   border-radius: var(--radius-overlay);
   padding: 18px 28px;
@@ -1242,8 +1301,8 @@ box-shadow:var(--shadow-8);
   right:8px;
   width:360px;
   background:rgba(44,44,44,0.94);
-  backdrop-filter:blur(60px) saturate(125%);
-  -webkit-backdrop-filter:blur(60px) saturate(125%);
+  backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
+  -webkit-backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
   border:1px solid var(--stroke-flyout);
   border-radius:var(--radius-overlay);
   padding:16px;
@@ -1448,8 +1507,8 @@ box-shadow:var(--shadow-8);
   min-width:220px;
   max-width:260px;
   background:rgba(44,44,44,0.96);
-  backdrop-filter:blur(60px) saturate(125%);
-  -webkit-backdrop-filter:blur(60px) saturate(125%);
+  backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
+  -webkit-backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
   border:1px solid var(--stroke-flyout);
   border-radius:var(--radius-overlay);
   padding:4px;
@@ -1568,7 +1627,7 @@ box-shadow:var(--shadow-8);
 .fe-confirm-ok{padding:6px 16px;border-radius:var(--radius-control);border:1px solid rgba(255,99,132,.4);background:rgba(255,99,132,.15);color:#ff99a4;font-size:var(--text-body);font-weight:600;font-family:var(--font);cursor:pointer;}
 .fe-confirm-ok:hover{background:rgba(255,99,132,.28);}
 /* desktop icon right-click menu */
-#diCtxMenu{position:fixed;display:none;flex-direction:column;min-width:190px;background:rgba(44,44,44,0.96);backdrop-filter:blur(60px) saturate(125%);-webkit-backdrop-filter:blur(60px) saturate(125%);border:1px solid var(--stroke-flyout);border-radius:var(--radius-overlay);padding:4px;z-index:999999;box-shadow:var(--shadow-28);}
+#diCtxMenu{position:fixed;display:none;flex-direction:column;min-width:190px;background:rgba(44,44,44,0.96);backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);-webkit-backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);border:1px solid var(--stroke-flyout);border-radius:var(--radius-overlay);padding:4px;z-index:999999;box-shadow:var(--shadow-28);}
 #diCtxMenu.open{display:flex;animation:menuOpen var(--dur-fast) var(--ease-decelerate) both;}
 .di-ctx-item{display:flex;align-items:center;gap:10px;height:30px;padding:0 10px;border-radius:var(--radius-control);margin:1px;cursor:pointer;font-size:var(--text-body);font-family:var(--font);color:var(--text-primary);transition:background var(--dur-faster) linear;white-space:nowrap;}
 .di-ctx-item:hover{background:var(--subtle-hover);}
@@ -1593,8 +1652,8 @@ box-shadow:var(--shadow-8);
   flex-direction:column;
   min-width:200px;
   background:rgba(44,44,44,0.96);
-  backdrop-filter:blur(60px) saturate(125%);
-  -webkit-backdrop-filter:blur(60px) saturate(125%);
+  backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
+  -webkit-backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
   border:1px solid var(--stroke-flyout);
   border-radius:var(--radius-overlay);
   padding:4px;
@@ -1922,7 +1981,7 @@ box-shadow:var(--shadow-8);
     <div class="app" data-name="Poly Track" onclick="openPolyTrack()"><span style="font-size:22px">🏎️</span>Poly Track</div>
     <div class="app" data-name="Task Manager" onclick="openTaskManager()"><span style="font-size:22px">📊</span>Task Manager</div>
     <div class="app" data-name="Notepad" onclick="openNotepad()"><span style="font-size:22px">📝</span>Notepad</div>
-    <div class="app" data-name="CMD Command Prompt" onclick="openCMD()"><span style="font-size:22px">⌨️</span>CMD</div>
+    <div class="app" data-name="Command Prompt" onclick="openCMD()"><span style="font-size:22px">⌨️</span>CMD</div>
     <div class="app" data-name="Settings" onclick="openSettings()"><span style="font-size:22px">⚙️</span>Settings</div>
   </div>
 </div>
@@ -1942,8 +2001,8 @@ box-shadow:var(--shadow-8);
 <div id="powerMenu" style="
   position:fixed;display:none;flex-direction:column;
   background:rgba(44,44,44,0.96);
-  backdrop-filter:blur(60px) saturate(125%);
-  -webkit-backdrop-filter:blur(60px) saturate(125%);
+  backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
+  -webkit-backdrop-filter:blur(var(--blur-acrylic)) saturate(125%);
   border:1px solid var(--stroke-flyout);
   border-radius:var(--radius-overlay);
   padding:4px;min-width:180px;
@@ -2366,10 +2425,19 @@ function _applySettings(s){
 
   // ── Pinned to Taskbar ──
   if(Array.isArray(s.pinnedTaskbar) && s.pinnedTaskbar.length){
-    setTimeout(()=>{
-      if(typeof _taskbarPinned==='undefined') return;
+    const _doRestoreTaskbar = ()=>{
+      if(typeof _taskbarPinned==='undefined' || typeof _taskGroups==='undefined') return;
       s.pinnedTaskbar.forEach(name=>{
         if(_taskbarPinned.has(name)||_pinnedBtnMap[name]) return;
+        // Also check if DOM already has a pinned button for this app
+        const existingDomBtn = document.querySelector(`#taskIcons .taskBtn[data-pinned-app="${CSS.escape(name)}"]`);
+        if(existingDomBtn){
+          _taskbarPinned.add(name);
+          _pinnedBtnMap[name]=existingDomBtn;
+          if(!_taskGroups[name]) _taskGroups[name]={ btn:existingDomBtn, windows:new Set(), pinned:true };
+          _updateGroupBtn(name);
+          return;
+        }
         _taskbarPinned.add(name);
         const src=document.querySelector(`#allAppsGrid .app[data-name="${CSS.escape(name)}"]`);
         const icon=src?src.querySelector('span')?.textContent||'🗂️':'🗂️';
@@ -2378,15 +2446,15 @@ function _applySettings(s){
         btn.title=name;
         btn.dataset.pinnedApp=name;
         btn.innerHTML=`<span style="font-size:19px;pointer-events:none;line-height:1">${icon}</span>`;
-        btn.onclick=()=>launchApp(name);
-        btn.oncontextmenu=e=>{
-          e.preventDefault();e.stopPropagation();
-          _showTbMenu(e.clientX,e.clientY,null,name,true);
-        };
         document.getElementById('taskIcons').appendChild(btn);
         _pinnedBtnMap[name]=btn;
+        _taskGroups[name]={ btn, windows: new Set(), pinned: true };
+        _updateGroupBtn(name);
       });
-    },0);
+    };
+    // Try synchronously first (works when called from loadSettings at page bottom)
+    // Fall back to setTimeout for cases called early (e.g. importConfig)
+    try{ _doRestoreTaskbar(); } catch(e){ setTimeout(_doRestoreTaskbar, 0); }
   }
 
   // ── Desktop icons ──
@@ -2440,24 +2508,28 @@ function _doSave(){
   }catch(e){}
 }
 
-// ── Autosave every 5 seconds ──
-// Writes to localStorage always; pushes to server only if signed in.
-// Uses a dirty flag so we only push when something actually changed.
+// ── Autosave every 5s (15s on perf-lite) ──
 let _lastSaveHash = '';
+let _lastServerPush = 0;
+let _autosaveTick = 0;
 function _quickHash(str){
   let h=0;
   for(let i=0;i<Math.min(str.length,2000);i++) h=(Math.imul(31,h)+str.charCodeAt(i))|0;
   return h.toString(36);
 }
 setInterval(()=>{
+  // On perf-lite, only run every 3rd tick (≈15s)
+  if(window._perfLite){
+    _autosaveTick++;
+    if(_autosaveTick % 3 !== 0) return;
+  }
   try{
     const cfg = _gatherSettings();
     const json = JSON.stringify(cfg);
     const hash = _quickHash(json);
-    if(hash === _lastSaveHash) return; // nothing changed — skip
+    if(hash === _lastSaveHash) return;
     _lastSaveHash = hash;
-    localStorage.setItem(SETTINGS_KEY, json); // overwrite
-    // Push to server if signed in
+    localStorage.setItem(SETTINGS_KEY, json);
     const acct = _loadAccount ? _loadAccount() : null;
     if(acct && typeof _pushConfigToServer === 'function'){
       _pushConfigToServer(acct.username, acct.hash).catch(()=>{});
@@ -2613,9 +2685,10 @@ if(!_desktopHidden){
     if(w.style.display!=='none'){
       w.style.display='none';
       w._wasVisible=true;
-      if(w.task) w.task.classList.remove('open');
     }
   });
+  // Update all group buttons
+  Object.keys(_taskGroups).forEach(name=>_updateGroupBtn(name));
   _desktopHidden=true;
 } else {
   // Restore windows and re-light their taskbar buttons
@@ -2623,10 +2696,10 @@ if(!_desktopHidden){
     if(w._wasVisible){
       w.style.display='flex';
       w._wasVisible=false;
-      if(w.task) w.task.classList.add('open');
       bring(w); // restore z-order
     }
   });
+  Object.keys(_taskGroups).forEach(name=>_updateGroupBtn(name));
   _desktopHidden=false;
 }
 }
@@ -2727,32 +2800,44 @@ if(start.classList.contains('active')){
   if(tb.classList.contains('fs-hidden')&&!tb.matches(':hover')) tb.classList.remove('tb-peek');
 }
 }
-function bring(w){w.style.zIndex=++z;}
+function bring(w){
+  w.style.zIndex=++z;
+  // Refresh group button so the open/focused indicator updates
+  const appName = w.querySelector?.('.title-text')?.textContent?.trim() || '';
+  if(appName && _taskGroups[appName]) _updateGroupBtn(appName);
+}
 
 function createTask(win,icon){
+// createTask is now a legacy path — grouping is handled by finish().
+// If called directly, delegate to the group system.
+const appName = win.querySelector('.title-text')?.textContent?.trim() || '';
+if(appName && !_taskGroups[appName]){
+  const btn = document.createElement('div');
+  btn.className = 'taskBtn';
+  btn.title = appName;
+  btn.innerHTML = `<span style="font-size:19px;pointer-events:none;line-height:1">${icon}</span>`;
+  taskIcons.appendChild(btn);
+  _taskGroups[appName] = { btn, windows: new Set(), pinned: false };
+}
+if(appName && _taskGroups[appName]){
+  _taskGroups[appName].windows.add(win);
+  win.task = _taskGroups[appName].btn;
+  _updateGroupBtn(appName);
+  return _taskGroups[appName].btn;
+}
+// Absolute fallback — plain button
 const b=document.createElement('div');
 b.className='taskBtn open';
-b.title=win.querySelector('.title-text')?.textContent||'App';
+b.title=appName||'App';
 b.innerHTML=`<span style="font-size:19px;pointer-events:none;line-height:1">${icon}</span>`;
 b.onclick=()=>{
   if(win.style.display==='none'){
     win.style.display='flex'; bring(win); b.classList.add('open'); b.classList.remove('running');
-    win.classList.remove('win-minimizing');
-    win.classList.add('win-restoring');
-    setTimeout(()=>win.classList.remove('win-restoring'), 250);
   } else if(win===windows.find(w=>parseInt(w.style.zIndex)===z)){
-    win.classList.add('win-minimizing');
-    setTimeout(()=>{ win.classList.remove('win-minimizing'); win.style.display='none'; }, 167);
-    b.classList.remove('open'); b.classList.add('running');
+    win.style.display='none'; b.classList.remove('open'); b.classList.add('running');
   } else {
     bring(win); b.classList.add('open');
   }
-};
-b.oncontextmenu=e=>{
-  e.preventDefault(); e.stopPropagation();
-  _tbMenuTarget = win;
-  const appName = win.querySelector('.title-text')?.textContent?.trim() || '';
-  _showTbMenu(e.clientX, e.clientY, win, appName, false);
 };
 taskIcons.appendChild(b);
 return b;
@@ -2951,62 +3036,182 @@ bring(win);
 // Map of app name → pinned taskbar button
 const _pinnedBtnMap = {};
 
+// ── Taskbar Grouping ──────────────────────────────────────────────────────────
+// _taskGroups: appName → { btn, windows: Set<winEl>, pinned: bool }
+// All windows for the same app share ONE taskbar button.
+// Pinned apps reuse their permanent button; ephemeral apps get a group button
+// that disappears when all windows close.
+const _taskGroups = {};
+
+function _getGroupIcon(appName, fallbackIcon){
+  // Try to get icon from the pinned map button, then allAppsGrid, then fallback
+  if(_pinnedBtnMap[appName]){
+    const sp = _pinnedBtnMap[appName].querySelector('span');
+    if(sp) return sp.textContent.trim();
+  }
+  const src = document.querySelector(`#allAppsGrid .app[data-name="${CSS.escape(appName)}"]`);
+  if(src){ const sp=src.querySelector('span'); if(sp) return sp.textContent.trim(); }
+  return fallbackIcon || '🪟';
+}
+
+function _updateGroupBtn(appName){
+  const grp = _taskGroups[appName];
+  if(!grp) return;
+  const { btn, windows } = grp;
+  const alive = [...windows].filter(w => document.contains(w));
+  // Prune dead windows
+  grp.windows = new Set(alive);
+
+  const count = alive.length;
+  const anyVisible = alive.some(w => w.style.display !== 'none');
+  const topZ = Math.max(...alive.map(w => parseInt(w.style.zIndex)||0));
+  const isFocused = alive.some(w => parseInt(w.style.zIndex) === topZ && w.style.display !== 'none' && topZ === z);
+
+  // Badge
+  let badge = btn.querySelector('.tb-group-badge');
+  if(!badge){
+    badge = document.createElement('span');
+    badge.className = 'tb-group-badge';
+    btn.appendChild(badge);
+  }
+  badge.textContent = count;
+
+  if(count === 0){
+    // No windows — idle (pinned stays, ephemeral goes)
+    btn.classList.remove('open','running','tb-grouped');
+    if(!grp.pinned){
+      btn.remove();
+      delete _taskGroups[appName];
+      return;
+    }
+    // Pinned: reset to launcher
+    btn.onclick = () => launchApp(appName);
+    btn.oncontextmenu = e => {
+      e.preventDefault(); e.stopPropagation();
+      _showTbMenu(e.clientX, e.clientY, null, appName, true);
+    };
+    return;
+  }
+
+  // Mark grouped if >1 window
+  btn.classList.toggle('tb-grouped', count > 1);
+
+  if(anyVisible && isFocused){
+    btn.classList.add('open');
+    btn.classList.remove('running');
+  } else if(anyVisible){
+    btn.classList.add('open');
+    btn.classList.remove('running');
+  } else {
+    btn.classList.remove('open');
+    btn.classList.add('running');
+  }
+
+  // Click: toggle/cycle
+  btn.onclick = () => _groupBtnClick(appName);
+  btn.oncontextmenu = e => {
+    e.preventDefault(); e.stopPropagation();
+    const firstWin = [...grp.windows][0] || null;
+    _showTbMenu(e.clientX, e.clientY, firstWin, appName, grp.pinned);
+  };
+}
+
+function _groupBtnClick(appName){
+  const grp = _taskGroups[appName];
+  if(!grp || grp.windows.size === 0){ launchApp(appName); return; }
+  const alive = [...grp.windows].filter(w => document.contains(w));
+  if(alive.length === 0){ launchApp(appName); return; }
+
+  if(alive.length === 1){
+    const win = alive[0];
+    if(win.style.display === 'none'){
+      // Restore
+      win.style.display = 'flex'; bring(win);
+      win.classList.remove('win-minimizing');
+      win.classList.add('win-restoring');
+      setTimeout(()=>win.classList.remove('win-restoring'), 250);
+      _updateGroupBtn(appName);
+    } else if(parseInt(win.style.zIndex) === z){
+      // Minimize — delegate to minWin so taskbar and group state update correctly
+      minWin(win);
+    } else {
+      bring(win);
+      _updateGroupBtn(appName);
+    }
+    return;
+  }
+
+  // Multiple windows — cycle through visible ones or restore all minimized
+  const visible = alive.filter(w => w.style.display !== 'none');
+  if(visible.length === 0){
+    // All minimized — restore all
+    alive.forEach(w => {
+      w.style.display = 'flex';
+      w.classList.add('win-restoring');
+      setTimeout(()=>w.classList.remove('win-restoring'),250);
+    });
+    bring(alive[alive.length-1]);
+  } else {
+    // Cycle: find topmost visible window, bring the next one to front
+    const sorted = visible.sort((a,b)=>(parseInt(b.style.zIndex)||0)-(parseInt(a.style.zIndex)||0));
+    const next = sorted[sorted.length-1]; // lowest z → bring to top
+    bring(next);
+  }
+  _updateGroupBtn(appName);
+}
+
 function finish(win, icon, p){
   const appName = win.querySelector('.title-text')?.textContent?.trim() || '';
-  const pinnedBtn = _pinnedBtnMap[appName];
 
-  if(pinnedBtn && document.contains(pinnedBtn)){
-    // Reuse the existing pinned button — wire it to this window
-    _wireBtnToWin(pinnedBtn, win, appName);
-    pinnedBtn.classList.add('open');
-    pinnedBtn.classList.remove('running');
-    win.task = pinnedBtn;
-  } else {
-    // No pinned button — make a normal ephemeral button
-    win.task = createTask(win, icon);
+  // ── Step 1: find the authoritative pinned button (if any) ──
+  // Check _pinnedBtnMap first, then scan DOM for any data-pinned-app button
+  let pinnedBtn = _pinnedBtnMap[appName];
+  if(!pinnedBtn){
+    pinnedBtn = document.querySelector(`#taskIcons .taskBtn[data-pinned-app="${CSS.escape(appName)}"]`) || null;
+    if(pinnedBtn) _pinnedBtnMap[appName] = pinnedBtn; // re-register if found in DOM
   }
+
+  // ── Step 2: ensure _taskGroups entry exists and uses the right button ──
+  if(!_taskGroups[appName]){
+    if(pinnedBtn && document.contains(pinnedBtn)){
+      // Pinned button exists — group around it
+      _taskGroups[appName] = { btn: pinnedBtn, windows: new Set(), pinned: true };
+    } else {
+      // No pinned button — create a new ephemeral group button
+      const btn = document.createElement('div');
+      btn.className = 'taskBtn';
+      btn.title = appName;
+      btn.innerHTML = `<span style="font-size:19px;pointer-events:none;line-height:1">${icon}</span>`;
+      taskIcons.appendChild(btn);
+      _taskGroups[appName] = { btn, windows: new Set(), pinned: false };
+    }
+  } else {
+    // Group already exists — make sure it's using the pinned button if one now exists
+    const grp = _taskGroups[appName];
+    if(pinnedBtn && document.contains(pinnedBtn) && grp.btn !== pinnedBtn){
+      // Upgrade ephemeral → pinned: remove the old ephemeral button
+      if(!grp.pinned && document.contains(grp.btn)) grp.btn.remove();
+      grp.btn = pinnedBtn;
+      grp.pinned = true;
+    }
+  }
+
+  const grp = _taskGroups[appName];
+  grp.windows.add(win);
+  win.task = grp.btn;
+
+  _updateGroupBtn(appName);
 
   if(p) p.win = win;
 }
 
-// Wire a button to control a window — NO cloning, just replace onclick
+// Legacy — keep _wireBtnToWin around for the unpin/pin logic, but group system takes over
 function _wireBtnToWin(btn, win, appName){
-  // Stamp a generation ID so stale closures self-disable
-  const gen = (btn._gen || 0) + 1;
-  btn._gen = gen;
-
-  btn.onclick = ()=>{
-    if(btn._gen !== gen) return; // stale closure
-    if(win.style.display === 'none'){
-      win.style.display = 'flex';
-      bring(win);
-      btn.classList.add('open');
-      btn.classList.remove('running');
-      win.classList.remove('win-minimizing');
-      win.classList.add('win-restoring');
-      setTimeout(()=>win.classList.remove('win-restoring'), 250);
-    } else if(win === windows.find(w=>parseInt(w.style.zIndex)===z)){
-      win.classList.add('win-minimizing');
-      setTimeout(()=>{ win.classList.remove('win-minimizing'); win.style.display = 'none'; }, 167);
-      btn.classList.remove('open');
-      btn.classList.add('running');
-    } else {
-      bring(win);
-      btn.classList.add('open');
-      btn.classList.remove('running');
-    }
-  };
-
-  // Mark what window this button currently controls
+  // No-op: grouping handles wiring now
   btn._linkedWin = win;
-
-  // Wire contextmenu to show close+unpin
-  btn.oncontextmenu = e=>{
-    e.preventDefault(); e.stopPropagation();
-    _tbMenuTarget = win;
-    _showTbMenu(e.clientX, e.clientY, win, appName, true);
-  };
 }
+
+
 
 function closeW(win){
 win.classList.add('win-closing');
@@ -3019,24 +3224,12 @@ if(removedProc.id===cmdProcId) cmdProcId=null;
 }
 processes=processes.filter(p=>p.win!==win);
 
-// If this window's task button is a PINNED button, reset it to idle
-// instead of removing it — it stays on the taskbar ready to relaunch
+// Remove from group
 const appName = win.querySelector('.title-text')?.textContent?.trim() || '';
-const pinnedBtn = _pinnedBtnMap[appName];
-if(pinnedBtn && pinnedBtn._linkedWin === win){
-  // Reset to idle — no dot indicator at all
-  pinnedBtn.classList.remove('open');
-  pinnedBtn.classList.remove('running');
-  pinnedBtn._linkedWin = null;
-  pinnedBtn._gen = (pinnedBtn._gen || 0) + 1; // invalidate stale closure
-  pinnedBtn.onclick = ()=> launchApp(appName);
-  pinnedBtn.oncontextmenu = e=>{
-    e.preventDefault(); e.stopPropagation();
-    _showTbMenu(e.clientX, e.clientY, null, appName, true);
-  };
-} else if(win.task && !win.task.dataset.pinnedApp){
-  // Only remove if it's a non-pinned ephemeral button
-  win.task.remove();
+const grp = _taskGroups[appName];
+if(grp){
+  grp.windows.delete(win);
+  _updateGroupBtn(appName);
 }
 
 if(win._tmCleanup) win._tmCleanup();
@@ -3050,22 +3243,24 @@ function closeWBtn(e){ closeW(e.closest('.window')); }
 
 function minWin(e){
 const win=(e instanceof HTMLElement&&e.classList.contains('window'))?e:e.closest('.window');
-// Play minimize animation, then hide
 win.classList.add('win-minimizing');
 setTimeout(()=>{
   win.classList.remove('win-minimizing');
   win.style.display='none';
-}, 167); // --dur-fast
-if(win.task){
-  win.task.classList.remove('open');
-  // All taskbar buttons (pinned or ephemeral) get the running dot when minimized
-  win.task.classList.add('running');
-}
-const anyMaxedVisible=windows.some(w=>w.classList.contains('maximized')&&w.style.display!=='none');
-if(!anyMaxedVisible){
-  document.getElementById('taskbar').classList.remove('fs-hidden');
-  document.body.classList.remove('tb-hidden');
-}
+  // Update group button AFTER hiding so _updateGroupBtn sees display:none
+  const appName = win.querySelector('.title-text')?.textContent?.trim() || '';
+  if(_taskGroups[appName]) _updateGroupBtn(appName);
+  else if(win.task){
+    win.task.classList.remove('open');
+    win.task.classList.add('running');
+  }
+  // Restore taskbar AFTER window is hidden — check inside timeout so display:none is set
+  const anyMaxedVisible = windows.some(w=>w.classList.contains('maximized') && w.style.display!=='none');
+  if(!anyMaxedVisible){
+    document.getElementById('taskbar').classList.remove('fs-hidden');
+    document.body.classList.remove('tb-hidden');
+  }
+}, 167);
 }
 
 // ===================== APPS =====================
@@ -3197,7 +3392,7 @@ showToast('Opening Poly Track','info','🏎️',2000);
 // ===================== CAMERA =====================
 let camProcId=null;
 function openCamera(){
-if(camProcId!==null){const p=processes.find(x=>x.id===camProcId);if(p&&p.win){p.win.style.display='flex';bring(p.win);if(p.win.task)p.win.task.classList.add('open');}start.classList.remove('active');return;}
+if(camProcId!==null){const p=processes.find(x=>x.id===camProcId);if(p&&p.win){p.win.style.display='flex';bring(p.win);_updateGroupBtn('Camera');}start.classList.remove('active');return;}
 const win=createWindow('Camera',880,600,'📷');
 const p=allocProc({name:'Camera',mem:72,cpu:3});
 processes.push(p);p.win=win;camProcId=p.id;
@@ -3530,8 +3725,8 @@ function openPhotos(){
     const p=processes.find(x=>x.id===photosProcId);
     if(p&&p.win){
       p.win.style.display='flex';bring(p.win);
-      if(p.win.task){p.win.task.classList.add('open');p.win.task.classList.remove('running');}
       if(p.win._photosRefresh) p.win._photosRefresh();
+      _updateGroupBtn('Photos');
     }
     start.classList.remove('active');return;
   }
@@ -5103,7 +5298,7 @@ function openSettings(){
 // Singleton: if already open, focus it
 if(settingsProcId!==null){
   const p=processes.find(x=>x.id===settingsProcId);
-  if(p&&p.win){p.win.style.display='flex';bring(p.win);if(p.win.task)p.win.task.classList.add('open');}
+  if(p&&p.win){p.win.style.display='flex';bring(p.win);_updateGroupBtn('Settings');}
   start.classList.remove('active');
   return;
 }
@@ -5149,11 +5344,10 @@ navPane.style.cssText = `
 `;
 
 const navItems = [
-  {id:'personalization', icon:'🎨', label:'Personalization'},
-  {id:'taskbar',         icon:'📌', label:'Taskbar'},
+  {id:'account',         icon:'👤', label:'Account'},
+  {id:'personalization', icon:'🎨', label:'Appearance'},
   {id:'cursor',          icon:'🖱️', label:'Cursor'},
   {id:'keyboard',        icon:'⌨️', label:'Keyboard Shortcuts'},
-  {id:'account',         icon:'👤', label:'Account'},
   {id:'config',          icon:'💾', label:'Config'},
 ];
 
@@ -5281,35 +5475,38 @@ saveSettings();
 accentRow.appendChild(accentPicker);
 accentSection.appendChild(accentRow);
 
-// ── Panel: Personalization
+// ── Panel: Appearance (Personalization + Taskbar merged)
 const panelPersonalization = document.createElement('div');
-panelPersonalization.style.cssText='flex-direction:column;gap:20px;flex:1;padding:24px 28px;overflow-y:auto;';
-panelPersonalization.innerHTML='<div style="font-size:20px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">Personalization</div>';
+panelPersonalization.style.cssText='flex-direction:column;gap:20px;flex:1;padding:24px 28px;overflow-y:auto;display:none;';
+panelPersonalization.innerHTML='<div style="font-size:20px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">Appearance</div>';
 panelPersonalization.appendChild(bgSection);
 const hr1=document.createElement('hr');hr1.className='settings-divider';panelPersonalization.appendChild(hr1);
 panelPersonalization.appendChild(accentSection);
+const hr2=document.createElement('hr');hr2.className='settings-divider';panelPersonalization.appendChild(hr2);
 
-// ── Panel: Taskbar
-const tbSection=document.createElement('div');tbSection.className='settings-section';
-tbSection.innerHTML='<div class="settings-label">Taskbar Transparency</div>';
-const tbRow=document.createElement('div');tbRow.className='settings-row';tbRow.style.cssText='display:flex;align-items:center;gap:12px;width:100%;';
+// ── Taskbar section merged in ──
+const tbSectionMerged=document.createElement('div');tbSectionMerged.className='settings-section';
+tbSectionMerged.innerHTML='<div class="settings-label">Taskbar</div>';
+
+// Transparency
+const tbTransRow=document.createElement('div');tbTransRow.className='settings-row';tbTransRow.style.cssText='display:flex;align-items:center;gap:12px;width:100%;';
 const currentOpacity=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--task-opacity'))||0.08;
 const slider=document.createElement('input');
 slider.type='range';slider.className='opacity-slider';slider.min='0';slider.max='0.85';slider.step='0.01';slider.value=currentOpacity;slider.style.flex='1';
 const opLabel=document.createElement('span');opLabel.className='opacity-label';opLabel.textContent=Math.round(currentOpacity*100)+'%';
 slider.oninput=()=>{const v=parseFloat(slider.value);setTaskbarOpacity(v);opLabel.textContent=Math.round(v*100)+'%';};
-tbRow.appendChild(slider);tbRow.appendChild(opLabel);tbSection.appendChild(tbRow);
 
-const tbCustomSection=document.createElement('div');tbCustomSection.className='settings-section';
-tbCustomSection.innerHTML='<div class="settings-label">Taskbar Behaviors</div>';
+const transLabel=document.createElement('span');transLabel.style.cssText='font-size:12px;color:var(--text-tertiary);min-width:82px;';transLabel.textContent='Transparency';
+tbTransRow.append(transLabel,slider,opLabel);
+
+// Height presets
 const tbHeightRow=document.createElement('div');tbHeightRow.className='settings-row';tbHeightRow.style.cssText='gap:8px;flex-wrap:wrap;align-items:center;';
-const tbHeightLabel=document.createElement('span');tbHeightLabel.style.cssText='font-size:12px;color:var(--text-tertiary);min-width:48px;';tbHeightLabel.textContent='Size';
+const tbHeightLabel=document.createElement('span');tbHeightLabel.style.cssText='font-size:12px;color:var(--text-tertiary);min-width:82px;';tbHeightLabel.textContent='Size';
 const currentTbH=getComputedStyle(document.documentElement).getPropertyValue('--tb-height').trim()||'48px';
 const tbHeightPresets=[{label:'Slim (40px)',val:'40px'},{label:'Default (48px)',val:'48px'},{label:'Large (60px)',val:'60px'}];
 tbHeightRow.appendChild(tbHeightLabel);
 tbHeightPresets.forEach(pr=>{
-  const b=document.createElement('button');
-  b.className='settings-apply-btn';
+  const b=document.createElement('button');b.className='settings-apply-btn';
   b.style.cssText='padding:5px 12px;font-size:12px;'+(currentTbH===pr.val?'':'background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);');
   b.textContent=pr.label;
   b.addEventListener('click',()=>{
@@ -5322,14 +5519,14 @@ tbHeightPresets.forEach(pr=>{
   tbHeightRow.appendChild(b);
 });
 
+// Mode presets
 const tbModeRow=document.createElement('div');tbModeRow.className='settings-row';tbModeRow.style.cssText='gap:8px;flex-wrap:wrap;align-items:center;';
-const tbModeLabel=document.createElement('span');tbModeLabel.style.cssText='font-size:12px;color:var(--text-tertiary);min-width:48px;';tbModeLabel.textContent='Mode';
+const tbModeLabel=document.createElement('span');tbModeLabel.style.cssText='font-size:12px;color:var(--text-tertiary);min-width:82px;';tbModeLabel.textContent='Mode';
 const currentMode=document.getElementById('taskbar').dataset.tbMode||'full';
 const tbModePresets=[{label:'Full Width',val:'full'},{label:'Centered Dock',val:'dock'}];
 tbModeRow.appendChild(tbModeLabel);
 tbModePresets.forEach(pr=>{
-  const b=document.createElement('button');
-  b.className='settings-apply-btn';
+  const b=document.createElement('button');b.className='settings-apply-btn';
   b.style.cssText='padding:5px 14px;font-size:12px;'+(currentMode===pr.val?'':'background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);');
   b.textContent=pr.label;
   b.addEventListener('click',()=>{
@@ -5342,15 +5539,8 @@ tbModePresets.forEach(pr=>{
   tbModeRow.appendChild(b);
 });
 
-tbCustomSection.appendChild(tbHeightRow);
-tbCustomSection.appendChild(tbModeRow);
-
-const panelTaskbar = document.createElement('div');
-panelTaskbar.style.cssText='flex-direction:column;gap:20px;flex:1;padding:24px 28px;overflow-y:auto;display:none;';
-panelTaskbar.innerHTML='<div style="font-size:20px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">Taskbar</div>';
-panelTaskbar.appendChild(tbSection);
-const hrT=document.createElement('hr');hrT.className='settings-divider';panelTaskbar.appendChild(hrT);
-panelTaskbar.appendChild(tbCustomSection);
+tbSectionMerged.append(tbTransRow,tbHeightRow,tbModeRow);
+panelPersonalization.appendChild(tbSectionMerged);
 
 // ── Panel: Keyboard shortcuts
 const panelKeyboard = document.createElement('div');
@@ -5873,60 +6063,160 @@ function rebuildAccountPanel(){
 
   const _acctNow = _loadAccount();
 
-  // ── Status card ──
-  const statusCard=document.createElement('div');
-  statusCard.style.cssText='display:flex;align-items:center;gap:16px;background:var(--ctrl-bg);border:1px solid var(--stroke);border-radius:var(--radius-overlay);padding:16px;';
-  const avatarEl=document.createElement('div');
-  avatarEl.style.cssText='width:52px;height:52px;border-radius:50%;background:var(--accent-fill);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;color:#000;font-weight:700;';
-  avatarEl.textContent=_acctNow?(_acctNow.username[0]||'?').toUpperCase():'?';
-  const statusText=document.createElement('div');statusText.style.cssText='min-width:0;';
-  statusText.innerHTML=_acctNow
-    ?`<div style="font-size:15px;font-weight:600;color:var(--text-primary);">${_acctNow.username}</div>
-      <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">Cloud account · Config syncs to server</div>`
-    :`<div style="font-size:14px;font-weight:600;color:var(--text-primary);">Not signed in</div>
-      <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">Sign in to sync your config across any device</div>`;
-  statusCard.append(avatarEl,statusText);
-  panelAccount.appendChild(statusCard);
+  // ── Hero card ──
+  const heroCard = document.createElement('div');
+  heroCard.style.cssText=`
+    display:flex;align-items:center;gap:18px;
+    background:linear-gradient(135deg,rgba(96,205,255,0.10) 0%,rgba(0,120,212,0.08) 100%);
+    border:1px solid rgba(96,205,255,0.20);
+    border-radius:12px;padding:20px 22px;
+  `;
 
-  const hr1=document.createElement('hr');hr1.className='settings-divider';panelAccount.appendChild(hr1);
+  // Avatar circle
+  const avatarWrap = document.createElement('div');
+  avatarWrap.style.cssText='position:relative;flex-shrink:0;';
+  const avatarEl = document.createElement('div');
+  avatarEl.style.cssText=`
+    width:64px;height:64px;border-radius:50%;
+    background:linear-gradient(135deg,var(--accent-fill),var(--accent-dark1));
+    display:flex;align-items:center;justify-content:center;
+    font-size:28px;font-weight:700;color:#000;
+    box-shadow:0 0 0 3px rgba(96,205,255,0.25);
+  `;
+  avatarEl.textContent = _acctNow ? (_acctNow.username[0]||'?').toUpperCase() : '?';
 
-  function makeField(label,type,placeholder,val=''){
-    const wrap=document.createElement('div');wrap.style.cssText='display:flex;flex-direction:column;gap:5px;';
-    const lbl=document.createElement('label');lbl.style.cssText='font-size:var(--text-caption);color:var(--text-tertiary);';lbl.textContent=label;
-    const inp=document.createElement('input');
-    inp.type=type;inp.value=val;inp.placeholder=placeholder;inp.autocomplete='off';inp.spellcheck=false;
-    inp.style.cssText='background:var(--ctrl-bg-input);border:1px solid var(--stroke);border-bottom:2px solid var(--accent-fill);border-radius:var(--radius-control);padding:7px 10px;color:var(--text-primary);font-size:var(--text-body);font-family:var(--font);outline:none;width:100%;box-sizing:border-box;';
-    wrap.append(lbl,inp);return{wrap,inp};
+  // Online dot
+  const dot = document.createElement('div');
+  dot.style.cssText=`
+    position:absolute;bottom:2px;right:2px;
+    width:14px;height:14px;border-radius:50%;
+    background:${_acctNow?'#16C60C':'rgba(255,255,255,0.25)'};
+    border:2px solid var(--bg-base);
+  `;
+  avatarWrap.append(avatarEl, dot);
+
+  // Text info
+  const heroText = document.createElement('div');
+  heroText.style.cssText='flex:1;min-width:0;';
+  if(_acctNow){
+    heroText.innerHTML=`
+      <div style="font-size:18px;font-weight:700;color:var(--text-primary);margin-bottom:3px;">${_acctNow.username}</div>
+      <div style="font-size:12px;color:var(--text-tertiary);display:flex;align-items:center;gap:6px;">
+        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#16C60C;"></span>
+        Cloud account · Settings sync enabled
+      </div>
+    `;
+  } else {
+    heroText.innerHTML=`
+      <div style="font-size:16px;font-weight:600;color:var(--text-primary);margin-bottom:3px;">Guest</div>
+      <div style="font-size:12px;color:var(--text-tertiary);">Not signed in — changes save locally only</div>
+    `;
   }
-  function setLoading(btn,loading,label){btn.disabled=loading;btn.textContent=loading?'…':label;}
 
-  const errMsg=document.createElement('div');errMsg.style.cssText='font-size:12px;color:#ff99a4;min-height:16px;';
+  heroCard.append(avatarWrap, heroText);
+  panelAccount.appendChild(heroCard);
+
+  function setLoading(btn, loading, label){ btn.disabled=loading; btn.textContent=loading?'…':label; }
+
+  const errMsg = document.createElement('div');
+  errMsg.style.cssText='font-size:12px;color:#ff99a4;min-height:16px;margin-top:-8px;';
 
   if(!_acctNow){
-    // ── Sign In / Register tabs ──
-    const tabBar=document.createElement('div');tabBar.style.cssText='display:flex;gap:4px;margin-bottom:14px;';
-    const signinFormSec=document.createElement('div');signinFormSec.className='settings-section';signinFormSec.innerHTML='<div class="settings-label">Sign In</div>';
-    const registerFormSec=document.createElement('div');registerFormSec.className='settings-section';registerFormSec.innerHTML='<div class="settings-label">Create Account</div>';registerFormSec.style.display='none';
-    const tabSignin=document.createElement('button');tabSignin.className='settings-apply-btn';tabSignin.textContent='Sign In';tabSignin.style.cssText='padding:5px 14px;font-size:12px;';
-    const tabRegister=document.createElement('button');tabRegister.className='settings-apply-btn';tabRegister.textContent='Register';tabRegister.style.cssText='padding:5px 14px;font-size:12px;background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);';
-    tabBar.append(tabSignin,tabRegister);
+    // ── Auth forms ──
+    const authWrap = document.createElement('div');
+    authWrap.style.cssText='display:flex;flex-direction:column;gap:16px;margin-top:4px;';
+
+    // Tab switcher
+    const tabWrap = document.createElement('div');
+    tabWrap.style.cssText='display:flex;background:var(--ctrl-bg);border-radius:var(--radius-control);padding:3px;gap:3px;border:1px solid var(--stroke);';
+    const tabSignin = document.createElement('button');
+    const tabRegister = document.createElement('button');
+
+    function styleTab(btn, active){
+      btn.style.cssText=`
+        flex:1;padding:6px 0;border:none;border-radius:4px;font-size:12px;
+        font-family:var(--font);cursor:pointer;transition:all 100ms;
+        background:${active?'var(--accent-fill)':'transparent'};
+        color:${active?'#000':'var(--text-secondary)'};
+        font-weight:${active?'600':'400'};
+      `;
+    }
+    tabSignin.textContent='Sign In';
+    tabRegister.textContent='Create Account';
+    styleTab(tabSignin, true);
+    styleTab(tabRegister, false);
+    tabWrap.append(tabSignin, tabRegister);
+
+    // Form card style
+    const formCard = document.createElement('div');
+    formCard.style.cssText='background:var(--ctrl-bg);border:1px solid var(--stroke);border-radius:var(--radius-overlay);padding:18px 20px;display:flex;flex-direction:column;gap:14px;';
+
+    function makeField(label, type, placeholder){
+      const wrap = document.createElement('div');
+      wrap.style.cssText='display:flex;flex-direction:column;gap:5px;';
+      const lbl = document.createElement('label');
+      lbl.style.cssText='font-size:11px;font-weight:600;color:var(--text-tertiary);letter-spacing:.3px;text-transform:uppercase;';
+      lbl.textContent=label;
+      const inp = document.createElement('input');
+      inp.type=type; inp.placeholder=placeholder; inp.autocomplete='off'; inp.spellcheck=false;
+      inp.style.cssText=`
+        background:var(--ctrl-bg-input);border:1px solid var(--stroke);
+        border-bottom:2px solid var(--accent-fill);border-radius:var(--radius-control);
+        padding:8px 12px;color:var(--text-primary);font-size:13px;
+        font-family:var(--font);outline:none;width:100%;box-sizing:border-box;
+      `;
+      inp.addEventListener('focus',()=>inp.style.borderColor='var(--accent-fill)');
+      wrap.append(lbl, inp);
+      return {wrap, inp};
+    }
+
+    // Sign-in fields
+    const {wrap:siUnWrap, inp:siUnInp} = makeField('Username','text','Enter your username');
+    const {wrap:siPwWrap, inp:siPwInp} = makeField('Password','password','Enter your password');
+    const siBtn = document.createElement('button');
+    siBtn.style.cssText='padding:9px;border-radius:var(--radius-control);border:none;background:var(--accent-fill);color:#000;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;width:100%;transition:opacity 100ms;';
+    siBtn.textContent='Sign In';
+    siBtn.addEventListener('mouseenter',()=>siBtn.style.opacity='0.85');
+    siBtn.addEventListener('mouseleave',()=>siBtn.style.opacity='1');
+
+    // Register fields
+    const {wrap:rUnWrap,  inp:rUnInp}  = makeField('Username','text','Choose a username');
+    const {wrap:rPwWrap,  inp:rPwInp}  = makeField('Password','password','Choose a password (min 4 chars)');
+    const {wrap:rPw2Wrap, inp:rPw2Inp} = makeField('Confirm Password','password','Repeat your password');
+    const rBtn = document.createElement('button');
+    rBtn.style.cssText='padding:9px;border-radius:var(--radius-control);border:none;background:var(--accent-fill);color:#000;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;width:100%;transition:opacity 100ms;';
+    rBtn.textContent='Create Account';
+    rBtn.addEventListener('mouseenter',()=>rBtn.style.opacity='0.85');
+    rBtn.addEventListener('mouseleave',()=>rBtn.style.opacity='1');
+
+    // Show sign-in by default
+    let showingSignin = true;
+    function renderForm(){
+      formCard.innerHTML='';
+      errMsg.textContent='';
+      if(showingSignin){
+        formCard.append(siUnWrap, siPwWrap, errMsg, siBtn);
+      } else {
+        formCard.append(rUnWrap, rPwWrap, rPw2Wrap, errMsg, rBtn);
+      }
+    }
+    renderForm();
+
     tabSignin.addEventListener('click',()=>{
-      signinFormSec.style.display='';registerFormSec.style.display='none';errMsg.textContent='';
-      tabSignin.style.cssText='padding:5px 14px;font-size:12px;';
-      tabRegister.style.cssText='padding:5px 14px;font-size:12px;background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);';
+      if(showingSignin) return;
+      showingSignin=true;
+      styleTab(tabSignin,true); styleTab(tabRegister,false);
+      renderForm();
     });
     tabRegister.addEventListener('click',()=>{
-      signinFormSec.style.display='none';registerFormSec.style.display='';errMsg.textContent='';
-      tabRegister.style.cssText='padding:5px 14px;font-size:12px;';
-      tabSignin.style.cssText='padding:5px 14px;font-size:12px;background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);';
+      if(!showingSignin) return;
+      showingSignin=false;
+      styleTab(tabRegister,true); styleTab(tabSignin,false);
+      renderForm();
     });
 
-    // Sign-in form
-    const {wrap:siUnWrap,inp:siUnInp}=makeField('Username','text','Your username');
-    const {wrap:siPwWrap,inp:siPwInp}=makeField('Password','password','Your password');
-    const siBtn=document.createElement('button');siBtn.className='settings-apply-btn';siBtn.textContent='Sign In';siBtn.style.cssText='padding:6px 16px;font-size:12px;margin-top:4px;';
     siBtn.addEventListener('click',async()=>{
-      const user=siUnInp.value.trim(),pw=siPwInp.value;
+      const user=siUnInp.value.trim(), pw=siPwInp.value;
       if(!user||!pw){errMsg.textContent='Enter username and password.';return;}
       setLoading(siBtn,true,'Sign In');
       const res=await _authFetch('POST','/auth/login',{username:user,hash:_hashPass(pw)});
@@ -5936,32 +6226,23 @@ function rebuildAccountPanel(){
       _saveAccount({username:res.username,hash:_hashPass(pw)});
       if(res.config){
         try{localStorage.setItem(SETTINGS_KEY,JSON.stringify({...res.config,_version:3}));}catch(e){}
-        showToast(`Signed in as ${res.username} — config loaded`,'success','✅',3500);
+        showToast(`Welcome back, ${res.username}!`,'success','✅',3500);
       } else {
         showToast(`Signed in as ${res.username}`,'success','👤',2800);
         _pushConfigToServer(res.username,_hashPass(pw));
       }
-      // Close settings first, THEN apply so icons restore onto a visible desktop
       setTimeout(()=>{
-        const p=processes.find(x=>x.id===settingsProcId);
-        if(p&&p.win){closeW(p.win);settingsProcId=null;}
+        const proc=processes.find(x=>x.id===settingsProcId);
+        if(proc&&proc.win){closeW(proc.win);settingsProcId=null;}
         setTimeout(()=>{
-          if(res.config && typeof _applySettings==='function'){
-            try{_applySettings(res.config);}catch(e){}
-          }
+          if(res.config && typeof _applySettings==='function') try{_applySettings(res.config);}catch(e){}
           openSettings();
         },250);
       },600);
     });
-    signinFormSec.append(siUnWrap,siPwWrap,errMsg,siBtn);
 
-    // Register form
-    const {wrap:rUnWrap,inp:rUnInp}=makeField('Username','text','Choose a username');
-    const {wrap:rPwWrap,inp:rPwInp}=makeField('Password','password','Choose a password');
-    const {wrap:rPw2Wrap,inp:rPw2Inp}=makeField('Confirm password','password','Repeat password');
-    const rBtn=document.createElement('button');rBtn.className='settings-apply-btn';rBtn.textContent='Create Account';rBtn.style.cssText='padding:6px 16px;font-size:12px;margin-top:4px;';
     rBtn.addEventListener('click',async()=>{
-      const user=rUnInp.value.trim(),pw=rPwInp.value,pw2=rPw2Inp.value;
+      const user=rUnInp.value.trim(), pw=rPwInp.value, pw2=rPw2Inp.value;
       if(!user){errMsg.textContent='Username cannot be empty.';return;}
       if(user.length<2){errMsg.textContent='Username must be ≥ 2 characters.';return;}
       if(!pw||pw.length<4){errMsg.textContent='Password must be ≥ 4 characters.';return;}
@@ -5974,81 +6255,136 @@ function rebuildAccountPanel(){
       _saveAccount({username:res.username,hash:_hashPass(pw)});
       _pushConfigToServer(res.username,_hashPass(pw));
       showToast(`Account "${res.username}" created!`,'success','👤',3000);
-      setTimeout(()=>{const p=processes.find(x=>x.id===settingsProcId);if(p&&p.win){closeW(p.win);settingsProcId=null;}setTimeout(()=>openSettings(),200);},600);
+      setTimeout(()=>{const proc=processes.find(x=>x.id===settingsProcId);if(proc&&proc.win){closeW(proc.win);settingsProcId=null;}setTimeout(()=>openSettings(),200);},600);
     });
-    registerFormSec.append(rUnWrap,rPwWrap,rPw2Wrap,errMsg,rBtn);
 
-    const formWrap=document.createElement('div');formWrap.style.cssText='display:flex;flex-direction:column;gap:10px;';
-    formWrap.append(tabBar,signinFormSec,registerFormSec);
-    panelAccount.appendChild(formWrap);
+    // Guest note
+    const guestNote = document.createElement('div');
+    guestNote.style.cssText='font-size:11px;color:var(--text-tertiary);text-align:center;line-height:1.5;';
+    guestNote.innerHTML='Settings are saved <b style="color:var(--text-secondary)">locally</b> to this browser.<br>Sign in to sync them across any device.';
+
+    authWrap.append(tabWrap, formCard, guestNote);
+    panelAccount.appendChild(authWrap);
 
   } else {
-    // ── Signed-in actions ──
-    const signedSec=document.createElement('div');signedSec.className='settings-section';
+    // ── Signed-in view ──
+    const actionsWrap = document.createElement('div');
+    actionsWrap.style.cssText='display:flex;flex-direction:column;gap:10px;margin-top:4px;';
 
-    const pushBtn=document.createElement('button');pushBtn.className='settings-apply-btn';pushBtn.textContent='☁️ Push config to server';pushBtn.style.cssText='padding:6px 16px;font-size:12px;';
+    // Sync card
+    const syncCard = document.createElement('div');
+    syncCard.style.cssText='background:var(--ctrl-bg);border:1px solid var(--stroke);border-radius:var(--radius-overlay);padding:16px 18px;display:flex;flex-direction:column;gap:10px;';
+    const syncTitle = document.createElement('div');
+    syncTitle.style.cssText='font-size:12px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.4px;';
+    syncTitle.textContent='Cloud Sync';
+    const syncBtnRow = document.createElement('div');
+    syncBtnRow.style.cssText='display:flex;gap:8px;';
+
+    const pushBtn = document.createElement('button');
+    pushBtn.style.cssText='flex:1;padding:9px 12px;border-radius:var(--radius-control);border:1px solid var(--accent-fill);background:var(--accent-fill);color:#000;font-size:12px;font-weight:600;font-family:var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:opacity 100ms;';
+    pushBtn.innerHTML='<span style="font-size:14px;">☁️</span> Push to Cloud';
+    pushBtn.addEventListener('mouseenter',()=>pushBtn.style.opacity='0.85');
+    pushBtn.addEventListener('mouseleave',()=>pushBtn.style.opacity='1');
+
+    const pullBtn = document.createElement('button');
+    pullBtn.style.cssText='flex:1;padding:9px 12px;border-radius:var(--radius-control);border:1px solid var(--stroke);background:var(--ctrl-bg);color:var(--text-primary);font-size:12px;font-weight:600;font-family:var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background 100ms;';
+    pullBtn.innerHTML='<span style="font-size:14px;">⬇️</span> Pull from Cloud';
+    pullBtn.addEventListener('mouseenter',()=>pullBtn.style.background='var(--ctrl-bg-hover)');
+    pullBtn.addEventListener('mouseleave',()=>pullBtn.style.background='var(--ctrl-bg)');
+
+    const syncNote = document.createElement('div');
+    syncNote.style.cssText='font-size:11px;color:var(--text-tertiary);line-height:1.5;';
+    syncNote.innerHTML='<b style="color:var(--text-secondary)">Push</b> saves your current settings to the cloud. <b style="color:var(--text-secondary)">Pull</b> restores them on this device.';
+
+    syncBtnRow.append(pushBtn, pullBtn);
+    syncCard.append(syncTitle, syncBtnRow, syncNote);
+
     pushBtn.addEventListener('click',async()=>{
-      setLoading(pushBtn,true,'☁️ Push config to server');
+      setLoading(pushBtn,true,'Push to Cloud');
       const ok=await _pushConfigToServer(_acctNow.username,_acctNow.hash);
-      setLoading(pushBtn,false,'☁️ Push config to server');
-      showToast(ok?'Config saved to server':'Push failed — check server URL',ok?'success':'error',ok?'☁️':'❌',2500);
+      setLoading(pushBtn,false,'☁️ Push to Cloud');
+      showToast(ok?'Settings saved to cloud':'Push failed — check connection',ok?'success':'error',ok?'☁️':'❌',2500);
     });
 
-    const pullBtn=document.createElement('button');pullBtn.className='settings-apply-btn';pullBtn.textContent='⬇️ Pull config from server';pullBtn.style.cssText='padding:6px 16px;font-size:12px;background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);';
     pullBtn.addEventListener('click',async()=>{
-      setLoading(pullBtn,true,'⬇️ Pull config from server');
+      setLoading(pullBtn,true,'Pulling…');
       const res=await _authFetch('GET','/auth/load-config',{username:_acctNow.username,hash:_acctNow.hash});
-      setLoading(pullBtn,false,'⬇️ Pull config from server');
-      if(!res.ok||!res.config){showToast(res.error||'No config on server','warn','⚠️',3000);return;}
-      localStorage.setItem(SETTINGS_KEY,JSON.stringify({...res.config,_version:3}));
-      showToast('Config loaded — applying…','success','✅',3000);
-      // Close settings, apply to live desktop, then reopen settings
-      setTimeout(()=>{
-        const p=processes.find(x=>x.id===settingsProcId);
-        if(p&&p.win){closeW(p.win);settingsProcId=null;}
-        setTimeout(()=>{
-          try{_applySettings(res.config);}catch(e){}
-          openSettings();
-        },250);
-      },500);
+      setLoading(pullBtn,false,'⬇️ Pull from Cloud');
+      if(!res.ok){ showToast(res.error||'Pull failed','warn','⚠️',3000); return; }
+      if(!res.config){ showToast('No config saved on server yet','warn','⚠️',3000); return; }
+
+      // Parse if double-encoded (legacy bug)
+      let cfg = res.config;
+      if(typeof cfg === 'string'){
+        try{ cfg = JSON.parse(cfg); } catch(e){ showToast('Config data is corrupted','error','❌',3000); return; }
+      }
+
+      // Save to localStorage
+      try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify({...cfg, _version:3})); } catch(e){}
+
+      // Apply live — no reload needed
+      try{ _applySettings(cfg); } catch(e){ console.error('applySettings error:', e); }
+
+      showToast('Settings applied from cloud ✓','success','✅',2500);
+
+      // Rebuild the settings window so UI reflects the new state
+      const proc = processes.find(x=>x.id===settingsProcId);
+      if(proc&&proc.win){
+        closeW(proc.win);
+        settingsProcId = null;
+        setTimeout(()=>openSettings(), 300);
+      }
     });
 
-    const signOutBtn=document.createElement('button');signOutBtn.className='settings-apply-btn';signOutBtn.textContent='Sign Out';signOutBtn.style.cssText='padding:6px 16px;font-size:12px;background:var(--ctrl-bg);color:var(--text-primary);border-color:var(--stroke);';
-    signOutBtn.addEventListener('click',()=>{localStorage.removeItem(_acctKey);showToast('Signed out','info','👤',2000);rebuildAccountPanel();});
+    // Account actions card
+    const acctCard = document.createElement('div');
+    acctCard.style.cssText='background:var(--ctrl-bg);border:1px solid var(--stroke);border-radius:var(--radius-overlay);padding:16px 18px;display:flex;flex-direction:column;gap:10px;';
+    const acctTitle = document.createElement('div');
+    acctTitle.style.cssText='font-size:12px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.4px;';
+    acctTitle.textContent='Account Actions';
 
-    const delBtn=document.createElement('button');delBtn.className='settings-apply-btn';delBtn.textContent='🗑 Delete account';delBtn.style.cssText='padding:6px 16px;font-size:12px;background:rgba(255,99,132,.12);color:#ff99a4;border-color:rgba(255,99,132,.3);';
-    delBtn.addEventListener('click',async()=>{
-      setLoading(delBtn,true,'🗑 Delete account');
-      const res=await _authFetch('POST','/auth/delete',{username:_acctNow.username,hash:_acctNow.hash});
-      setLoading(delBtn,false,'🗑 Delete account');
-      if(!res.ok){showToast(res.error||'Delete failed','error','❌',3000);return;}
-      // Wipe ALL local data so the username can be re-registered cleanly
-      localStorage.clear();
-      window._camPhotos=[];
-      window._trash=[];
-      showToast('Account deleted — all local data cleared','warn','🗑',3000);
+    const signOutBtn = document.createElement('button');
+    signOutBtn.style.cssText='padding:8px 14px;border-radius:var(--radius-control);border:1px solid var(--stroke);background:var(--ctrl-bg);color:var(--text-primary);font-size:12px;font-family:var(--font);cursor:pointer;text-align:left;width:100%;transition:background 100ms;';
+    signOutBtn.textContent='Sign out of this device';
+    signOutBtn.addEventListener('mouseenter',()=>signOutBtn.style.background='var(--ctrl-bg-hover)');
+    signOutBtn.addEventListener('mouseleave',()=>signOutBtn.style.background='var(--ctrl-bg)');
+    signOutBtn.addEventListener('click',()=>{
+      localStorage.removeItem(_acctKey);
+      showToast('Signed out','info','👤',2000);
       rebuildAccountPanel();
     });
 
-    const btnRow=document.createElement('div');btnRow.style.cssText='display:flex;gap:8px;flex-wrap:wrap;';
-    btnRow.append(pushBtn,pullBtn,signOutBtn,delBtn);
-    signedSec.append(errMsg,btnRow);
-    panelAccount.appendChild(signedSec);
+    const delBtn = document.createElement('button');
+    delBtn.style.cssText='padding:8px 14px;border-radius:var(--radius-control);border:1px solid rgba(255,99,132,.3);background:rgba(255,99,132,.06);color:#ff99a4;font-size:12px;font-family:var(--font);cursor:pointer;text-align:left;width:100%;transition:background 100ms;';
+    delBtn.textContent='Delete account permanently';
+    delBtn.addEventListener('mouseenter',()=>delBtn.style.background='rgba(255,99,132,.12)');
+    delBtn.addEventListener('mouseleave',()=>delBtn.style.background='rgba(255,99,132,.06)');
+    delBtn.addEventListener('click',async()=>{
+      setLoading(delBtn,true,'Deleting…');
+      const res=await _authFetch('POST','/auth/delete',{username:_acctNow.username,hash:_acctNow.hash});
+      setLoading(delBtn,false,'Delete account permanently');
+      if(!res.ok){showToast(res.error||'Delete failed','error','❌',3000);return;}
+      localStorage.clear();
+      window._camPhotos=[];
+      window._trash=[];
+      showToast('Account deleted — all data cleared','warn','🗑',3000);
+      rebuildAccountPanel();
+    });
 
-    const tip=document.createElement('div');tip.style.cssText='font-size:12px;color:var(--text-tertiary);background:var(--bg-card);border:1px solid var(--stroke);border-radius:var(--radius-control);padding:10px 12px;line-height:1.6;margin-top:8px;';
-    tip.innerHTML='💡 <b style="color:var(--text-primary)">Push</b> saves your full config to the server. <b style="color:var(--text-primary)">Pull</b> loads it on any device. Sign in anywhere to get your setup back.';
-    panelAccount.appendChild(tip);
+    acctCard.append(acctTitle, signOutBtn, delBtn);
+    actionsWrap.append(syncCard, acctCard);
+    panelAccount.appendChild(actionsWrap);
+    panelAccount.appendChild(errMsg);
   }
 }
 rebuildAccountPanel();
 
 // ── Wire panels
 const panels = {
+  account: panelAccount,
   personalization: panelPersonalization,
-  taskbar: panelTaskbar,
   cursor: panelCursor,
   keyboard: panelKeyboard,
-  account: panelAccount,
   config: panelConfig,
 };
 
@@ -6066,168 +6402,519 @@ start.classList.remove('active');
 
 // ===================== CMD =====================
 function openCMD(){
-if(cmdProcId!==null){const p=processes.find(x=>x.id===cmdProcId);if(p&&p.win){p.win.style.display='flex';bring(p.win);if(p.win.task)p.win.task.classList.add('open');}start.classList.remove('active');return;}
-const win=createWindow('⌨ Command Prompt');
+if(cmdProcId!==null){const p=processes.find(x=>x.id===cmdProcId);if(p&&p.win){p.win.style.display='flex';bring(p.win);_updateGroupBtn('Command Prompt');}start.classList.remove('active');return;}
+const win=createWindow('Command Prompt',920,580,'⌨️');
 const p=allocProc({name:'Command Prompt',mem:+(20+Math.random()*10).toFixed(0),cpu:+(Math.random()*1).toFixed(1)});
 processes.push(p);p.win=win;cmdProcId=p.id;
 
-// Wrapper holds both output + input in a single flex column, filling the window
-const wrapper=document.createElement('div');
-wrapper.style.cssText='flex:1;display:flex;flex-direction:column;overflow:hidden;background:#0C0C0C;';
+/* ── Palette (Win11 Terminal dark defaults) ── */
+const C={
+  bg:'#0C0C0C', surface:'#1C1C1C', border:'rgba(255,255,255,0.08)',
+  accent:'#60CDFF', green:'#16C60C', yellow:'#F9F1A5', red:'#E74856',
+  white:'#CCCCCC', dim:'rgba(255,255,255,0.35)', bold:'#FFFFFF',
+  promptUser:'#60CDFF', promptPath:'#FFD700', promptSym:'rgba(255,255,255,0.5)',
+  tabActive:'#1C1C1C', tabHover:'rgba(255,255,255,0.06)',
+  sidebar:'#141414',
+};
 
-// Output area — scrollable, grows to fill space
-const output=document.createElement('div');
-output.style.cssText='flex:1;overflow-y:auto;padding:10px 10px 4px 10px;font-family:var(--font-mono,"Cascadia Code","Consolas",monospace);font-size:14px;color:#CCCCCC;line-height:1.5;word-break:break-word;cursor:text;background:#0C0C0C;';
+/* ── Root shell ── */
+const shell=document.createElement('div');
+shell.style.cssText=`flex:1;display:flex;flex-direction:column;overflow:hidden;background:${C.bg};font-family:"Cascadia Code","Cascadia Mono",Consolas,monospace;`;
 
-// Append a line to the output area using DOM nodes (avoids innerHTML += destroying state)
-function printLine(html){
-  const div=document.createElement('div');
-  div.innerHTML=html;
-  output.appendChild(div);
-  output.scrollTop=output.scrollHeight;
+/* ════════════════════════════
+   WIN11 TAB BAR
+════════════════════════════ */
+const tabBar=document.createElement('div');
+tabBar.style.cssText=`display:flex;align-items:stretch;background:#1C1C1C;border-bottom:1px solid ${C.border};flex-shrink:0;height:36px;padding:0 4px;gap:2px;`;
+
+function makeTab(label, icon, active){
+  const t=document.createElement('div');
+  t.style.cssText=`display:flex;align-items:center;gap:6px;padding:0 14px 0 10px;font-size:12px;font-family:var(--font);cursor:pointer;border-radius:6px 6px 0 0;color:${active?C.white:C.dim};background:${active?C.tabActive:'transparent'};border-bottom:${active?`2px solid ${C.accent}`:'2px solid transparent'};position:relative;min-width:120px;user-select:none;transition:background 80ms;`;
+  t.innerHTML=`<span style="font-size:13px">${icon}</span><span style="flex:1">${label}</span>`;
+  if(!active){
+    t.onmouseenter=()=>t.style.background=C.tabHover;
+    t.onmouseleave=()=>t.style.background='transparent';
+  }
+  return t;
 }
 
-printLine('Command Prompt &mdash; type <b>help</b> for a list of commands.<br>');
+const tab1=makeTab('Command Prompt','⌨️',true);
+tabBar.appendChild(tab1);
+/* New tab + button */
+const newTabBtn=document.createElement('div');
+newTabBtn.title='New tab';
+newTabBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="7" y1="2" x2="7" y2="12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="2" y1="7" x2="12" y2="7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
+newTabBtn.style.cssText=`display:flex;align-items:center;padding:0 8px;color:${C.dim};cursor:pointer;align-self:center;border-radius:4px;`;
+newTabBtn.onmouseenter=()=>newTabBtn.style.background=C.tabHover;
+newTabBtn.onmouseleave=()=>newTabBtn.style.background='transparent';
+newTabBtn.onclick=()=>showToast('Only one terminal tab in this version','info','⌨️',2000);
+tabBar.appendChild(newTabBtn);
 
-// Input row at the bottom
+/* ════════════════════════════
+   BODY: SIDEBAR + TERMINAL
+════════════════════════════ */
+const body=document.createElement('div');
+body.style.cssText='flex:1;display:flex;overflow:hidden;';
+
+/* ── SIDEBAR (collapsible command reference) ── */
+let sidebarOpen=true;
+const sidebar=document.createElement('div');
+sidebar.style.cssText=`width:220px;flex-shrink:0;background:${C.sidebar};border-right:1px solid ${C.border};display:flex;flex-direction:column;overflow:hidden;transition:width 200ms ease;`;
+
+const sbHeader=document.createElement('div');
+sbHeader.style.cssText=`display:flex;align-items:center;justify-content:space-between;padding:10px 12px 8px;font-family:var(--font);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:${C.dim};flex-shrink:0;`;
+sbHeader.innerHTML='<span>Quick Reference</span>';
+const sbToggle=document.createElement('div');
+sbToggle.innerHTML='◀';
+sbToggle.title='Hide sidebar';
+sbToggle.style.cssText=`cursor:pointer;color:${C.dim};font-size:10px;padding:2px 4px;border-radius:3px;`;
+sbToggle.onmouseenter=()=>sbToggle.style.color=C.white;
+sbToggle.onmouseleave=()=>sbToggle.style.color=C.dim;
+sbHeader.appendChild(sbToggle);
+sidebar.appendChild(sbHeader);
+
+const sbSearch=document.createElement('input');
+sbSearch.placeholder='Search commands…';
+sbSearch.style.cssText=`margin:0 10px 8px;padding:5px 8px;background:rgba(255,255,255,0.06);border:1px solid ${C.border};border-radius:4px;color:${C.white};font-size:11px;font-family:var(--font);outline:none;`;
+sbSearch.onmouseenter=()=>sbSearch.style.borderColor='rgba(255,255,255,0.18)';
+sbSearch.onmouseleave=()=>sbSearch.style.borderColor=C.border;
+sidebar.appendChild(sbSearch);
+
+const CMD_REF=[
+  {cat:'Navigation', items:[
+    {cmd:'dir',       desc:'List files in current folder'},
+    {cmd:'cd <path>', desc:'Change folder  (e.g. cd Desktop)'},
+    {cmd:'cd ..',     desc:'Go up one folder'},
+    {cmd:'pwd',       desc:'Show current folder path'},
+  ]},
+  {cat:'Files', items:[
+    {cmd:'copy <src> <dst>', desc:'Copy a file'},
+    {cmd:'del <file>',       desc:'Delete a file'},
+    {cmd:'mkdir <name>',     desc:'Create a new folder'},
+    {cmd:'rmdir <name>',     desc:'Remove an empty folder'},
+    {cmd:'type <file>',      desc:'Print a text file'},
+  ]},
+  {cat:'System', items:[
+    {cmd:'systeminfo', desc:'Show computer info'},
+    {cmd:'hostname',   desc:'Show computer name'},
+    {cmd:'whoami',     desc:'Show current user'},
+    {cmd:'ver',        desc:'Show Windows version'},
+    {cmd:'time',       desc:'Show current time'},
+    {cmd:'date',       desc:'Show current date'},
+    {cmd:'mem',        desc:'Show memory usage'},
+    {cmd:'tasklist',   desc:'List running apps'},
+  ]},
+  {cat:'Network', items:[
+    {cmd:'ipconfig',       desc:'Show IP address & network'},
+    {cmd:'ping <host>',    desc:'Test connection to a host'},
+    {cmd:'nslookup <host>',desc:'Look up a domain name'},
+  ]},
+  {cat:'Terminal', items:[
+    {cmd:'cls',            desc:'Clear the screen'},
+    {cmd:'echo <text>',    desc:'Print text to screen'},
+    {cmd:'history',        desc:'Show command history'},
+    {cmd:'color <#hex>',   desc:'Change accent color'},
+    {cmd:'help',           desc:'List all commands'},
+    {cmd:'exit',           desc:'Close terminal'},
+  ]},
+  {cat:'Apps', items:[
+    {cmd:'notepad',        desc:'Open Notepad'},
+    {cmd:'start <app>',    desc:'Open an app by name'},
+  ]},
+];
+
+const sbList=document.createElement('div');
+sbList.style.cssText='flex:1;overflow-y:auto;padding-bottom:8px;';
+function renderSbList(filter){
+  sbList.innerHTML='';
+  CMD_REF.forEach(({cat,items})=>{
+    const filtered=filter?items.filter(i=>i.cmd.toLowerCase().includes(filter)||i.desc.toLowerCase().includes(filter)):items;
+    if(!filtered.length) return;
+    const catEl=document.createElement('div');
+    catEl.style.cssText=`padding:8px 12px 4px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:${C.accent};font-family:var(--font);`;
+    catEl.textContent=cat;
+    sbList.appendChild(catEl);
+    filtered.forEach(({cmd:c,desc})=>{
+      const row=document.createElement('div');
+      row.style.cssText=`padding:4px 12px;cursor:pointer;border-radius:4px;margin:0 4px;`;
+      row.innerHTML=`<div style="font-size:11.5px;color:${C.green};font-family:Cascadia Code,Consolas,monospace;">${c}</div><div style="font-size:10px;color:${C.dim};font-family:var(--font);line-height:1.3;margin-top:1px;">${desc}</div>`;
+      row.onmouseenter=()=>row.style.background='rgba(255,255,255,0.06)';
+      row.onmouseleave=()=>row.style.background='transparent';
+      /* Click → paste command (without args placeholder) into input */
+      row.onclick=()=>{
+        const base=c.split(' ')[0];
+        input.value=c.includes('<')?c:'';
+        if(!c.includes('<')) input.value=base;
+        input.focus();
+        input.setSelectionRange(input.value.length,input.value.length);
+      };
+      sbList.appendChild(row);
+    });
+  });
+}
+renderSbList('');
+sbSearch.addEventListener('input',()=>renderSbList(sbSearch.value.trim().toLowerCase()));
+sidebar.appendChild(sbList);
+
+/* Sidebar toggle logic */
+sbToggle.onclick=()=>{
+  sidebarOpen=!sidebarOpen;
+  sidebar.style.width=sidebarOpen?'220px':'0';
+  sidebar.style.borderRight=sidebarOpen?`1px solid ${C.border}`:'none';
+  sbToggle.innerHTML=sidebarOpen?'◀':'▶';
+  sbToggle.title=sidebarOpen?'Hide sidebar':'Show sidebar';
+};
+
+/* ── TERMINAL PANE ── */
+const termPane=document.createElement('div');
+termPane.style.cssText='flex:1;display:flex;flex-direction:column;overflow:hidden;';
+
+/* Output area */
+const output=document.createElement('div');
+output.style.cssText=`flex:1;overflow-y:auto;padding:12px 14px 6px;font-size:13.5px;color:${C.white};line-height:1.6;word-break:break-word;cursor:text;`;
+
+/* Input row */
 const inputRow=document.createElement('div');
-inputRow.style.cssText='display:flex;align-items:center;flex-shrink:0;background:#0C0C0C;border-top:1px solid rgba(255,255,255,0.08);padding:4px 6px;';
+inputRow.style.cssText=`display:flex;align-items:center;flex-shrink:0;background:${C.bg};border-top:1px solid ${C.border};padding:6px 10px;`;
 
 let cwd='C:\\Users\\User';
 
 const promptSpan=document.createElement('span');
-promptSpan.style.cssText='color:#60CDFF;font-family:var(--font-mono,"Cascadia Code","Consolas",monospace);font-size:14px;white-space:nowrap;user-select:none;';
-promptSpan.textContent=cwd+'> ';
+promptSpan.style.cssText=`color:${C.promptUser};font-size:13.5px;white-space:nowrap;user-select:none;margin-right:2px;`;
+function updatePrompt(){
+  /* Win11 Terminal style: user@host path> */
+  const user=localStorage.getItem('sim_user')||'User';
+  promptSpan.innerHTML=`<span style="color:${C.promptUser}">${user}</span><span style="color:${C.dim}">@</span><span style="color:${C.green}">DESKTOP-SIM</span> <span style="color:${C.promptPath}">${cwd}</span><span style="color:${C.promptSym}"> &gt; </span>`;
+}
+updatePrompt();
 
 const input=document.createElement('input');
 input.type='text';
 input.autocomplete='off';
 input.spellcheck=false;
-input.style.cssText='flex:1;background:transparent;border:none;outline:none;color:#CCCCCC;font-family:var(--font-mono,"Cascadia Code","Consolas",monospace);font-size:14px;padding:2px 0;user-select:text;caret-color:#CCCCCC;';
+input.style.cssText=`flex:1;background:transparent;border:none;outline:none;color:${C.white};font-family:"Cascadia Code","Cascadia Mono",Consolas,monospace;font-size:13.5px;padding:2px 0;user-select:text;caret-color:${C.white};`;
+
+/* Autocomplete ghost */
+const ghost=document.createElement('span');
+ghost.style.cssText=`color:${C.dim};font-size:13.5px;pointer-events:none;white-space:pre;`;
 
 inputRow.appendChild(promptSpan);
 inputRow.appendChild(input);
+inputRow.appendChild(ghost);
 
-// Click anywhere in output → refocus input
 output.addEventListener('mousedown',()=>setTimeout(()=>input.focus(),0));
 
-let cmdHistory=[];
-let histIdx=-1;
+/* ── Autocomplete ── */
+const ALL_CMDS=['help','cls','clear','ver','time','date','hostname','whoami','cd','dir','ls','pwd',
+  'echo','title','color','history','sysinfo','systeminfo','mem','cpu','ipconfig','ping','nslookup',
+  'copy','del','mkdir','rmdir','type','notepad','start','tasklist','exit','dev'];
 
-function appendCmd(raw,outHtml){
-  // Echo the command
-  const cmdLine=document.createElement('div');
-  cmdLine.innerHTML='<span style="opacity:.45">'+cwd.replace(/</g,'&lt;')+'&gt; </span>'+(String(raw).replace(/</g,'&lt;'));
-  output.appendChild(cmdLine);
-  // Output
-  if(outHtml!==null&&outHtml!==''){
-    const outDiv=document.createElement('div');
-    outDiv.style.cssText='margin-bottom:6px;';
-    outDiv.innerHTML=String(outHtml);
-    output.appendChild(outDiv);
-  }
-  const gap=document.createElement('div');gap.style.height='2px';output.appendChild(gap);
+function updateGhost(){
+  const v=input.value;
+  if(!v){ ghost.textContent=''; return; }
+  const first=v.split(' ')[0].toLowerCase();
+  const match=ALL_CMDS.find(c=>c.startsWith(first)&&c!==first);
+  ghost.textContent=match?match.slice(first.length):'';
+}
+input.addEventListener('input',updateGhost);
+
+/* ── History ── */
+let cmdHistory=[],histIdx=-1;
+
+/* ── Print helpers ── */
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+function printBlock(html){
+  const d=document.createElement('div');
+  d.innerHTML=html;
+  output.appendChild(d);
   output.scrollTop=output.scrollHeight;
 }
 
-input.addEventListener('keydown',(e)=>{
+function printLine(html){
+  printBlock(`<div style="margin-bottom:2px">${html}</div>`);
+}
+
+function printTable(rows){
+  /* rows: array of [label, value, color?] */
+  let h='<div style="display:grid;grid-template-columns:max-content 1fr;gap:1px 16px;margin:2px 0 6px;">';
+  rows.forEach(([k,v,col])=>{
+    h+=`<span style="color:${C.dim}">${esc(k)}</span><span style="color:${col||C.white}">${esc(String(v))}</span>`;
+  });
+  h+='</div>';
+  printBlock(h);
+}
+
+function banner(){
+  output.innerHTML='';
+  printBlock(`
+    <div style="color:${C.accent};font-size:13px;line-height:1.4;margin-bottom:6px;">
+      Microsoft Windows [Version 11.0.26100.3915]<br>
+      <span style="color:${C.dim}">(c) Microsoft Corporation. All rights reserved.</span>
+    </div>
+    <div style="background:rgba(96,205,255,0.07);border:1px solid rgba(96,205,255,0.18);border-radius:4px;padding:8px 12px;margin-bottom:10px;font-family:var(--font);font-size:12px;">
+      <span style="color:${C.accent};font-weight:600;">💡 Beginner tip</span><span style="color:${C.dim}"> — Type </span><b style="color:${C.green}">help</b><span style="color:${C.dim}"> to see all commands, or click any command in the sidebar on the left.</span>
+    </div>
+  `);
+}
+banner();
+
+/* ── Command echo ── */
+function appendCmd(raw, outHtml){
+  const cmdDiv=document.createElement('div');
+  cmdDiv.style.marginBottom='2px';
+  cmdDiv.innerHTML=promptSpan.innerHTML+`<span style="color:${C.white}">${esc(raw)}</span>`;
+  output.appendChild(cmdDiv);
+  if(outHtml!==null&&outHtml!==''){
+    const od=document.createElement('div');
+    od.style.cssText=`margin:2px 0 8px;line-height:1.6;`;
+    od.innerHTML=String(outHtml);
+    output.appendChild(od);
+  } else {
+    const gap=document.createElement('div');gap.style.height='6px';output.appendChild(gap);
+  }
+  output.scrollTop=output.scrollHeight;
+}
+
+/* ── Key handler ── */
+input.addEventListener('keydown',e=>{
+  /* Tab autocomplete */
+  if(e.key==='Tab'){
+    e.preventDefault();
+    const v=input.value;
+    const first=v.split(' ')[0].toLowerCase();
+    const match=ALL_CMDS.find(c=>c.startsWith(first)&&c!==first);
+    if(match) { input.value=match+(v.includes(' ')?v.slice(v.indexOf(' ')):''); ghost.textContent=''; }
+    return;
+  }
   if(e.key==='ArrowUp'){
     e.preventDefault();
-    if(histIdx<cmdHistory.length-1){histIdx++;input.value=cmdHistory[cmdHistory.length-1-histIdx];}
+    if(histIdx<cmdHistory.length-1){histIdx++;input.value=cmdHistory[cmdHistory.length-1-histIdx];updateGhost();}
     return;
   }
   if(e.key==='ArrowDown'){
     e.preventDefault();
     if(histIdx>0){histIdx--;input.value=cmdHistory[cmdHistory.length-1-histIdx];}
     else{histIdx=-1;input.value='';}
+    updateGhost();
     return;
   }
+  if(e.key==='Escape'){ input.value=''; ghost.textContent=''; histIdx=-1; return; }
   if(e.key!=='Enter') return;
   e.preventDefault();
+
   const raw=input.value;
   const line=raw.trim();
   input.value='';
+  ghost.textContent='';
+  histIdx=-1;
   if(!line) return;
-  cmdHistory.push(raw);histIdx=-1;
+  cmdHistory.push(raw);
 
   const parts=line.match(/(?:[^\s"]+|"[^"]*")+/g)||[];
   const cmd=(parts[0]||'').replace(/^"(.*)"$/,'$1').toLowerCase();
   const args=parts.slice(1).map(a=>a.replace(/^"(.*)"$/,'$1'));
   let o='';
 
+  /* ── Commands ── */
   if(cmd==='help'){
-    o='<span style="opacity:.9"><b>Basics:</b> cls · clear · exit · ver · time · date<br>'
-     +'<b>Files:</b> cd [path] · dir · ls · pwd<br>'
-     +'<b>System:</b> systeminfo · sysinfo · mem · cpu · hostname · whoami<br>'
-     +'<b>Network:</b> ipconfig · ping [host]<br>'
-     +'<b>Other:</b> echo [text] · title [text] · color [#hex] · history · notepad</span>';
+    let h=`<div style="font-family:var(--font);font-size:12px;">`;
+    CMD_REF.forEach(({cat,items})=>{
+      h+=`<div style="margin-bottom:10px;"><div style="color:${C.accent};font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${cat}</div>`;
+      h+=`<div style="display:grid;grid-template-columns:max-content 1fr;gap:1px 16px;">`;
+      items.forEach(({cmd:c,desc})=>{
+        h+=`<span style="color:${C.green};font-family:Cascadia Code,Consolas,monospace;">${esc(c)}</span><span style="color:${C.dim}">${desc}</span>`;
+      });
+      h+=`</div></div>`;
+    });
+    h+=`</div>`;
+    o=h;
   } else if(cmd==='cls'||cmd==='clear'){
-    output.innerHTML='';
-    return;
+    banner(); return;
+
   } else if(cmd==='ver'){
-    o='Microsoft Windows [Version 11.0.26100.3915]<br><span style="opacity:.6">'+navigator.userAgent+'</span>';
+    o=`<span style="color:${C.white}">Microsoft Windows [Version 11.0.26100.3915]</span>`;
+
   } else if(cmd==='time'){
-    o='Current time: '+new Date().toLocaleTimeString();
+    o=`Current time: <b style="color:${C.yellow}">${new Date().toLocaleTimeString()}</b>`;
+
   } else if(cmd==='date'){
-    o='Current date: '+new Date().toLocaleDateString()+' '+new Date().toLocaleTimeString();
+    o=`Current date: <b style="color:${C.yellow}">${new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</b>`;
+
   } else if(cmd==='hostname'){
-    o='DESKTOP-SIM'+(location.hostname?'  ('+location.hostname+')':'');
+    o=`<b>DESKTOP-SIM</b>${location.hostname?`  <span style="color:${C.dim}">(${esc(location.hostname)})</span>`:''}`;
+
   } else if(cmd==='whoami'){
-    o='simulator\\'+(localStorage.getItem('sim_user')||'User');
-  } else if(cmd==='cd'&&args[0]){
-    const newPath=args[0];
-    cwd=newPath.includes('\\')||newPath.includes('/')?newPath.replace(/\//g,'\\'):'C:\\Users\\User\\'+newPath;
-    promptSpan.textContent=cwd+'> ';
-    appendCmd(raw,null);
-    return;
-  } else if(cmd==='cd'||cmd==='pwd'){
-    o=cwd;
+    o=`DESKTOP-SIM\\<b style="color:${C.accent}">${esc(localStorage.getItem('sim_user')||'User')}</b>`;
+
+  } else if(cmd==='cd'){
+    if(!args[0]){ o=`<b style="color:${C.yellow}">${esc(cwd)}</b>`; }
+    else if(args[0]==='..'){
+      const parts2=cwd.split('\\');
+      if(parts2.length>1) cwd=parts2.slice(0,-1).join('\\')||'C:\\';
+      updatePrompt(); appendCmd(raw,null); return;
+    } else {
+      const np=args[0];
+      cwd=(np.includes('\\')||np.startsWith('/'))?np.replace(/\//g,'\\'):cwd+'\\'+np;
+      updatePrompt(); appendCmd(raw,null); return;
+    }
+  } else if(cmd==='pwd'){
+    o=`<b style="color:${C.yellow}">${esc(cwd)}</b>`;
+
   } else if(cmd==='dir'||cmd==='ls'){
-    o='<span style="opacity:.6"> Directory of '+cwd.replace(/</g,'&lt;')+'</span><br><br>'
-     +'&nbsp;&lt;DIR&gt;&nbsp;&nbsp; .<br>&nbsp;&lt;DIR&gt;&nbsp;&nbsp; ..<br>'
-     +'notes.txt&nbsp;&nbsp;&nbsp;&nbsp; games&nbsp;&nbsp;&nbsp;&nbsp; readme.md<br><br>'
-     +'<span style="opacity:.6">3 File(s)</span>';
+    const fake=['Documents','Downloads','Desktop','Pictures','Music','Videos','notes.txt','readme.md','config.ini'];
+    let h=`<div style="color:${C.dim};margin-bottom:4px"> Directory of <b style="color:${C.white}">${esc(cwd)}</b></div>`;
+    h+=`<div style="display:grid;grid-template-columns:auto auto 1fr;gap:0 16px;">`;
+    const now=new Date();
+    fake.forEach(f=>{
+      const isDir=!f.includes('.');
+      const dt=new Date(now-Math.random()*1e9).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'});
+      const tm=new Date(now-Math.random()*1e9).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+      const typeStr=isDir?`<span style="color:${C.accent}">&lt;DIR&gt;</span>`:`<span style="color:${C.dim}">     </span>`;
+      h+=`<span style="color:${C.dim}">${dt} ${tm}</span>${typeStr}<span style="color:${isDir?C.accent:C.white}">${esc(f)}</span>`;
+    });
+    h+=`</div><div style="color:${C.dim};margin-top:4px">${fake.filter(f=>!f.includes('.')).length} Dir(s)  ${fake.filter(f=>f.includes('.')).length} File(s)</div>`;
+    o=h;
+
   } else if(cmd==='echo'){
-    o=args.length?args.join(' '):'ECHO is on.';
+    o=args.length?`<span style="color:${C.white}">${esc(args.join(' '))}</span>`:`<span style="color:${C.dim}">ECHO is on.</span>`;
+
   } else if(cmd==='title'&&args.length){
     const tEl=win.querySelector('.title-text');
     if(tEl) tEl.textContent=args.join(' ');
-    appendCmd(raw,null);return;
+    appendCmd(raw,null); return;
+
   } else if(cmd==='color'){
     if(args[0]){
       document.documentElement.style.setProperty('--accent',args[0]);
       document.documentElement.style.setProperty('--accent-fill',args[0]);
-      o='Accent color set to '+args[0]+'.';
+      o=`Accent color set to <b style="color:${esc(args[0])}">${esc(args[0])}</b>`;
+    } else {
+      o=`<span style="color:${C.dim}">Usage: </span>color #hexcode<br><span style="color:${C.dim}">Example: </span><b>color #FF6B6B</b>`;
     }
-    else o='Usage: color #hexcode';
   } else if(cmd==='history'){
-    o=cmdHistory.slice(-20).map((h,i)=>(i+1)+'.&nbsp;'+h.replace(/</g,'&lt;')).join('<br>');
+    if(!cmdHistory.length){ o=`<span style="color:${C.dim}">No history yet.</span>`; }
+    else { o=cmdHistory.slice(-20).map((h,i)=>`<span style="color:${C.dim}">${String(i+1).padStart(3,' ')}  </span><span style="color:${C.white}">${esc(h)}</span>`).join('<br>'); }
+
   } else if(cmd==='sysinfo'||cmd==='systeminfo'){
-    o='Host: DESKTOP-SIM<br>OS: Windows 11 Pro 26100<br>'
-     +'Platform: '+(navigator.platform||'x64')+'<br>'
-     +'RAM: '+(navigator.deviceMemory?navigator.deviceMemory+' GB':'N/A')+'<br>'
-     +'CPUs: '+(navigator.hardwareConcurrency||'?')+'<br>'
-     +'Screen: '+screen.width+' × '+screen.height+'<br>'
-     +'Language: '+navigator.language;
+    printBlock(`<div style="color:${C.accent};font-weight:700;margin-bottom:6px;font-family:var(--font)">System Information</div>`);
+    printTable([
+      ['Host Name',        'DESKTOP-SIM'],
+      ['OS Name',          'Microsoft Windows 11 Pro'],
+      ['OS Version',       '10.0.26100 Build 26100'],
+      ['Architecture',     navigator.platform||'x64'],
+      ['Processors',       (navigator.hardwareConcurrency||'?')+' logical processor(s)'],
+      ['RAM',              navigator.deviceMemory?navigator.deviceMemory+' GB installed':'Not available'],
+      ['Screen',           screen.width+'×'+screen.height+' @ '+screen.colorDepth+'-bit'],
+      ['Language',         navigator.language],
+      ['Time Zone',        Intl.DateTimeFormat().resolvedOptions().timeZone],
+      ['Network',          navigator.onLine?'Online':'Offline', navigator.onLine?C.green:C.red],
+    ]);
+    appendCmd(raw,''); return;
+
   } else if(cmd==='mem'){
     if(performance.memory){
       const u=(performance.memory.usedJSHeapSize/1048576).toFixed(1);
       const t=(performance.memory.totalJSHeapSize/1048576).toFixed(1);
       const l=(performance.memory.jsHeapSizeLimit/1048576).toFixed(0);
-      o='In use: '+u+' MB<br>Allocated: '+t+' MB<br>Limit: ~'+l+' MB';
-    } else o='Memory info not available in this browser.';
+      const pct=(performance.memory.usedJSHeapSize/performance.memory.jsHeapSizeLimit*100).toFixed(0);
+      const col=+pct>80?C.red:+pct>50?C.yellow:C.green;
+      printTable([
+        ['In Use',     u+' MB', col],
+        ['Allocated',  t+' MB'],
+        ['Limit',      l+' MB'],
+        ['Usage',      pct+'%', col],
+      ]);
+      appendCmd(raw,''); return;
+    } else { o=`<span style="color:${C.yellow}">Memory API not available in this browser.</span>`; }
+
   } else if(cmd==='cpu'){
-    o='Logical processors: '+(navigator.hardwareConcurrency||'?');
+    printTable([
+      ['Logical Processors', navigator.hardwareConcurrency||'?'],
+      ['Browser Cores',      navigator.hardwareConcurrency||'?'],
+    ]);
+    appendCmd(raw,''); return;
+
+  } else if(cmd==='tasklist'){
+    let h=`<div style="display:grid;grid-template-columns:1fr auto auto;gap:1px 20px;font-size:12px;">`;
+    h+=`<span style="color:${C.dim};border-bottom:1px solid ${C.border};padding-bottom:2px;">Image Name</span><span style="color:${C.dim};border-bottom:1px solid ${C.border}">PID</span><span style="color:${C.dim};border-bottom:1px solid ${C.border}">Mem</span>`;
+    const plist=[{name:'Command Prompt',mem:'14,208 K'},{name:'System Idle',mem:'8 K'},{name:'explorer.exe',mem:'92,512 K'},...processes.map(p=>({name:p.name+'.exe',mem:p.mem+',' +Math.floor(Math.random()*999).toString().padStart(3,'0')+' K'}))];
+    plist.forEach(({name,mem},i)=>{
+      h+=`<span style="color:${C.white}">${esc(name)}</span><span style="color:${C.dim}">${1000+i}</span><span style="color:${C.dim}">${mem}</span>`;
+    });
+    h+=`</div>`;
+    o=h;
+
   } else if(cmd==='ipconfig'){
-    o='Ethernet adapter Ethernet:<br>&nbsp;&nbsp;IPv4 Address: 192.168.1.105<br>&nbsp;&nbsp;Subnet Mask: 255.255.255.0<br>&nbsp;&nbsp;Default Gateway: 192.168.1.1';
+    printBlock(`<div style="font-family:var(--font);margin-bottom:6px;color:${C.white};font-weight:600;">Windows IP Configuration</div>`);
+    printBlock(`<div style="color:${C.accent};margin:4px 0 2px;">Ethernet adapter Ethernet:</div>`);
+    printTable([
+      ['   Connection-specific DNS Suffix', ''],
+      ['   Link-local IPv6 Address',         'fe80::1%12'],
+      ['   IPv4 Address',                    '192.168.1.105'],
+      ['   Subnet Mask',                     '255.255.255.0'],
+      ['   Default Gateway',                 '192.168.1.1'],
+    ]);
+    printBlock(`<div style="color:${C.accent};margin:4px 0 2px;">Wireless LAN adapter Wi-Fi:</div>`);
+    printTable([
+      ['   Media State', 'Media disconnected'],
+    ]);
+    appendCmd(raw,''); return;
+
   } else if(cmd==='ping'){
-    if(args[0]){o='Pinging '+args[0].replace(/</g,'&lt;')+' with 32 bytes of data:<br>Reply from 192.168.1.1: bytes=32 time=1ms TTL=64<br>Reply from 192.168.1.1: bytes=32 time=2ms TTL=64<br>Reply from 192.168.1.1: bytes=32 time=1ms TTL=64<br>Reply from 192.168.1.1: bytes=32 time=2ms TTL=64<br><br>Sent=4, Received=4, Lost=0 (0% loss)';}
-    else o='Usage: ping &lt;hostname&gt;';
+    if(!args[0]){ o=`<span style="color:${C.dim}">Usage: </span>ping &lt;hostname or IP&gt;<br><span style="color:${C.dim}">Example: </span><b>ping google.com</b>`; }
+    else {
+      const host=esc(args[0]);
+      const times=[Math.floor(Math.random()*5)+1,Math.floor(Math.random()*5)+1,Math.floor(Math.random()*5)+1,Math.floor(Math.random()*5)+1];
+      let h=`Pinging <b>${host}</b> with 32 bytes of data:<br>`;
+      times.forEach(t=>{ h+=`Reply from 192.168.1.1: bytes=32 time=<b style="color:${C.green}">${t}ms</b> TTL=64<br>`; });
+      h+=`<br>Ping statistics for <b>${host}</b>:<br>`;
+      h+=`&nbsp;&nbsp;&nbsp;&nbsp;Packets: Sent = 4, Received = <b style="color:${C.green}">4</b>, Lost = 0 (0% loss)<br>`;
+      h+=`Approximate round trip times: min=<b>${Math.min(...times)}ms</b>  max=<b>${Math.max(...times)}ms</b>  avg=<b>${(times.reduce((a,b)=>a+b)/times.length).toFixed(0)}ms</b>`;
+      o=h;
+    }
+  } else if(cmd==='nslookup'){
+    if(!args[0]){ o=`<span style="color:${C.dim}">Usage: </span>nslookup &lt;domain&gt;`; }
+    else {
+      o=`Server:  UnKnown<br>Address:  192.168.1.1<br><br>Non-authoritative answer:<br>Name:    <b>${esc(args[0])}</b><br>Address:  ${Math.floor(Math.random()*200)+20}.${Math.floor(Math.random()*250)}.${Math.floor(Math.random()*250)}.${Math.floor(Math.random()*250)}`;
+    }
+
+  } else if(cmd==='copy'){
+    if(args.length<2){ o=`<span style="color:${C.dim}">Usage: </span>copy &lt;source&gt; &lt;destination&gt;`; }
+    else { o=`1 file(s) copied.`; }
+
+  } else if(cmd==='del'){
+    if(!args[0]){ o=`<span style="color:${C.dim}">Usage: </span>del &lt;filename&gt;`; }
+    else { appendCmd(raw,null); return; }
+
+  } else if(cmd==='mkdir'){
+    if(!args[0]){ o=`<span style="color:${C.dim}">Usage: </span>mkdir &lt;foldername&gt;`; }
+    else { appendCmd(raw,null); return; }
+
+  } else if(cmd==='rmdir'){
+    if(!args[0]){ o=`<span style="color:${C.dim}">Usage: </span>rmdir &lt;foldername&gt;`; }
+    else { appendCmd(raw,null); return; }
+
+  } else if(cmd==='type'){
+    if(!args[0]){ o=`<span style="color:${C.dim}">Usage: </span>type &lt;filename&gt;`; }
+    else if(args[0]==='readme.md'){ o=`# README<br>Welcome to the simulator.<br>This is a simulated Windows 11 desktop.<br>Type <b>help</b> for available commands.`; }
+    else if(args[0]==='notes.txt'){ o=`My notes:<br>- Remember to check Task Manager<br>- ipconfig shows network info<br>- ping tests connections`; }
+    else { o=`<span style="color:${C.red}">The system cannot find the file specified.</span>`; }
+
   } else if(cmd==='notepad'){
-    openNotepad(args.join(' '));o='Notepad opened.';
+    openNotepad(args.join(' '));
+    o=`<span style="color:${C.green}">Notepad opened.</span>`;
+
+  } else if(cmd==='start'){
+    const app=args.join(' ');
+    if(app&&APP_FN_MAP[app]){ launchApp(app); o=`<span style="color:${C.green}">Opening ${esc(app)}…</span>`; }
+    else { o=`<span style="color:${C.red}">Cannot find application "${esc(app||'')}".</span><br><span style="color:${C.dim}">Try: </span>start Notepad, start Settings, start Camera`; }
+
   } else if(cmd==='exit'){
-    closeW(win);return;
+    closeW(win); return;
+
   } else if(cmd==='dev'){
+    /* DevTools — preserved from original */
     (function openDevTools(){
       const existing=processes.find(p=>p.name==='DevTools');
       if(existing&&existing.win){existing.win.style.display='flex';bring(existing.win);return;}
@@ -6235,96 +6922,558 @@ input.addEventListener('keydown',(e)=>{
       const p2=allocProc({name:'DevTools',mem:12,cpu:0.2});
       processes.push(p2);
       const SVCID='srv-d7k10128qa3s7398abs0';
+      const DBID='dpg-d7knlipj2pic73cbng30-a';
+      const RENDER_KEY='rnd_qEh6ppTyK9FVoxxDJtOvGN355qFv';
+      const RENDER_BASE='https://api.render.com/v1';
       const PROXY='https://proxybackend-83xn.onrender.com';
-      const TABS=['Session','Memory','Storage','Network','Processes','Render'];
+      const TABS=['Session','Memory','Storage','Network','Processes','Server'];
       let curTab=0,refreshTimer=null;
-      const shell=document.createElement('div');
-      shell.style.cssText='position:absolute;inset:0;top:32px;display:flex;flex-direction:column;background:#0d1117;color:#c9d1d9;font-family:Consolas,monospace;font-size:12px;overflow:hidden;';
-      const tabBar=document.createElement('div');
-      tabBar.style.cssText='display:flex;background:#161b22;border-bottom:1px solid #30363d;flex-shrink:0;';
-      const body=document.createElement('div');
-      body.style.cssText='flex:1;overflow:auto;padding:14px;min-height:0;';
-      const tabEls=TABS.map((label,i)=>{
+      const dshell=document.createElement('div');
+      dshell.style.cssText='position:absolute;inset:0;top:32px;display:flex;flex-direction:column;background:#0d1117;color:#c9d1d9;font-family:Consolas,monospace;font-size:12px;overflow:hidden;';
+      const dtabBar=document.createElement('div');
+      dtabBar.style.cssText='display:flex;background:#161b22;border-bottom:1px solid #30363d;flex-shrink:0;';
+      const dbody=document.createElement('div');
+      dbody.style.cssText='flex:1;overflow:auto;padding:14px;min-height:0;';
+      const dtabEls=TABS.map((label,i)=>{
         const t=document.createElement('div');
         t.textContent=label;
         t.style.cssText='padding:8px 14px;cursor:pointer;font-size:11px;color:#8b949e;border-bottom:2px solid transparent;white-space:nowrap;';
         t.onclick=()=>switchTab(i);
-        tabBar.appendChild(t);
+        dtabBar.appendChild(t);
         return t;
       });
-      function switchTab(i){
-        curTab=i;
-        tabEls.forEach((t,j)=>{
-          t.style.color=j===i?'#e6edf3':'#8b949e';
-          t.style.borderBottomColor=j===i?'#58a6ff':'transparent';
-        });
-        renderTab(i);
-      }
-      function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
-      function row(k,v,col){col=col||'#e6edf3';return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #21262d;"><span style="color:#8b949e;margin-right:12px;">'+esc(k)+'</span><span style="color:'+col+';font-weight:600;text-align:right;">'+esc(String(v))+'</span></div>';}
-      function sec(t,c){return '<div style="margin-bottom:16px;"><div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#58a6ff;margin-bottom:8px;">'+esc(t)+'</div>'+c+'</div>';}
+      function switchTab(i){curTab=i;dtabEls.forEach((t,j)=>{t.style.color=j===i?'#e6edf3':'#8b949e';t.style.borderBottomColor=j===i?'#58a6ff':'transparent';});renderTab(i);}
+      function dEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+      function dRow(k,v,col){col=col||'#e6edf3';return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #21262d;"><span style="color:#8b949e;margin-right:12px;">'+dEsc(k)+'</span><span style="color:'+col+';font-weight:600;text-align:right;">'+dEsc(String(v))+'</span></div>';}
+      function dSec(t,c){return '<div style="margin-bottom:16px;"><div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#58a6ff;margin-bottom:8px;">'+dEsc(t)+'</div>'+c+'</div>';}
       function svcColor(s){if(!s)return'#8b949e';s=s.toLowerCase();if(s==='live'||s==='available')return'#3fb950';if(s.includes('deploy')||s.includes('build')||s.includes('progress'))return'#e3b341';if(s==='suspended')return'#8b949e';return'#f85149';}
       function renderTab(i){
-        if(i===0){
-          const acct=(()=>{try{return JSON.parse(localStorage.getItem('desktop_account_v1')||'null');}catch(e){return null;}})();
-          const now=new Date();
-          body.innerHTML=sec('Identity',row('Username',acct?acct.username:'Guest')+row('Server',PROXY)+row('Uptime',window._sessionStart?Math.round((Date.now()-window._sessionStart)/1000)+'s':'N/A'))+sec('Browser',row('Platform',navigator.platform||'?')+row('Language',navigator.language)+row('Cores',navigator.hardwareConcurrency||'?')+row('RAM',navigator.deviceMemory?navigator.deviceMemory+' GB':'N/A')+row('Screen',screen.width+'×'+screen.height)+row('Viewport',window.innerWidth+'×'+window.innerHeight)+row('Online',navigator.onLine?'Yes':'No',navigator.onLine?'#3fb950':'#f85149')+row('Fullscreen',document.fullscreenElement?'Yes':'No'))+sec('Time',row('Local',now.toLocaleTimeString())+row('Timezone',Intl.DateTimeFormat().resolvedOptions().timeZone));
-        } else if(i===1){
-          let h='';
-          if(performance.memory){const u=(performance.memory.usedJSHeapSize/1048576).toFixed(2),tot=(performance.memory.totalJSHeapSize/1048576).toFixed(2),lim=(performance.memory.jsHeapSizeLimit/1048576).toFixed(0),pct=(performance.memory.usedJSHeapSize/performance.memory.jsHeapSizeLimit*100).toFixed(1),col=parseFloat(pct)>80?'#f85149':parseFloat(pct)>50?'#e3b341':'#3fb950';h+=sec('JS Heap',row('Used',u+' MB',col)+row('Allocated',tot+' MB')+row('Limit',lim+' MB')+row('Usage',pct+'%',col));h+='<div style="background:#21262d;border-radius:4px;height:8px;overflow:hidden;margin-bottom:16px;"><div style="height:100%;width:'+pct+'%;background:'+col+';"></div></div>';}else{h+='<div style="color:#8b949e;">Memory API unavailable</div>';}
-          h+=sec('Runtime',row('Windows',windows.length)+row('Processes',processes.length)+row('Icons',document.querySelectorAll('#desktop .desktop-icon').length)+row('Photos',(window._camPhotos||[]).length));
-          body.innerHTML=h;
-        } else if(i===2){
-          let lsSize=0,lsKeys=0;try{lsKeys=Object.keys(localStorage).length;Object.keys(localStorage).forEach(k=>{lsSize+=k.length+(localStorage.getItem(k)||'').length;});}catch(e){}
-          const lsKB=(lsSize/1024).toFixed(2);
-          let h=sec('localStorage',row('Keys',lsKeys)+row('Size',lsKB+' KB',parseFloat(lsKB)>4000?'#f85149':'#3fb950')+row('Limit','5120 KB'));
-          let kr='';try{Object.keys(localStorage).slice(0,12).forEach(k=>{const sz=((k.length+(localStorage.getItem(k)||'').length)/1024).toFixed(1);kr+=row(k.length>28?k.slice(0,28)+'…':k,sz+' KB');});}catch(e){}
-          if(kr)h+=sec('Keys',kr);
-          h+=sec('App',row('Photos',(window._camPhotos||[]).length)+row('Trash',(window._trash||[]).length));
-          body.innerHTML=h;
-        } else if(i===3){
-          body.innerHTML=sec('Connection',row('Online',navigator.onLine?'Yes':'No',navigator.onLine?'#3fb950':'#f85149')+row('Type',(navigator.connection&&navigator.connection.effectiveType)||'?')+row('RTT',(navigator.connection&&navigator.connection.rtt!=null)?navigator.connection.rtt+' ms':'N/A')+row('Server',PROXY))+'<div style="margin-top:8px;"><button id="pingBtn" style="padding:5px 12px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#c9d1d9;font-family:inherit;font-size:11px;cursor:pointer;">⚡ Ping</button> <span id="pingRes" style="color:#8b949e;font-size:11px;"></span></div>';
-          body.querySelector('#pingBtn').onclick=async function(){this.disabled=true;this.textContent='…';const r=document.getElementById('pingRes'),t0=Date.now();try{const res=await fetch(PROXY+'?_='+t0,{method:'HEAD',cache:'no-store'});r.style.color='#3fb950';r.textContent='✓ '+res.status+' in '+(Date.now()-t0)+'ms';}catch(e){r.style.color='#f85149';r.textContent='✗ '+e.message;}this.disabled=false;this.textContent='⚡ Ping';};
-        } else if(i===4){
-          body.innerHTML=sec('Processes',processes.map(p=>row(p.name,p.cpu.toFixed(1)+'% · '+p.mem+' MB')).join('')||'<div style="color:#8b949e;">None</div>')+sec('Windows',windows.map(w=>{const t=w.querySelector('.title-text');return row(t?t.textContent:'?','z:'+w.style.zIndex);}).join('')||'<div style="color:#8b949e;">None</div>');
-        } else if(i===5){
-          body.innerHTML='<div style="color:#8b949e;padding:8px 0;">Loading…</div>';
-          (async()=>{
-            try{
-              const [svcR,depR]=await Promise.all([fetch(PROXY+'/render-api/services/'+SVCID).then(r=>r.json()),fetch(PROXY+'/render-api/services/'+SVCID+'/deploys?limit=5').then(r=>r.json())]);
-              const s=svcR.service||svcR;
-              const status=s.suspended==='suspended'?'suspended':(s.serviceDetails&&s.serviceDetails.status)||s.status||'unknown';
-              const depList=Array.isArray(depR)?depR:(depR.deploys||[]);
-              let h='<div style="margin-bottom:10px;">'
-                +'<button id="rd" style="padding:5px 11px;border-radius:4px;border:1px solid #238636;background:#21262d;color:#3fb950;font-family:inherit;font-size:11px;cursor:pointer;margin-right:6px;">⚡ Deploy</button>'
-                +'<button id="rr" style="padding:5px 11px;border-radius:4px;border:1px solid #9e6a03;background:#21262d;color:#e3b341;font-family:inherit;font-size:11px;cursor:pointer;margin-right:6px;">🔄 Restart</button>'
-                +'<button id="rs" style="padding:5px 11px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:11px;cursor:pointer;margin-right:6px;">⏸ Suspend</button>'
-                +'<button id="rv" style="padding:5px 11px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:11px;cursor:pointer;margin-right:6px;">▶ Resume</button>'
-                +'<button id="rf" style="padding:5px 11px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:11px;cursor:pointer;">↻</button>'
-                +'</div>'
-                +'<div id="rmsg" style="min-height:16px;font-size:11px;margin-bottom:6px;"></div>';
-              h+=sec('Service',row('Name',s.name||'—')+row('Status',status,svcColor(status))+row('Region',(s.serviceDetails&&s.serviceDetails.region)||'—')+row('Plan',(s.serviceDetails&&s.serviceDetails.plan)||'—')+row('Branch',(s.serviceDetails&&s.serviceDetails.branch)||'—')+row('Updated',s.updatedAt?new Date(s.updatedAt).toLocaleString():'—'));
-              h+=sec('Deploys',depList.length?depList.map(d=>{const dd=d.deploy||d;return row(new Date(dd.createdAt||0).toLocaleTimeString()+' — '+(dd.commit&&dd.commit.message?dd.commit.message.slice(0,35):dd.trigger||'manual'),dd.status||'?',svcColor(dd.status));}).join(''):'<div style="color:#8b949e;">None</div>');
-              body.innerHTML=h;
-              const msg=body.querySelector('#rmsg');
-              async function act(path,method,confirm_msg){
-                if(confirm_msg&&!window.confirm(confirm_msg))return;
-                msg.style.color='#e3b341';msg.textContent='Working…';
-                try{await fetch(PROXY+'/render-api'+path,{method,headers:{'Content-Type':'application/json'},body:method==='POST'?'{}':undefined});msg.style.color='#3fb950';msg.textContent='Done ✓';setTimeout(()=>renderTab(5),3000);}
-                catch(e){msg.style.color='#f85149';msg.textContent='Error: '+e.message;}
+        if(i===0){const acct=(()=>{try{return JSON.parse(localStorage.getItem('desktop_account_v1')||'null');}catch(e){return null;}})();const now=new Date();dbody.innerHTML=dSec('Identity',dRow('Username',acct?acct.username:'Guest')+dRow('Server',PROXY)+dRow('Uptime',window._sessionStart?Math.round((Date.now()-window._sessionStart)/1000)+'s':'N/A'))+dSec('Browser',dRow('Platform',navigator.platform||'?')+dRow('Language',navigator.language)+dRow('Cores',navigator.hardwareConcurrency||'?')+dRow('RAM',navigator.deviceMemory?navigator.deviceMemory+' GB':'N/A')+dRow('Screen',screen.width+'×'+screen.height)+dRow('Viewport',window.innerWidth+'×'+window.innerHeight)+dRow('Online',navigator.onLine?'Yes':'No',navigator.onLine?'#3fb950':'#f85149')+dRow('Fullscreen',document.fullscreenElement?'Yes':'No'))+dSec('Time',dRow('Local',now.toLocaleTimeString())+dRow('Timezone',Intl.DateTimeFormat().resolvedOptions().timeZone));}
+        else if(i===1){let h='';if(performance.memory){const u=(performance.memory.usedJSHeapSize/1048576).toFixed(2),tot=(performance.memory.totalJSHeapSize/1048576).toFixed(2),lim=(performance.memory.jsHeapSizeLimit/1048576).toFixed(0),pct=(performance.memory.usedJSHeapSize/performance.memory.jsHeapSizeLimit*100).toFixed(1),col=parseFloat(pct)>80?'#f85149':parseFloat(pct)>50?'#e3b341':'#3fb950';h+=dSec('JS Heap',dRow('Used',u+' MB',col)+dRow('Allocated',tot+' MB')+dRow('Limit',lim+' MB')+dRow('Usage',pct+'%',col));h+='<div style="background:#21262d;border-radius:4px;height:8px;overflow:hidden;margin-bottom:16px;"><div style="height:100%;width:'+pct+'%;background:'+col+';"></div></div>';}else{h+='<div style="color:#8b949e;">Memory API unavailable</div>';}h+=dSec('Runtime',dRow('Windows',windows.length)+dRow('Processes',processes.length)+dRow('Icons',document.querySelectorAll('#desktop .desktop-icon').length)+dRow('Photos',(window._camPhotos||[]).length));dbody.innerHTML=h;}
+        else if(i===2){let lsSize=0,lsKeys=0;try{lsKeys=Object.keys(localStorage).length;Object.keys(localStorage).forEach(k=>{lsSize+=k.length+(localStorage.getItem(k)||'').length;});}catch(e){}const lsKB=(lsSize/1024).toFixed(2);let h=dSec('localStorage',dRow('Keys',lsKeys)+dRow('Size',lsKB+' KB',parseFloat(lsKB)>4000?'#f85149':'#3fb950')+dRow('Limit','5120 KB'));let kr='';try{Object.keys(localStorage).slice(0,12).forEach(k=>{const sz=((k.length+(localStorage.getItem(k)||'').length)/1024).toFixed(1);kr+=dRow(k.length>28?k.slice(0,28)+'…':k,sz+' KB');});}catch(e){}if(kr)h+=dSec('Keys',kr);h+=dSec('App',dRow('Photos',(window._camPhotos||[]).length)+dRow('Trash',(window._trash||[]).length));dbody.innerHTML=h;}
+        else if(i===3){dbody.innerHTML=dSec('Connection',dRow('Online',navigator.onLine?'Yes':'No',navigator.onLine?'#3fb950':'#f85149')+dRow('Type',(navigator.connection&&navigator.connection.effectiveType)||'?')+dRow('RTT',(navigator.connection&&navigator.connection.rtt!=null)?navigator.connection.rtt+' ms':'N/A')+dRow('Server',PROXY))+'<div style="margin-top:8px;"><button id="pingBtn2" style="padding:5px 12px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#c9d1d9;font-family:inherit;font-size:11px;cursor:pointer;">⚡ Ping</button> <span id="pingRes2" style="color:#8b949e;font-size:11px;"></span></div>';dbody.querySelector('#pingBtn2').onclick=async function(){this.disabled=true;this.textContent='…';const r=dbody.querySelector('#pingRes2'),t0=Date.now();try{const res=await fetch(PROXY+'?_='+t0,{method:'HEAD',cache:'no-store'});r.style.color='#3fb950';r.textContent='✓ '+res.status+' in '+(Date.now()-t0)+'ms';}catch(e){r.style.color='#f85149';r.textContent='✗ '+e.message;}this.disabled=false;this.textContent='⚡ Ping';};}
+        else if(i===4){dbody.innerHTML=dSec('Processes',processes.map(p=>dRow(p.name,p.cpu.toFixed(1)+'% · '+p.mem+' MB')).join('')||'<div style="color:#8b949e;">None</div>')+dSec('Windows',windows.map(w=>{const t=w.querySelector('.title-text');return dRow(t?t.textContent:'?','z:'+w.style.zIndex);}).join('')||'<div style="color:#8b949e;">None</div>');}
+        else if(i===5){
+          // ── Admin password gate ──
+          const ADMIN_HASH = '213646';
+          let _serverUnlocked = dw._serverUnlocked || false;
+
+          function _showServerLocked(){
+            dbody.innerHTML='';
+            const gate=document.createElement('div');
+            gate.style.cssText='display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;padding:32px;';
+            gate.innerHTML=`
+              <div style="font-size:32px;">🔐</div>
+              <div style="font-size:14px;font-weight:600;color:#e6edf3;text-align:center;">Admin Access Required</div>
+              <div style="font-size:11px;color:#8b949e;text-align:center;line-height:1.6;max-width:260px;">Enter the admin password to access server controls.</div>
+              <div style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:240px;">
+                <input id="adminPwInp" type="password" placeholder="Admin password" autocomplete="off"
+                  style="padding:8px 12px;border-radius:6px;border:1px solid #30363d;background:#161b22;color:#e6edf3;font-size:13px;font-family:inherit;outline:none;width:100%;box-sizing:border-box;border-bottom:2px solid #58a6ff;">
+                <div id="adminPwErr" style="font-size:11px;color:#f85149;min-height:14px;text-align:center;"></div>
+                <button id="adminPwBtn" style="padding:8px;border-radius:6px;border:none;background:#58a6ff;color:#000;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;">Unlock</button>
+              </div>
+            `;
+            dbody.appendChild(gate);
+            const inp=dbody.querySelector('#adminPwInp');
+            const btn=dbody.querySelector('#adminPwBtn');
+            const err=dbody.querySelector('#adminPwErr');
+            function tryUnlock(){
+              if(inp.value===ADMIN_HASH){
+                dw._serverUnlocked=true;
+                _showServerContent();
+              } else {
+                err.textContent='Incorrect password.';
+                inp.value='';
+                inp.style.borderBottomColor='#f85149';
+                setTimeout(()=>{err.textContent='';inp.style.borderBottomColor='#58a6ff';},2000);
               }
-              body.querySelector('#rd').onclick=()=>act('/services/'+SVCID+'/deploys','POST','Trigger a new deploy?');
-              body.querySelector('#rr').onclick=()=>act('/services/'+SVCID+'/restart','POST','Restart the service?');
-              body.querySelector('#rs').onclick=()=>act('/services/'+SVCID+'/suspend','POST','Suspend the service?');
-              body.querySelector('#rv').onclick=()=>act('/services/'+SVCID+'/resume','POST');
-              body.querySelector('#rf').onclick=()=>renderTab(5);
-            }catch(e){body.innerHTML='<div style="color:#f85149;">Error: '+esc(e.message)+'</div>';}
-          })();
+            }
+            btn.addEventListener('click',tryUnlock);
+            inp.addEventListener('keydown',e=>{if(e.key==='Enter')tryUnlock();});
+            setTimeout(()=>inp.focus(),50);
+          }
+
+          function _showServerContent(){
+            // ── Shared helpers ──────────────────────────────────────────────
+            async function proxyFetch(path, method='GET', body=null){
+              const ctrl = new AbortController();
+              const timer = setTimeout(()=>ctrl.abort(), 15000);
+              try{
+                const r = await fetch(PROXY + path, {
+                  method: 'POST',
+                  headers: {'Content-Type':'application/json'},
+                  body: JSON.stringify({
+                    _renderKey:    RENDER_KEY,
+                    _targetMethod: method,
+                    _targetPath:   path,
+                    _svcId: SVCID,
+                    _dbId:  DBID,
+                    ...(body||{}),
+                  }),
+                  signal: ctrl.signal,
+                });
+                clearTimeout(timer);
+                if(r.status===204||r.status===202) return {ok:true};
+                const text = await r.text();
+                if(!text.trim()) return {ok:true};
+                try{ return JSON.parse(text); }
+                catch(e){ throw new Error('HTTP '+r.status+': '+text.slice(0,300)); }
+              }catch(e){
+                clearTimeout(timer);
+                if(e.name==='AbortError') throw new Error('Timed out (15s) — server may be starting up, retry in a moment');
+                throw e;
+              }
+            }
+
+            // Admin-specific backend endpoint (protected by admin password)
+            async function adminFetch(endpoint, method='GET', body=null){
+              const ctrl = new AbortController();
+              const timer = setTimeout(()=>ctrl.abort(), 15000);
+              const url = PROXY + '/admin' + endpoint;
+              try{
+                const r = await fetch(url, {
+                  method: 'POST',
+                  headers: {'Content-Type':'application/json'},
+                  body: JSON.stringify({
+                    _adminPw: '213646',
+                    _method:  method,
+                    ...(body||{}),
+                  }),
+                  signal: ctrl.signal,
+                });
+                clearTimeout(timer);
+                const text = await r.text();
+                if(!text.trim()) return {ok: r.ok};
+                try{
+                  return JSON.parse(text);
+                }catch(e){
+                  throw new Error('Server returned non-JSON (HTTP '+r.status+'): '+text.slice(0,300));
+                }
+              }catch(e){
+                clearTimeout(timer);
+                if(e.name==='AbortError') throw new Error('Timed out (15s) — server may be sleeping');
+                throw new Error(e.message + ' ['+url+']');
+              }
+            }
+
+            // ── In-panel confirm dialog (no window.confirm) ──────────────────
+            function _adminConfirm(message, danger=false){
+              return new Promise(resolve=>{
+                // Overlay
+                const overlay = document.createElement('div');
+                overlay.style.cssText='position:absolute;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:99;border-radius:6px;backdrop-filter:blur(2px);';
+
+                const box = document.createElement('div');
+                box.style.cssText='background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px 22px;max-width:300px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.5);';
+
+                const icon = danger ? '⚠️' : 'ℹ️';
+                const confirmColor = danger ? '#f85149' : '#58a6ff';
+                const confirmBorder = danger ? '#4a1a1a' : '#1a2a4a';
+
+                box.innerHTML = `
+                  <div style="font-size:18px;margin-bottom:10px;text-align:center;">${icon}</div>
+                  <div style="font-size:12px;color:#e6edf3;text-align:center;line-height:1.6;margin-bottom:16px;">${message}</div>
+                  <div style="display:flex;gap:8px;">
+                    <button id="cfmCancel" style="flex:1;padding:7px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:12px;cursor:pointer;">Cancel</button>
+                    <button id="cfmOk" style="flex:1;padding:7px;border-radius:4px;border:1px solid ${confirmBorder};background:${confirmColor}22;color:${confirmColor};font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">Confirm</button>
+                  </div>
+                `;
+                overlay.appendChild(box);
+                // Attach to dbody so it's scoped to the DevTools window
+                dbody.style.position='relative';
+                dbody.appendChild(overlay);
+
+                box.querySelector('#cfmOk').onclick    = ()=>{ overlay.remove(); resolve(true);  };
+                box.querySelector('#cfmCancel').onclick = ()=>{ overlay.remove(); resolve(false); };
+                overlay.addEventListener('mousedown', e=>{ if(e.target===overlay){ overlay.remove(); resolve(false); } });
+              });
+            }
+            dbody.innerHTML = '';
+            const shell = document.createElement('div');
+            shell.style.cssText = 'display:flex;flex-direction:column;height:100%;';
+
+            // Top bar
+            const topBar = document.createElement('div');
+            topBar.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:0 0 10px;flex-shrink:0;border-bottom:1px solid #21262d;margin-bottom:10px;';
+            topBar.innerHTML = '<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#3fb950;">'
+              +'<span style="width:6px;height:6px;border-radius:50%;background:#3fb950;display:inline-block;"></span>Admin Panel</div>';
+            const lockBtn = document.createElement('button');
+            lockBtn.textContent = '🔒 Lock';
+            lockBtn.style.cssText = 'padding:3px 10px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:10px;cursor:pointer;';
+            lockBtn.onclick = ()=>{ dw._serverUnlocked=false; _showServerLocked(); };
+            topBar.appendChild(lockBtn);
+
+            // Sub-tab bar
+            const subTabs = ['Overview','Users','DB Browser','Logs'];
+            let activeSubTab = dw._activeSubTab || 0;
+            const subTabBar = document.createElement('div');
+            subTabBar.style.cssText = 'display:flex;gap:4px;margin-bottom:12px;flex-shrink:0;';
+            const subContent = document.createElement('div');
+            subContent.style.cssText = 'flex:1;overflow:auto;min-height:0;';
+
+            function styleSubTab(btn, active){
+              btn.style.cssText = `padding:4px 12px;border-radius:4px;border:1px solid ${active?'#58a6ff':'#30363d'};`
+                +`background:${active?'rgba(88,166,255,0.12)':'#21262d'};color:${active?'#58a6ff':'#8b949e'};`
+                +'font-family:inherit;font-size:11px;cursor:pointer;transition:all 80ms;';
+            }
+
+            const subTabEls = subTabs.map((label,i)=>{
+              const btn = document.createElement('button');
+              btn.textContent = label;
+              styleSubTab(btn, i===activeSubTab);
+              btn.onclick = ()=>{
+                activeSubTab = i;
+                dw._activeSubTab = i;
+                subTabEls.forEach((b,j)=>styleSubTab(b,j===i));
+                renderSubTab(i);
+              };
+              subTabBar.appendChild(btn);
+              return btn;
+            });
+
+            // ── Status/action message bar ──
+            const msgBar = document.createElement('div');
+            msgBar.style.cssText = 'min-height:16px;font-size:11px;margin-bottom:6px;flex-shrink:0;';
+            function setMsg(text, color='#8b949e'){ msgBar.style.color=color; msgBar.textContent=text; }
+
+            // ────────────────────────────────────────────────────────────────
+            // SUB-TAB 0: Overview
+            // ────────────────────────────────────────────────────────────────
+            async function renderOverview(){
+              subContent.innerHTML = '<div style="color:#8b949e;display:flex;align-items:center;gap:6px;"><span style="animation:spin 1s linear infinite;display:inline-block;">⟳</span> Loading…</div>';
+              try{
+                const [svcR, depR, dbR] = await Promise.all([
+                  proxyFetch('/render-api/services/'+SVCID, 'GET'),
+                  proxyFetch('/render-api/services/'+SVCID+'/deploys?limit=8', 'GET'),
+                  proxyFetch('/render-api/postgres/'+DBID, 'GET').catch(()=>null),
+                ]);
+
+                const s = svcR?.service || svcR || {};
+                const details = s.serviceDetails || {};
+                const status = s.suspended==='suspended'?'suspended': details.status||s.status||'unknown';
+                let depList = Array.isArray(depR)?depR: Array.isArray(depR?.deploys)?depR.deploys:[];
+
+                let h = '';
+
+                // Action buttons
+                h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">'
+                  +'<button id="rd" style="padding:5px 10px;border-radius:4px;border:1px solid #238636;background:#21262d;color:#3fb950;font-family:inherit;font-size:11px;cursor:pointer;">⚡ Deploy</button>'
+                  +'<button id="rr" style="padding:5px 10px;border-radius:4px;border:1px solid #9e6a03;background:#21262d;color:#e3b341;font-family:inherit;font-size:11px;cursor:pointer;">🔄 Restart</button>'
+                  +'<button id="rs" style="padding:5px 10px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:11px;cursor:pointer;">⏸ Suspend</button>'
+                  +'<button id="rv" style="padding:5px 10px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:11px;cursor:pointer;">▶ Resume</button>'
+                  +'<button id="rf" style="padding:5px 10px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:11px;cursor:pointer;">↻ Refresh</button>'
+                  +'</div>';
+
+                h += dSec('Web Service',
+                  dRow('Name',    s.name||'—') +
+                  dRow('Status',  status, svcColor(status)) +
+                  dRow('Region',  details.region||s.region||'—') +
+                  dRow('Plan',    details.plan||s.plan||'—') +
+                  dRow('Branch',  details.branch||s.branch||'—') +
+                  dRow('URL',     details.url||s.url||'—') +
+                  dRow('Updated', s.updatedAt?new Date(s.updatedAt).toLocaleString():'—')
+                );
+
+                h += dSec('Recent Deploys', depList.length
+                  ? depList.map(entry=>{
+                      const d = entry.deploy||entry;
+                      const ts = d.createdAt?new Date(d.createdAt).toLocaleString():'?';
+                      const msg = d.commit?.message?d.commit.message.slice(0,36):(d.trigger||'manual');
+                      return dRow(ts, '['+( d.status||'?')+'] '+msg, svcColor(d.status));
+                    }).join('')
+                  : '<div style="color:#8b949e;font-size:11px;">No deploys found</div>'
+                );
+
+                if(dbR && !dbR.error){
+                  const db = dbR;
+                  const dbStatus = db.status||db.state||'—';
+                  h += dSec('PostgreSQL',
+                    dRow('Name',    db.name||'—') +
+                    dRow('Status',  dbStatus, svcColor(dbStatus)) +
+                    dRow('Plan',    db.plan||db.databasePlan||'—') +
+                    dRow('Region',  db.region||'—') +
+                    dRow('Version', db.version||'—') +
+                    dRow('Created', db.createdAt?new Date(db.createdAt).toLocaleString():'—') +
+                    dRow('Expires', db.expiresAt?new Date(db.expiresAt).toLocaleString():'Never')
+                  );
+                }
+
+                subContent.innerHTML = h;
+
+                async function act(path, method, confirmMsg){
+                  if(confirmMsg){
+                    const ok = await _adminConfirm(confirmMsg, true);
+                    if(!ok) return;
+                  }
+                  setMsg('Working…','#e3b341');
+                  try{
+                    const res = await proxyFetch('/render-api'+path, method);
+                    setMsg('Done ✓'+(res?.id?' ('+res.id+')':''), '#3fb950');
+                    setTimeout(()=>renderOverview(), 4000);
+                  }catch(e){ setMsg('Error: '+e.message, '#f85149'); }
+                }
+                subContent.querySelector('#rd').onclick = ()=>act('/services/'+SVCID+'/deploys','POST','Trigger a new deploy?');
+                subContent.querySelector('#rr').onclick = ()=>act('/services/'+SVCID+'/restart','POST','Restart the service?');
+                subContent.querySelector('#rs').onclick = ()=>act('/services/'+SVCID+'/suspend','POST','Suspend the service?');
+                subContent.querySelector('#rv').onclick = ()=>act('/services/'+SVCID+'/resume','POST');
+                subContent.querySelector('#rf').onclick = ()=>renderOverview();
+
+              }catch(e){
+                subContent.innerHTML = '<div style="color:#f85149;font-size:11px;background:#1a0e0e;border:1px solid #4a1a1a;border-radius:6px;padding:12px;word-break:break-word;line-height:1.6;">'
+                  +'<b>Failed to load</b><br>'+dEsc(e.message)+'</div>'
+                  +'<button id="rf" style="margin-top:8px;padding:5px 12px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#c9d1d9;font-family:inherit;font-size:11px;cursor:pointer;">↻ Retry</button>';
+                subContent.querySelector('#rf').onclick = ()=>renderOverview();
+              }
+            }
+
+            // ────────────────────────────────────────────────────────────────
+            // SUB-TAB 1: Users
+            // ────────────────────────────────────────────────────────────────
+            async function renderUsers(){
+              subContent.innerHTML = '<div style="color:#8b949e;display:flex;align-items:center;gap:6px;"><span style="animation:spin 1s linear infinite;display:inline-block;">⟳</span> Loading users…</div>';
+              try{
+                const res = await adminFetch('/users', 'GET');
+                if(!res.ok) throw new Error(res.error||'Failed to load users');
+                const users = res.users || [];
+
+                let h = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
+                  +`<div style="font-size:11px;color:#8b949e;">${users.length} account${users.length!==1?'s':''} registered</div>`
+                  +'<button id="usrRefresh" style="padding:4px 10px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:11px;cursor:pointer;">↻</button>'
+                  +'</div>';
+
+                if(!users.length){
+                  h += '<div style="color:#8b949e;font-size:11px;">No accounts found.</div>';
+                } else {
+                  h += '<div id="userList">';
+                  users.forEach((u,i)=>{
+                    const hasConfig = !!u.config;
+                    const configSize = hasConfig ? JSON.stringify(u.config).length : 0;
+                    h += `<div class="usr-row" data-idx="${i}" style="background:#161b22;border:1px solid #21262d;border-radius:6px;margin-bottom:6px;overflow:hidden;">
+                      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;" onclick="this.parentElement.querySelector('.usr-detail').style.display=this.parentElement.querySelector('.usr-detail').style.display==='none'?'block':'none'">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#58a6ff,#0d419d);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;">${dEsc(u.username[0].toUpperCase())}</div>
+                          <div>
+                            <div style="font-size:12px;font-weight:600;color:#e6edf3;">${dEsc(u.username)}</div>
+                            <div style="font-size:10px;color:#8b949e;">Joined ${u.created_at?new Date(u.created_at).toLocaleDateString():'?'} · Config: ${hasConfig?Math.round(configSize/1024*10)/10+' KB':'none'}</div>
+                          </div>
+                        </div>
+                        <div style="display:flex;gap:6px;align-items:center;">
+                          <button class="del-btn" data-user="${dEsc(u.username)}" style="padding:3px 8px;border-radius:4px;border:1px solid rgba(248,81,73,.4);background:rgba(248,81,73,.08);color:#f85149;font-family:inherit;font-size:10px;cursor:pointer;" onclick="event.stopPropagation()">Delete</button>
+                          <span style="color:#8b949e;font-size:10px;">▼</span>
+                        </div>
+                      </div>
+                      <div class="usr-detail" style="display:none;border-top:1px solid #21262d;padding:10px 12px;">
+                        ${dRow('Username', u.username)}
+                        ${dRow('Hash', u.hash ? u.hash.slice(0,12)+'…' : '—')}
+                        ${dRow('Created', u.created_at?new Date(u.created_at).toLocaleString():'—')}
+                        ${dRow('Updated', u.updated_at?new Date(u.updated_at).toLocaleString():'—')}
+                        ${dRow('Config size', hasConfig?configSize+' bytes':'none')}
+                        ${hasConfig?`<div style="margin-top:8px;">
+                          <div style="font-size:10px;color:#58a6ff;margin-bottom:4px;font-weight:700;">CONFIG JSON</div>
+                          <pre style="background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:8px;font-size:10px;color:#c9d1d9;overflow:auto;max-height:200px;white-space:pre-wrap;word-break:break-all;margin:0;">${dEsc(JSON.stringify(u.config,null,2))}</pre>
+                          <button class="wipe-cfg-btn" data-user="${dEsc(u.username)}" style="margin-top:6px;padding:3px 8px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:10px;cursor:pointer;">🗑 Wipe config</button>
+                        </div>`:'<div style="font-size:10px;color:#8b949e;margin-top:4px;">No config saved.</div>'}
+                      </div>
+                    </div>`;
+                  });
+                  h += '</div>';
+                }
+
+                subContent.innerHTML = h;
+                subContent.querySelector('#usrRefresh').onclick = ()=>renderUsers();
+
+                // Delete user
+                subContent.querySelectorAll('.del-btn').forEach(btn=>{
+                  btn.addEventListener('click', async ()=>{
+                    const uname = btn.dataset.user;
+                    const ok = await _adminConfirm(`Delete account "<b>${dEsc(uname)}</b>" permanently?<br>This cannot be undone.`, true);
+                    if(!ok) return;
+                    setMsg('Deleting…','#e3b341');
+                    try{
+                      const r = await adminFetch('/users/'+encodeURIComponent(uname)+'/delete','POST');
+                      if(!r.ok) throw new Error(r.error);
+                      setMsg('Deleted "'+uname+'"','#3fb950');
+                      setTimeout(()=>renderUsers(),1000);
+                    }catch(e){ setMsg('Error: '+e.message,'#f85149'); }
+                  });
+                });
+
+                // Wipe config
+                subContent.querySelectorAll('.wipe-cfg-btn').forEach(btn=>{
+                  btn.addEventListener('click', async ()=>{
+                    const uname = btn.dataset.user;
+                    const ok = await _adminConfirm(`Wipe saved config for "<b>${dEsc(uname)}</b>"?`, true);
+                    if(!ok) return;
+                    setMsg('Wiping config…','#e3b341');
+                    try{
+                      const r = await adminFetch('/users/'+encodeURIComponent(uname)+'/wipe-config','POST');
+                      if(!r.ok) throw new Error(r.error);
+                      setMsg('Config wiped for "'+uname+'"','#3fb950');
+                      setTimeout(()=>renderUsers(),1000);
+                    }catch(e){ setMsg('Error: '+e.message,'#f85149'); }
+                  });
+                });
+
+              }catch(e){
+                subContent.innerHTML = '<div style="color:#f85149;font-size:11px;background:#1a0e0e;border:1px solid #4a1a1a;border-radius:6px;padding:12px;line-height:1.6;">'+dEsc(e.message)+'<br><span style="color:#8b949e;font-size:10px;">Make sure the server has /admin/users and is running the latest server.js</span></div>'
+                  +'<button id="rf" style="margin-top:8px;padding:5px 10px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#c9d1d9;font-family:inherit;font-size:11px;cursor:pointer;">↻ Retry</button>';
+                subContent.querySelector('#rf').onclick = ()=>renderUsers();
+              }
+            }
+
+            // ────────────────────────────────────────────────────────────────
+            // SUB-TAB 2: DB Browser
+            // ────────────────────────────────────────────────────────────────
+            async function renderDBBrowser(){
+              subContent.innerHTML = '<div style="color:#8b949e;display:flex;align-items:center;gap:6px;"><span style="animation:spin 1s linear infinite;display:inline-block;">⟳</span> Querying database…</div>';
+              try{
+                const res = await adminFetch('/db/stats', 'GET');
+                if(!res.ok) throw new Error(res.error||'Failed to load DB stats');
+
+                let h = dSec('Database Stats',
+                  dRow('Total accounts',   res.totalAccounts??'—') +
+                  dRow('Accounts with config', res.withConfig??'—') +
+                  dRow('DB size',          res.dbSize||'—') +
+                  dRow('Table size',       res.tableSize||'—') +
+                  dRow('Oldest account',   res.oldest?new Date(res.oldest).toLocaleString():'—') +
+                  dRow('Newest account',   res.newest?new Date(res.newest).toLocaleString():'—')
+                );
+
+                // Custom SQL query box
+                h += '<div style="margin-bottom:12px;">'
+                  +'<div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#58a6ff;margin-bottom:6px;">Custom Query (SELECT only)</div>'
+                  +'<textarea id="sqlInput" rows="3" style="width:100%;box-sizing:border-box;background:#0d1117;border:1px solid #30363d;border-radius:4px;color:#c9d1d9;font-family:Consolas,monospace;font-size:11px;padding:8px;resize:vertical;outline:none;" placeholder="SELECT username, created_at FROM accounts ORDER BY created_at DESC LIMIT 10"></textarea>'
+                  +'<div style="display:flex;gap:6px;margin-top:6px;">'
+                  +'<button id="sqlRun" style="padding:5px 12px;border-radius:4px;border:1px solid #238636;background:#21262d;color:#3fb950;font-family:inherit;font-size:11px;cursor:pointer;">▶ Run</button>'
+                  +'<button id="sqlClear" style="padding:5px 10px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:11px;cursor:pointer;">✕ Clear</button>'
+                  +'</div>'
+                  +'<div id="sqlResult" style="margin-top:8px;"></div>'
+                  +'</div>';
+
+                subContent.innerHTML = h;
+
+                subContent.querySelector('#sqlRun').onclick = async ()=>{
+                  const sql = subContent.querySelector('#sqlInput').value.trim();
+                  if(!sql) return;
+                  const resultEl = subContent.querySelector('#sqlResult');
+                  resultEl.innerHTML = '<div style="color:#8b949e;font-size:11px;display:flex;align-items:center;gap:6px;"><span style="animation:spin 1s linear infinite;display:inline-block;">⟳</span> Running…</div>';
+                  try{
+                    const r = await adminFetch('/db/query', 'POST', {sql});
+                    if(!r.ok) throw new Error(r.error);
+                    const rows = r.rows || [];
+                    if(!rows.length){ resultEl.innerHTML='<div style="color:#8b949e;font-size:11px;">No rows returned.</div>'; return; }
+                    const cols = Object.keys(rows[0]);
+                    let table = `<div style="overflow:auto;max-height:220px;"><table style="width:100%;border-collapse:collapse;font-size:10px;font-family:Consolas,monospace;">`;
+                    table += '<tr>'+cols.map(c=>`<th style="padding:4px 8px;background:#161b22;color:#58a6ff;text-align:left;border-bottom:1px solid #30363d;white-space:nowrap;">${dEsc(c)}</th>`).join('')+'</tr>';
+                    rows.forEach((row,ri)=>{
+                      table += `<tr style="background:${ri%2?'#0d1117':'#161b22'};">`;
+                      cols.forEach(c=>{
+                        let val = row[c];
+                        if(typeof val === 'object' && val !== null) val = JSON.stringify(val).slice(0,80);
+                        table += `<td style="padding:3px 8px;color:#c9d1d9;border-bottom:1px solid #21262d;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${dEsc(String(val??''))}</td>`;
+                      });
+                      table += '</tr>';
+                    });
+                    table += `</table></div><div style="font-size:10px;color:#8b949e;margin-top:4px;">${rows.length} row${rows.length!==1?'s':''} returned</div>`;
+                    resultEl.innerHTML = table;
+                  }catch(e){ resultEl.innerHTML='<div style="color:#f85149;font-size:11px;">'+dEsc(e.message)+'</div>'; }
+                };
+
+                subContent.querySelector('#sqlClear').onclick = ()=>{
+                  subContent.querySelector('#sqlInput').value='';
+                  subContent.querySelector('#sqlResult').innerHTML='';
+                };
+
+                // Preset queries
+                const presets = [
+                  ['All users',    'SELECT username, created_at, updated_at FROM accounts ORDER BY created_at DESC'],
+                  ['With config',  "SELECT username, updated_at FROM accounts WHERE config IS NOT NULL ORDER BY updated_at DESC"],
+                  ['No config',    "SELECT username, created_at FROM accounts WHERE config IS NULL ORDER BY created_at DESC"],
+                  ['Row count',    'SELECT COUNT(*) as total FROM accounts'],
+                ];
+                let phtml = '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;">';
+                presets.forEach(([label, sql])=>{
+                  phtml += `<button class="preset-btn" data-sql="${dEsc(sql)}" style="padding:3px 8px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:10px;cursor:pointer;">${dEsc(label)}</button>`;
+                });
+                phtml += '</div>';
+                subContent.querySelector('#sqlResult').insertAdjacentHTML('afterend', phtml);
+                subContent.querySelectorAll('.preset-btn').forEach(btn=>{
+                  btn.addEventListener('click',()=>{
+                    subContent.querySelector('#sqlInput').value = btn.dataset.sql;
+                    subContent.querySelector('#sqlRun').click();
+                  });
+                });
+
+              }catch(e){
+                subContent.innerHTML = '<div style="color:#f85149;font-size:11px;background:#1a0e0e;border:1px solid #4a1a1a;border-radius:6px;padding:12px;">'+dEsc(e.message)+'<br><span style="color:#8b949e;font-size:10px;">Make sure server.js has /admin/db routes</span></div>'
+                  +'<button id="rf" style="margin-top:8px;padding:5px 10px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#c9d1d9;font-family:inherit;font-size:11px;cursor:pointer;">↻ Retry</button>';
+                subContent.querySelector('#rf').onclick = ()=>renderDBBrowser();
+              }
+            }
+
+            // ────────────────────────────────────────────────────────────────
+            // SUB-TAB 3: Logs
+            // ────────────────────────────────────────────────────────────────
+            async function renderLogs(){
+              subContent.innerHTML = '<div style="color:#8b949e;display:flex;align-items:center;gap:6px;"><span style="animation:spin 1s linear infinite;display:inline-block;">⟳</span> Fetching logs…</div>';
+              try{
+                const res = await adminFetch('/logs','GET');
+                if(!res.ok) throw new Error(res.error||'Failed to fetch logs');
+                const lines = (res.logs||[]);
+
+                let h = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
+                  +'<div style="font-size:10px;color:#8b949e;">'+lines.length+' recent log lines</div>'
+                  +'<button id="logRefresh" style="padding:3px 10px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-family:inherit;font-size:11px;cursor:pointer;">↻</button>'
+                  +'</div>';
+                h += '<div style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px;max-height:360px;overflow:auto;font-family:Consolas,monospace;font-size:10.5px;line-height:1.7;">';
+                if(!lines.length){
+                  h += '<span style="color:#8b949e;">No logs available. Server may not store logs locally.</span>';
+                } else {
+                  lines.forEach(line=>{
+                    let col='#c9d1d9';
+                    if(/error|fail|err/i.test(line)) col='#f85149';
+                    else if(/warn/i.test(line)) col='#e3b341';
+                    else if(/keepalive|✅|🚀/i.test(line)) col='#3fb950';
+                    else if(/\[render-api\]/i.test(line)) col='#58a6ff';
+                    h += `<div style="color:${col};margin-bottom:1px;">${dEsc(line)}</div>`;
+                  });
+                }
+                h += '</div>';
+                subContent.innerHTML = h;
+                // Scroll to bottom
+                const logBox = subContent.querySelector('div:last-child');
+                if(logBox) logBox.scrollTop = logBox.scrollHeight;
+                subContent.querySelector('#logRefresh').onclick = ()=>renderLogs();
+              }catch(e){
+                subContent.innerHTML = '<div style="color:#f85149;font-size:11px;background:#1a0e0e;border:1px solid #4a1a1a;border-radius:6px;padding:12px;">'+dEsc(e.message)+'<br><span style="color:#8b949e;font-size:10px;">Logs require /admin/logs route in server.js</span></div>'
+                  +'<button id="rf" style="margin-top:8px;padding:5px 10px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#c9d1d9;font-family:inherit;font-size:11px;cursor:pointer;">↻ Retry</button>';
+                subContent.querySelector('#rf').onclick = ()=>renderLogs();
+              }
+            }
+
+            function renderSubTab(i){
+              setMsg('');
+              if(i===0) renderOverview();
+              else if(i===1) renderUsers();
+              else if(i===2) renderDBBrowser();
+              else if(i===3) renderLogs();
+            }
+
+            shell.appendChild(topBar);
+            shell.appendChild(subTabBar);
+            shell.appendChild(msgBar);
+            shell.appendChild(subContent);
+            dbody.appendChild(shell);
+
+            renderSubTab(activeSubTab);
+          }
+
+          if(dw._serverUnlocked){ _showServerContent(); } else { _showServerLocked(); }
         }
       }
-      shell.appendChild(tabBar);
-      shell.appendChild(body);
-      dw.appendChild(shell);
+      dshell.appendChild(dtabBar);
+      dshell.appendChild(dbody);
+      dw.appendChild(dshell);
       finish(dw,'🛠️',p2);
       dw.style.display='flex';
       bring(dw);
@@ -6333,18 +7482,24 @@ input.addEventListener('keydown',(e)=>{
       dw._tmCleanup=()=>clearInterval(refreshTimer);
       switchTab(0);
     })();
-    appendCmd(raw,null);
-    return;
+    appendCmd(raw,null); return;
+
   } else {
-    o='\''+cmd.replace(/</g,'&lt;')+'\' is not recognized as a command. Type <b>help</b>.';
+    o=`<span style="color:${C.red}">'${esc(cmd)}' is not recognized as a command.</span> Type <b style="color:${C.green}">help</b> to see all commands, or click one in the sidebar.`;
   }
 
-  appendCmd(raw,o);
+  appendCmd(raw, o);
 });
 
-wrapper.appendChild(output);
-wrapper.appendChild(inputRow);
-win.appendChild(wrapper);
+/* Assemble */
+termPane.appendChild(output);
+termPane.appendChild(inputRow);
+body.appendChild(sidebar);
+body.appendChild(termPane);
+shell.appendChild(tabBar);
+shell.appendChild(body);
+win.appendChild(shell);
+
 finish(win,'⌨️',p);
 start.classList.remove('active');
 trackRecent('Command Prompt','⌨️','openCMD()');
@@ -6660,6 +7815,7 @@ w.addEventListener('mousedown',e=>{
   }
   d=true; dx=e.clientX-w.offsetLeft; dy=e.clientY-w.offsetTop;
   document.body.classList.add('win-dragging');
+  w.style.willChange='left,top';
 });
 
 document.addEventListener('mousemove',e=>{
@@ -6685,8 +7841,20 @@ document.addEventListener('mousemove',e=>{
     return;
   }
   if(!d) return;
-  w.style.left=(e.clientX-dx)+'px';
-  w.style.top=(e.clientY-dy)+'px';
+  // rAF-throttle window drag on perf-lite
+  if(window._perfLite){
+    if(!w._dragRaf){
+      const cx=e.clientX, cy=e.clientY;
+      w._dragRaf=requestAnimationFrame(()=>{
+        w._dragRaf=null;
+        w.style.left=(cx-dx)+'px';
+        w.style.top=(cy-dy)+'px';
+      });
+    }
+  } else {
+    w.style.left=(e.clientX-dx)+'px';
+    w.style.top=(e.clientY-dy)+'px';
+  }
   const zone=getSnapZone(e.clientX,e.clientY);
   if(zone!==snapZone){
     snapZone=zone;
@@ -6697,6 +7865,7 @@ document.addEventListener('mousemove',e=>{
 document.addEventListener('mouseup',e=>{
   unmaximizePending=false;
   document.body.classList.remove('win-dragging');
+  w.style.willChange='';
   if(!d) return;
   d=false;
   hideOverlay();
@@ -6714,22 +7883,32 @@ w.querySelectorAll('.resizeHandle').forEach(r=>{
     if(w.classList.contains('maximized')) return;
     e.stopPropagation(); e.preventDefault();
     document.body.classList.add('win-dragging');
+    w.style.willChange = 'left,top,width,height';
     const dir=Array.from(r.classList).find(c=>c!=='resizeHandle');
     const startX=e.clientX, startY=e.clientY;
     const startL=w.offsetLeft, startT=w.offsetTop;
     const startW=w.offsetWidth, startH=w.offsetHeight;
+    let _resizeRaf=null, _latestEv=null;
     function onMove(ev){
-      const dx=ev.clientX-startX, dy=ev.clientY-startY;
-      let nl=startL,nt=startT,nw=startW,nh=startH;
-      if(dir.includes('e')) nw=Math.max(MIN_W,startW+dx);
-      if(dir.includes('s')) nh=Math.max(MIN_H,startH+dy);
-      if(dir.includes('w')){nw=Math.max(MIN_W,startW-dx);nl=startL+startW-nw;}
-      if(dir.includes('n')){nh=Math.max(MIN_H,startH-dy);nt=startT+startH-nh;}
-      w.style.left=nl+'px';w.style.top=nt+'px';
-      w.style.width=nw+'px';w.style.height=nh+'px';
+      _latestEv=ev;
+      if(_resizeRaf) return;
+      _resizeRaf=requestAnimationFrame(()=>{
+        _resizeRaf=null;
+        const ev2=_latestEv;
+        const dx=ev2.clientX-startX, dy=ev2.clientY-startY;
+        let nl=startL,nt=startT,nw=startW,nh=startH;
+        if(dir.includes('e')) nw=Math.max(MIN_W,startW+dx);
+        if(dir.includes('s')) nh=Math.max(MIN_H,startH+dy);
+        if(dir.includes('w')){nw=Math.max(MIN_W,startW-dx);nl=startL+startW-nw;}
+        if(dir.includes('n')){nh=Math.max(MIN_H,startH-dy);nt=startT+startH-nh;}
+        w.style.left=nl+'px';w.style.top=nt+'px';
+        w.style.width=nw+'px';w.style.height=nh+'px';
+      });
     }
     function onUp(){
       document.body.classList.remove('win-dragging');
+      w.style.willChange='';
+      if(_resizeRaf){ cancelAnimationFrame(_resizeRaf); _resizeRaf=null; }
       document.removeEventListener('mousemove',onMove);
       document.removeEventListener('mouseup',onUp);
     }
@@ -6930,9 +8109,7 @@ function registerAppFn(name, fn){
   registerAppFn('Task Manager',        ()=>openTaskManager());
   registerAppFn('Notepad',             ()=>openNotepad());
   // All name variants that appear as data-name values across HTML and JS
-  registerAppFn('CMD',                 ()=>openCMD());
-  registerAppFn('CMD Command Prompt',  ()=>openCMD());
-  registerAppFn('Command Prompt',      ()=>openCMD());   // desktop icon data-name
+  registerAppFn('Command Prompt',      ()=>openCMD());
   registerAppFn('Settings',            ()=>openSettings());
 })();
 
@@ -7048,21 +8225,28 @@ document.getElementById('appCtxTaskbar').addEventListener('click', ()=>{
   }
   _taskbarPinned.add(name);
 
+  // If a group button already exists for this app, upgrade it to pinned
+  if(_taskGroups[name]){
+    const grp = _taskGroups[name];
+    grp.pinned = true;
+    grp.btn.dataset.pinnedApp = name;
+    _pinnedBtnMap[name] = grp.btn;
+    _updateGroupBtn(name);
+    showToast(`"${name}" pinned to Taskbar`, 'success', icon, 2200);
+    saveSettings();
+    return;
+  }
+
   const btn = document.createElement('div');
   btn.className = 'taskBtn';
   btn.title = name;
   btn.dataset.pinnedApp = name;
   btn.innerHTML = `<span style="font-size:20px;pointer-events:none">${icon}</span>`;
 
-  btn.onclick = ()=> launchApp(name);
-
   // Register in the global map so finish() can find this button
   _pinnedBtnMap[name] = btn;
-
-  btn.oncontextmenu = e=>{
-    e.preventDefault(); e.stopPropagation();
-    _showTbMenu(e.clientX, e.clientY, null, name, true);
-  };
+  _taskGroups[name] = { btn, windows: new Set(), pinned: true };
+  _updateGroupBtn(name);
 
   document.getElementById('taskIcons').appendChild(btn);
   showToast(`"${name}" pinned to Taskbar`, 'success', icon, 2200);
@@ -7092,7 +8276,7 @@ function _showTbMenu(cx, cy, win, appName, isPinnedBtn){
   // "Close window" — always visible when a real window exists
   closeRow.style.display  = win ? '' : 'none';
 
-  const isCurrentlyPinned = !!_pinnedBtnMap[appName] || _taskbarPinned.has(appName);
+  const isCurrentlyPinned = !!_pinnedBtnMap[appName] || _taskbarPinned.has(appName) || (_taskGroups[appName]?.pinned);
 
   if(appName && APP_FN_MAP[appName]){
     // App is known — show the appropriate pin action
@@ -7109,14 +8293,20 @@ function _showTbMenu(cx, cy, win, appName, isPinnedBtn){
   m._tbCtxWin     = win;
   m._tbCtxName    = appName;
   m._tbCtxPinned  = isPinnedBtn;
+
+  // Make visible off-screen first so we can measure real height
+  m.style.top  = '-9999px';
+  m.style.left = '-9999px';
   m.style.display = 'block';
 
-  // Position above cursor
-  const tbH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tb-height'))||48;
-  const approxH = isCurrentlyPinned || !win ? 72 : 108;
-  const y = Math.min(cy - approxH - 6, window.innerHeight - tbH - approxH - 4);
-  m.style.left = Math.min(cx, window.innerWidth - 200) + 'px';
-  m.style.top  = Math.max(4, y) + 'px';
+  // Now measure and position correctly: just above the taskbar, near the click X
+  const tbH    = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tb-height')) || 48;
+  const mH     = m.offsetHeight;
+  const mW     = m.offsetWidth || 180;
+  const top    = window.innerHeight - tbH - mH - 6;
+  const left   = Math.min(Math.max(4, cx - Math.round(mW / 2)), window.innerWidth - mW - 4);
+  m.style.top  = Math.max(4, top) + 'px';
+  m.style.left = left + 'px';
 }
 
 // ── Wire tbMenu item handlers ──
@@ -7142,19 +8332,15 @@ document.getElementById('tbMenuPin').addEventListener('click', ()=>{
   const iconSpan = win?.querySelector('.title-icon');
   const icon = iconSpan ? iconSpan.textContent.trim() : '📌';
 
-  // If a window task button already exists, upgrade it to permanent
-  if(win && win.task && !_pinnedBtnMap[name]){
-    const btn = win.task;
-    btn.dataset.pinnedApp = name;
-    btn._linkedWin = win;
-    _pinnedBtnMap[name] = btn;
-    // Re-wire contextmenu to show unpin option
-    btn.oncontextmenu = e=>{
-      e.preventDefault(); e.stopPropagation();
-      _tbMenuTarget = win;
-      _showTbMenu(e.clientX, e.clientY, win, name, true);
-    };
+  // If a group already exists, upgrade it to pinned
+  if(_taskGroups[name]){
+    const grp = _taskGroups[name];
+    grp.pinned = true;
+    grp.btn.dataset.pinnedApp = name;
+    _pinnedBtnMap[name] = grp.btn;
+    _updateGroupBtn(name);
     showToast(`"${name}" pinned to Taskbar`, 'success', icon, 2200);
+    saveSettings();
     return;
   }
 
@@ -7164,14 +8350,12 @@ document.getElementById('tbMenuPin').addEventListener('click', ()=>{
   btn.title = name;
   btn.dataset.pinnedApp = name;
   btn.innerHTML = `<span style="font-size:20px;pointer-events:none">${icon}</span>`;
-  btn.onclick = ()=> launchApp(name);
-  btn.oncontextmenu = e=>{
-    e.preventDefault(); e.stopPropagation();
-    _showTbMenu(e.clientX, e.clientY, null, name, true);
-  };
   _pinnedBtnMap[name] = btn;
+  _taskGroups[name] = { btn, windows: new Set(), pinned: true };
+  _updateGroupBtn(name);
   document.getElementById('taskIcons').appendChild(btn);
   showToast(`"${name}" pinned to Taskbar`, 'success', icon, 2200);
+  saveSettings();
 });
 
 // Unpin from Taskbar
@@ -7182,20 +8366,19 @@ document.getElementById('tbMenuUnpin').addEventListener('click', ()=>{
   if(!name) return;
 
   _taskbarPinned.delete(name);
-  const btn = _pinnedBtnMap[name];
   delete _pinnedBtnMap[name];
 
-  if(btn){
-    const linkedWin = btn._linkedWin;
-    if(linkedWin && document.contains(linkedWin)){
-      // Window still exists — swap to ephemeral button
-      const iconEl = btn.querySelector('span');
-      const iconTxt = iconEl ? iconEl.textContent.trim() : '🪟';
-      btn.remove();
-      const newBtn = createTask(linkedWin, iconTxt);
-      linkedWin.task = newBtn;
+  const grp = _taskGroups[name];
+  if(grp){
+    grp.pinned = false;
+    grp.btn.removeAttribute('data-pinned-app');
+    if(grp.windows.size === 0){
+      // No open windows — remove the button entirely
+      grp.btn.remove();
+      delete _taskGroups[name];
     } else {
-      btn.remove();
+      // Windows still open — keep as ephemeral group button
+      _updateGroupBtn(name);
     }
   }
   showToast(`"${name}" unpinned from Taskbar`, 'info', '📌', 2000);
@@ -7368,24 +8551,61 @@ desktop.addEventListener('mousedown', e => {
   if(e.target === desktop) clearSelection();
 });
 
-// ── Drop target highlight element ──
-let dropTarget = null;
-function showDropTarget(c, r){
-  if(!dropTarget){
-    dropTarget = document.createElement('div');
-    dropTarget.className = 'di-drop-target';
-    desktop.appendChild(dropTarget);
+// ── Drop target highlights — one box per selected icon ──
+let _dropTargets = []; // pool of reusable elements
+let _dtLastKey = '';
+
+function _getDTEl(i){
+  if(!_dropTargets[i]){
+    const el = document.createElement('div');
+    el.className = 'di-drop-target';
+    desktop.appendChild(el);
+    _dropTargets[i] = el;
   }
-  const { x, y } = cellToPos(c, r);
-  dropTarget.style.left   = x + 'px';
-  dropTarget.style.top    = y + 'px';
-  dropTarget.style.width  = (CELL_W - 8) + 'px';
-  dropTarget.style.height = (CELL_H - 8) + 'px';
-  dropTarget.style.display = 'block';
+  return _dropTargets[i];
 }
-function hideDropTarget(){
-  if(dropTarget) dropTarget.style.display = 'none';
+
+function showDropTargets(primaryC, primaryR, icons, primaryIcon){
+  // Build a stable key — only update DOM when cells actually change
+  const origPrimC = parseInt(primaryIcon.dataset.diCol);
+  const origPrimR = parseInt(primaryIcon.dataset.diRow);
+  const dc = primaryC - origPrimC;
+  const dr = primaryR - origPrimR;
+
+  const entries = [...icons].map(el => {
+    const tc = Math.max(0, parseInt(el.dataset.diCol) + dc);
+    const tr = Math.max(0, parseInt(el.dataset.diRow) + dr);
+    return { tc, tr };
+  });
+
+  const key = entries.map(e=>`${e.tc},${e.tr}`).join('|');
+  if(key === _dtLastKey) return;
+  _dtLastKey = key;
+
+  entries.forEach(({ tc, tr }, i) => {
+    const el = _getDTEl(i);
+    const { x, y } = cellToPos(tc, tr);
+    el.style.left    = x + 'px';
+    el.style.top     = y + 'px';
+    el.style.width   = (CELL_W - 8) + 'px';
+    el.style.height  = (CELL_H - 8) + 'px';
+    el.style.display = 'block';
+  });
+
+  // Hide any extras from a previous larger selection
+  for(let i = entries.length; i < _dropTargets.length; i++){
+    _dropTargets[i].style.display = 'none';
+  }
 }
+
+function hideDropTargets(){
+  _dtLastKey = '';
+  _dropTargets.forEach(el => el.style.display = 'none');
+}
+
+// Legacy aliases used by single-icon drag path
+function showDropTarget(c, r){ showDropTargets(c, r, selectedIcons, icon); }
+function hideDropTarget(){ hideDropTargets(); }
 
 // ── Per-icon event wiring ──
 function wireIcon(icon){
@@ -7394,24 +8614,23 @@ function wireIcon(icon){
   let ghost        = null;
   let offsetX = 0, offsetY = 0;
   let lastDropCell = null;
-  const DRAG_THRESHOLD = 6; // px before drag begins
+  const DRAG_THRESHOLD = 5;
 
-  // Single click: select
+  // Tilt tracking — smooth gentle tilt based on movement direction
+  let prevMouseX = 0;
+  let currentTilt = 0;
+
   icon.addEventListener('mousedown', e => {
     if(e.button !== 0) return;
     e.stopPropagation();
 
     mouseDownPos = { x: e.clientX, y: e.clientY };
     dragStarted  = false;
+    prevMouseX   = e.clientX;
 
-    // Ctrl+click: toggle in selection
     if(e.ctrlKey || e.metaKey){
-      if(selectedIcons.has(icon)){
-        icon.classList.remove('di-selected');
-        selectedIcons.delete(icon);
-      } else {
-        selectIcon(icon, true);
-      }
+      if(selectedIcons.has(icon)){ icon.classList.remove('di-selected'); selectedIcons.delete(icon); }
+      else selectIcon(icon, true);
     } else {
       if(!selectedIcons.has(icon)) selectIcon(icon, false);
     }
@@ -7425,17 +8644,12 @@ function wireIcon(icon){
         const dx = ev.clientX - mouseDownPos.x;
         const dy = ev.clientY - mouseDownPos.y;
         if(Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return;
-        // Start drag
+
         dragStarted = true;
         document.body.classList.add('win-dragging');
-
-        // Make sure the dragged icon is selected
         if(!selectedIcons.has(icon)) selectIcon(icon, false);
-
-        // Mark all selected icons as dragging
         selectedIcons.forEach(el => el.classList.add('di-dragging'));
 
-        // Create ghost for primary icon
         ghost = document.createElement('div');
         ghost.className = 'di-ghost';
         ghost.innerHTML = icon.innerHTML;
@@ -7444,63 +8658,59 @@ function wireIcon(icon){
 
       if(!dragStarted) return;
 
-      // Move ghost
+      // Gentle tilt — ease toward target based on horizontal speed
+      const speedX = ev.clientX - prevMouseX;
+      const targetTilt = Math.max(-8, Math.min(8, speedX * 0.8));
+      currentTilt += (targetTilt - currentTilt) * 0.25;
+      prevMouseX = ev.clientX;
+
+      // Ghost follows cursor directly — simple, no lag
       ghost.style.left = (ev.clientX - offsetX) + 'px';
       ghost.style.top  = (ev.clientY - offsetY) + 'px';
+      ghost.style.transform = `rotate(${currentTilt.toFixed(1)}deg)`;
 
-      // Show drop cell highlight
+      // Blue box — one per selected icon
       const desktopRect = desktop.getBoundingClientRect();
-      const relX = ev.clientX - offsetX + (CELL_W/2) - desktopRect.left;
-      const relY = ev.clientY - offsetY + (CELL_H/2) - desktopRect.top;
-      const { c, r } = posToCell(relX - CELL_W/2 + 40, relY - CELL_H/2 + 40);
+      const relX = ev.clientX - offsetX + 40 - desktopRect.left;
+      const relY = ev.clientY - offsetY + 44 - desktopRect.top;
+      const { c, r } = posToCell(relX, relY);
       const maxCols = Math.floor((window.innerWidth - PAD_X * 2) / CELL_W);
-      const clampedC = Math.min(c, maxCols - 1);
+      const clampedC = Math.max(0, Math.min(c, maxCols - 1));
       const clampedR = Math.max(0, r);
       lastDropCell = { c: clampedC, r: clampedR };
-      showDropTarget(clampedC, clampedR);
+      showDropTargets(clampedC, clampedR, selectedIcons, icon);
     }
 
-    function onUp(ev){
+    function onUp(){
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup',   onUp);
       document.body.classList.remove('win-dragging');
 
-      if(!dragStarted){
-        // Was just a click — keep selection, nothing to do
-        mouseDownPos = null;
-        return;
-      }
+      if(!dragStarted){ mouseDownPos = null; return; }
 
-      // Clean up ghost and dragging state
       if(ghost){ ghost.remove(); ghost = null; }
-      hideDropTarget();
+      hideDropTargets();
       selectedIcons.forEach(el => el.classList.remove('di-dragging'));
+      currentTilt = 0;
 
-      // Snap to drop cell
       if(lastDropCell){
         const { c: tc, r: tr } = lastDropCell;
-        // If only one icon dragged, place it directly (free cell search)
         if(selectedIcons.size === 1){
           const free = nearestFreeCell(tc, tr, icon);
           placeIcon(icon, free.c, free.r);
         } else {
-          // Multi-drag: move each icon relative to the primary's delta
           const origC = parseInt(icon.dataset.diCol);
           const origR = parseInt(icon.dataset.diRow);
-          const dc = tc - origC;
-          const dr = tr - origR;
+          const dc = tc - origC, dr = tr - origR;
           selectedIcons.forEach(el => {
-            const ec = parseInt(el.dataset.diCol) + dc;
-            const er = parseInt(el.dataset.diRow) + dr;
-            const free = nearestFreeCell(Math.max(0,ec), Math.max(0,er), el);
-            placeIcon(el, free.c, free.r);
+            const ec = Math.max(0, parseInt(el.dataset.diCol) + dc);
+            const er = Math.max(0, parseInt(el.dataset.diRow) + dr);
+            placeIcon(el, ...Object.values(nearestFreeCell(ec, er, el)));
           });
         }
       }
 
-      dragStarted  = false;
-      lastDropCell = null;
-      mouseDownPos = null;
+      dragStarted = false; lastDropCell = null; mouseDownPos = null;
     }
 
     document.addEventListener('mousemove', onMove);
@@ -7720,6 +8930,22 @@ window.addEventListener('blur',()=>document.body.classList.remove('win-dragging'
 document.body.style.background = 'linear-gradient(135deg,#041728 0%,#0a2547 25%,#0d3b70 50%,#0a2e5c 75%,#061525 100%)';
 loadSettings();
 _updateFsBtn();
+
+// ── Perf-lite: detect low-end devices (Chromebooks, low-RAM machines) ──
+(function detectPerfLite(){
+  const mem  = navigator.deviceMemory;        // GB, undefined if not supported
+  const cpus = navigator.hardwareConcurrency; // logical cores
+  const isLowEnd = (mem && mem <= 4) || (cpus && cpus <= 4);
+  const isChromebook = /CrOS/.test(navigator.userAgent);
+
+  if(isLowEnd || isChromebook){
+    document.documentElement.classList.add('perf-lite');
+    // Slow down autosave to every 15s instead of 5s on low-end
+    // (the existing 5s interval keeps running but we add a gate flag)
+    window._perfLite = true;
+    console.log('[perf] lite mode enabled — RAM:', mem, 'CPUs:', cpus, 'CrOS:', isChromebook);
+  }
+})();
 
 // ── Lock screen — always shown, first click enters fullscreen ──
 (function(){
